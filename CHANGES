@@ -1,16 +1,39 @@
 
+Changes with nginx 0.1.23                                        01 Mar 2005
+
+    *) Feature: the ngx_http_ssi_filter_module and the ssi, 
+       ssi_silent_errors, and ssi_min_file_chunk directives. The 'echo 
+       var="HTTP_..." default=""' and 'echo var="REMOTE_ADDR"' commands are 
+       supported.
+
+    *) Feature: the %request_time log parameter.
+
+    *) Feature: if the request has no the "Host" header line, then the 
+       proxy_preserve_host directive set this header line to the first 
+       server name of the server_name directive.
+
+    *) Bugfix: nginx could not be built on platforms different from i386, 
+       amd64, sparc … ppc; bug appeared in 0.1.22.
+
+    *) Bugfix: the ngx_http_autoindex_module now shows the information not 
+       about the symlink, but about file or directory it points to.
+
+    *) Bugfix: the %apache_length parameter logged the negative length of 
+       the response header if the no response was transferred to a client.
+
+
 Changes with nginx 0.1.22                                        22 Feb 2005
 
     *) Bugfix: the ngx_http_stub_status_module showed incorrect handled 
-       connections statictics if the proxing or FastCGI server were used.
+       connections statistics if the proxing or FastCGI server were used.
 
-    *) Bugfix: the installation pathes were incorrectly quoted on Linux and 
+    *) Bugfix: the installation paths were incorrectly quoted on Linux and 
        Solaris; bug appeared in 0.1.21.
 
 
 Changes with nginx 0.1.21                                        22 Feb 2005
 
-    *) Bugfix: the ngx_http_stub_status_module showed incorrect statictics 
+    *) Bugfix: the ngx_http_stub_status_module showed incorrect statistics 
        if "rtsig" method was used or if several worker process ran on SMP.
 
     *) Bugfix: nginx could not be built by the icc compiler on Linux or if 
@@ -21,10 +44,10 @@ Changes with nginx 0.1.21                                        22 Feb 2005
 
 Changes with nginx 0.1.20                                        17 Feb 2005
 
-    *) Feature: the new "script_filename" and "remote_port" parameters 
-       ofthe fastcgi_params directive.
+    *) Feature: the new "script_filename" and "remote_port" parameters of 
+       the fastcgi_params directive.
 
-    *) Bugfix: the FastCGI stderr stream was handled incorre”tly.
+    *) Bugfix: the FastCGI stderr stream was handled incorrectly.
 
 
 Changes with nginx 0.1.19                                        16 Feb 2005
@@ -123,11 +146,11 @@ Changes with nginx 0.1.15                                        19 Jan 2005
     *) Bugfix: the error while the connecting to the FastCGI server caused 
        segmentation fault.
 
-    *) Bugfix: the correct handling of the regular exporession, that has 
+    *) Bugfix: the correct handling of the regular expression, that has 
        different number of the captures and substitutions.
 
     *) Feature: the location, that is passed to the FastCGI server, can be 
-       regualar expression.
+       regular expression.
 
     *) Bugfix: the FastCGI's parameter REQUEST_URI is now passed with the 
        arguments and in the original state.
@@ -139,9 +162,9 @@ Changes with nginx 0.1.15                                        19 Jan 2005
        "Host" headers, if upstream listen on port 80; bug appeared in 
        0.1.14.
 
-    *) Bugfix: the same pathes in autoconfiguration paramters 
+    *) Bugfix: the same paths in autoconfiguration parameters 
        --http-client-body-temp-path=PATH and --http-proxy-temp-path=PATH, 
-       or --http-client-body-temp-path=PATH nad 
+       or --http-client-body-temp-path=PATH and 
        --http-fastcgi-temp-path=PATH caused segmentation fault.
 
 
@@ -231,7 +254,7 @@ Changes with nginx 0.1.11                                        02 Dec 2004
 
     *) Bugfix: "close() channel failed" errors.
 
-    *) Bugfix: the autodetection of the nobody and nogroup groups.
+    *) Bugfix: the autodetection of the "nobody" and "nogroup" groups.
 
     *) Bugfix: the send_lowat directive did not work on Linux.
 
@@ -287,7 +310,7 @@ Changes with nginx 0.1.7                                         12 Nov 2004
 
 Changes with nginx 0.1.6                                         11 Nov 2004
 
-    *) Bugfix: some location directive combiations with the regular 
+    *) Bugfix: some location directive combinations with the regular 
        expressions caused the wrong configuration choose.
 
 

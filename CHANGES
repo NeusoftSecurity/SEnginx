@@ -1,4 +1,15 @@
 
+Changes with nginx 0.1.13                                        21 Dec 2004
+
+    *) Feature: the server_names_hash and server_names_hash_threshold 
+       directives.
+
+    *) Bugfix: the *.domain.tld names in the server_name directive did not 
+       work.
+
+    *) Bugfix: the %request_length log parameter logged the incorrect length.
+
+
 Changes with nginx 0.1.12                                        06 Dec 2004
 
     *) Feature: the %request_length log parameter.

@@ -1,4 +1,19 @@
 
+Changes with nginx 0.1.9                                         25 Nov 2004
+
+    *) Bugfix: the proxied request was sent without arguments if the request 
+       contains "//", "/./", "/../" or "%XX".
+
+    *) Bugfix: the large compressed responses may be transferred not 
+       completely.
+
+    *) Bugfix: the files bigger than 2G was not transferred on Linux that 
+       does not support sendfile64().
+
+    *) Bugfix: while the build configuration on Linux the --with-poll_module 
+       parameter was required; bug appeared in 0.1.8.
+
+
 Changes with nginx 0.1.8                                         20 Nov 2004
 
     *) Bugfix: in the ngx_http_autoindex_module if the long file names were 

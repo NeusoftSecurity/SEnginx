@@ -18,6 +18,8 @@
  */
 
 
+#if (NGX_CRYPT)
+
 #if (NGX_LINUX)
 
 ngx_int_t
@@ -83,3 +85,5 @@ ngx_crypt(ngx_pool_t *pool, u_char *key, u_char *salt, u_char **encrypted)
 }
 
 #endif
+
+#endif /* NGX_CRYPT */

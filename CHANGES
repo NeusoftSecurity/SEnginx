@@ -1,10 +1,29 @@
 
+Changes with nginx 0.1.27                                        28 Mar 2005
+
+    *) Feature: the "blocked" parameter of the "invalid_referers" directive.
+
+    *) Change: the errors while handling the request header now logged at 
+       "info" level. The server name and the "Host" and "Referer" header 
+       lines also logged.
+
+    *) Change: the "Host" header line is also logged in error log.
+
+    *) Feature: the proxy_pass_unparsed_uri directive. The special handling 
+       of the "://" symbols in URI, appeared in 0.1.11 version, now is 
+       canceled.
+
+    *) Bugfix: nginx could not be built on FreeBSD and Linux, if the 
+       --without-ngx_http_auth_basic_module configuration parameter was 
+       used.
+
+
 Changes with nginx 0.1.26                                        22 Mar 2005
 
     *) Change: the invalid client header lines are now ignored and logged 
        at the info level.
 
-    *) Change: the host name is also logged in error log.
+    *) Change: the server name is also logged in error log.
 
     *) Feature: the ngx_http_auth_basic_module module and the auth_basic 
        and auth_basic_user_file directives.

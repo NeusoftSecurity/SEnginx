@@ -1,0 +1,22 @@
+
+# Copyright (C) Igor Sysoev
+
+
+CFLAGS =	-O2 -Ob1 -Oi -Gs $(LIBC) $(CPU_OPT)
+PCREFLAGS =	-DPCRE_STATIC -DPOSIX_MALLOC_THRESHOLD=10
+
+
+pcre.lib:	pcre.h
+	cl -Fedftables dftables.c
+
+	dftables > chartables.c
+
+	cl -nologo -c $(CFLAGS) $(PCREFLAGS)				\
+		maketables.c get.c study.c pcre.c
+
+	link -lib -out:pcre.lib -verbose:lib				\
+		maketables.obj get.obj study.obj pcre.obj
+
+pcre.h:
+	patch -o pcre.h pcre.in patch.pcre.in
+	patch -o config.h config.in patch.config.in

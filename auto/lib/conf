@@ -1,0 +1,19 @@
+
+# Copyright (C) Igor Sysoev
+
+
+if [ $USE_PCRE = YES ]; then
+    . auto/lib/pcre/conf
+fi
+
+if [ $USE_MD5 = YES ]; then
+    . auto/lib/md5/conf
+fi
+
+if [ $USE_OPENSSL = YES ]; then
+    . auto/lib/openssl/conf
+fi
+
+if [ $USE_ZLIB = YES ]; then
+    . auto/lib/zlib/conf
+fi

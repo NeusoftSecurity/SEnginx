@@ -1,0 +1,80 @@
+
+# Copyright (C) Igor Sysoev
+
+
+echo $ngx_n "checking for $ngx_type printf() format ..." $ngx_c
+echo >> $NGX_ERR
+echo "checking for $ngx_type printf() format" >> $NGX_ERR
+
+ngx_fmt=no
+comma=
+
+for fmt in $ngx_formats
+do
+
+    cat << END > $NGX_AUTOTEST.c
+
+#include <sys/types.h>
+#include <sys/time.h>
+#include <stdio.h>
+#include <sys/resource.h>
+$NGX_INTTYPES_H
+$NGX_AUTO_CONFIG
+
+int main() {
+    printf("$fmt", ($ngx_type) $ngx_max_value);
+    return 0;
+}
+
+END
+
+    eval "$CC_WARN $CC_TEST_FLAGS -o $NGX_AUTOTEST $NGX_AUTOTEST.c \
+          >> $NGX_ERR 2>&1"
+
+    max_value=`echo $ngx_max_value | sed -e "s/L*\$//"`
+
+    if [ -x $NGX_AUTOTEST ]; then
+        if [ "`$NGX_AUTOTEST`" = $max_value ]; then
+            if [ $ngx_fmt_collect = yes ]; then
+                echo $ngx_n "$comma \"${fmt}\" is appropriate" $ngx_c
+            else
+                echo $ngx_n "$comma \"${fmt}\" used" $ngx_c
+            fi
+            ngx_fmt=$fmt
+        fi
+    fi
+
+    rm $NGX_AUTOTEST*
+
+    if [ $ngx_fmt != no ]; then
+        if [ $ngx_fmt_collect = yes ]; then
+            eval "ngx_${ngx_size}_fmt=\"\${ngx_${ngx_size}_fmt} \$ngx_fmt\""
+            comma=","
+            continue
+        else
+            break
+        fi
+    fi
+
+    echo $ngx_n "$comma \"${fmt}\" is not appropriate" $ngx_c
+    comma=","
+done
+
+echo
+
+if [ $ngx_fmt = no ]; then
+    echo "$0: error: printf() $ngx_type format not found"
+    exit 1
+fi
+
+
+if [ $ngx_fmt_collect = no ]; then
+    cat << END >> $NGX_AUTO_CONFIG_H
+
+#ifndef $ngx_fmt_name
+#define $ngx_fmt_name  "$ngx_fmt"
+#endif
+
+END
+
+fi

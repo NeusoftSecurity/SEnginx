@@ -1,0 +1,57 @@
+
+# Copyright (C) Igor Sysoev
+
+
+if [ ".$PLATFORM" = "." ]; then
+    echo "checking for OS"
+
+    SYSTEM=`uname -s 2>/dev/null`
+    RELEASE=`uname -r 2>/dev/null`
+    MACHINE=`uname -m 2>/dev/null`
+
+    echo " + $SYSTEM $RELEASE $MACHINE"
+
+    PLATFORM="$SYSTEM:$RELEASE:$MACHINE";
+else
+    echo "building for $PLATFORM"
+fi
+
+case $PLATFORM in
+
+    FreeBSD:* | DragonFly:*)
+        . auto/os/freebsd
+    ;;
+
+    Linux:*)
+        . auto/os/linux
+    ;;
+
+    SunOS:*)
+        . auto/os/solaris
+    ;;
+
+    win32)
+        CORE_INCS="$WIN32_INCS"
+        CORE_DEPS="$WIN32_DEPS"
+        CORE_SRCS="$WIN32_SRCS $IOCP_SRCS"
+        OS_CONFIG="$WIN32_CONFIG"
+        EVENT_MODULES="$EVENT_MODULES $IOCP_MODULE"
+        EVENT_FOUND=YES
+
+        if [ $EVENT_SELECT = NO ]; then
+            CORE_SRCS="$CORE_SRCS $SELECT_SRCS"
+            EVENT_MODULES="$EVENT_MODULES $SELECT_MODULE"
+        fi
+
+        have=HAVE_AIO . auto/have
+        have=HAVE_IOCP . auto/have
+        CORE_LIBS="$CORE_LIBS ws2_32.lib"
+    ;;
+
+    *)
+        CORE_INCS="$UNIX_INCS"
+        CORE_DEPS="$UNIX_DEPS $POSIX_DEPS"
+        CORE_SRCS="$UNIX_SRCS"
+    ;;
+
+esac

@@ -1,0 +1,360 @@
+
+# Copyright (C) Igor Sysoev
+
+
+mkdir -p $OBJS/src/core $OBJS/src/event $OBJS/src/event/modules \
+         $OBJS/src/os/unix $OBJS/src/os/win32 \
+         $OBJS/src/http $OBJS/src/http/modules $OBJS/src/http/modules/proxy \
+         $OBJS/src/imap
+
+
+echo "CC = $CC"                                                   > $MAKEFILE
+echo "CPP = $CPP"                                                 >> $MAKEFILE
+echo "LINK = $LINK"                                               >> $MAKEFILE
+if [ "$CC" = wcl386 ]; then
+    echo MAKE = wmake                                             >> $MAKEFILE
+fi
+echo "CFLAGS = $CFLAGS"                                           >> $MAKEFILE
+echo                                                              >> $MAKEFILE
+
+
+if [ $MAKE_SL = YES ]; then
+    echo                                                          >> $MAKEFILE
+fi
+
+all_inc="$CORE_INCS $OBJS $HTTP_INCS $IMAP_INCS"
+all_inc=`echo " $all_inc" | sed -e "s/ \([^ ]\)/ $INCOPT\1/g"`
+all_inc=`echo $all_inc | sed -e "s/\//$DIRSEP/g"`
+
+echo "ALL_INCS = $all_inc"                                        >> $MAKEFILE
+echo                                                              >> $MAKEFILE
+
+all_srcs="$CORE_SRCS"
+
+
+# CORE_DEPS
+
+if [ $MAKE_SL = YES ]; then
+    echo $ngx_n "CORE_DEPS =" $ngx_c                              >> $MAKEFILE
+else
+    echo "CORE_DEPS = \\"                                         >> $MAKEFILE
+fi
+
+for dep in $CORE_DEPS
+do
+    dep=`echo $dep | sed -e "s/\//$DIRSEP/g"`
+
+    if [ $MAKE_SL = YES ]; then
+        echo $ngx_n " $dep" $ngx_c                                >> $MAKEFILE
+    else
+        echo "	$dep \\"                                          >> $MAKEFILE
+    fi
+done
+echo                                                              >> $MAKEFILE
+
+
+# CORE_INCS
+
+if [ $MAKE_SL = YES ]; then
+    echo                                                          >> $MAKEFILE
+fi
+
+inc="$CORE_INCS $OBJS"
+inc=`echo " $inc" | sed -e "s/ \([^ ]\)/ $INCOPT\1/g" -e "s/\//$DIRSEP/g"`
+
+echo "CORE_INCS = $inc"                                           >> $MAKEFILE
+echo                                                              >> $MAKEFILE
+
+
+if [ $HTTP = YES ]; then
+
+    all_srcs="$all_srcs $HTTP_SRCS"
+
+    # HTTP_DEPS
+
+    if [ $MAKE_SL = YES ]; then
+        echo $ngx_n "HTTP_DEPS =" $ngx_c                          >> $MAKEFILE
+    else
+        echo "HTTP_DEPS = \\"                                     >> $MAKEFILE
+    fi
+
+    for dep in $HTTP_DEPS
+    do
+        dep=`echo $dep | sed -e "s/\//$DIRSEP/g"`
+
+        if [ $MAKE_SL = YES ]; then
+            echo $ngx_n " $dep" $ngx_c                            >> $MAKEFILE
+        else
+            echo "	$dep \\"                                  >> $MAKEFILE
+        fi
+    done
+    echo                                                          >> $MAKEFILE
+
+
+    # HTTP_INCS
+
+    if [ $MAKE_SL = YES ]; then
+        echo                                                      >> $MAKEFILE
+    fi
+
+    inc="$HTTP_INCS $OBJS"
+    inc=`echo " $inc" | sed -e "s/ \([^ ]\)/ $INCOPT\1/g" -e "s/\//$DIRSEP/g"`
+
+    echo "HTTP_INCS = $inc"                                       >> $MAKEFILE
+    echo                                                          >> $MAKEFILE
+
+fi
+
+
+if [ $IMAP = YES ]; then
+
+    all_srcs="$all_srcs $IMAP_SRCS"
+
+    # IMAP_DEPS
+
+    if [ $MAKE_SL = YES ]; then
+        echo $ngx_n "IMAP_DEPS =" $ngx_c                          >> $MAKEFILE
+    else
+        echo "IMAP_DEPS = \\"                                     >> $MAKEFILE
+    fi
+
+    for dep in $IMAP_DEPS
+    do
+        dep=`echo $dep | sed -e "s/\//$DIRSEP/g"`
+
+        if [ $MAKE_SL = YES ]; then
+            echo $ngx_n " $dep" $ngx_c                            >> $MAKEFILE
+        else
+            echo "	$dep \\"                                  >> $MAKEFILE
+        fi
+    done
+    echo                                                          >> $MAKEFILE
+
+
+    # IMAP_INCS
+
+    if [ $MAKE_SL = YES ]; then
+        echo                                                      >> $MAKEFILE
+    fi
+
+    inc="$IMAP_INCS $OBJS"
+    inc=`echo " $inc" | sed -e "s/ \([^ ]\)/ $INCOPT\1/g" -e "s/\//$DIRSEP/g"`
+
+    echo "IMAP_INCS = $inc"                                       >> $MAKEFILE
+    echo                                                          >> $MAKEFILE
+
+fi
+
+
+# nginx
+
+if [ $MAKE_SL = YES ]; then
+    echo $ngx_n "nginx$BINEXT:	" $ngx_c                          >> $MAKEFILE
+else
+    echo "nginx$BINEXT: \\"                                       >> $MAKEFILE
+fi
+
+
+# nginx deps
+
+for src in $all_srcs
+do
+    obj=`echo $src | sed -e "s/\.c\$/.$OBJEXT/" -e "s/\.S\$/.$OBJEXT/"`
+    obj=`echo $OBJS/$obj | sed -e "s/\//$DIRSEP/g"`
+
+    if [ $MAKE_SL = YES ]; then
+        echo $ngx_n " $obj" $ngx_c                                >> $MAKEFILE
+    else
+        echo "	$obj \\"                                          >> $MAKEFILE
+    fi
+done
+
+for src in $NGX_MODULES_C $LINK_DEPS
+do
+    obj=`echo $src | sed -e "s/\.c\$/.$OBJEXT/"`
+    obj=`echo $obj | sed -e "s/\//$DIRSEP/g"`
+
+    if [ $MAKE_SL = YES ]; then
+        echo $ngx_n " $obj" $ngx_c                                >> $MAKEFILE
+    else
+        echo "	$obj \\"                                          >> $MAKEFILE
+    fi
+done
+echo                                                              >> $MAKEFILE
+
+
+# nginx build
+
+if [ $MAKE_SL = YES ]; then
+    echo $ngx_n "	\$(LINK) ${BINOUT}nginx" $ngx_c           >> $MAKEFILE
+else
+    echo "	\$(LINK) ${BINOUT}nginx \\"                       >> $MAKEFILE
+fi
+
+
+# nginx build sources
+
+for src in $all_srcs
+do
+    obj=`echo $src | sed -e "s/\.c\$/.$OBJEXT/" -e "s/\.S\$/.$OBJEXT/"`
+    obj=`echo $OBJS/$obj | sed -e "s/\//$DIRSEP/g"`
+
+    if [ $MAKE_SL = YES ]; then
+        echo $ngx_n " $obj" $ngx_c                                >> $MAKEFILE
+    else
+        echo "	$obj \\"                                          >> $MAKEFILE
+    fi
+done
+
+
+# nginx build ngx_modules.c and libs
+
+obj=`echo $NGX_MODULES_C | sed -e "s/\.c\$/.$OBJEXT/" -e "s/\//$DIRSEP/g"`
+src=`echo $NGX_MODULES_C | sed -e "s/\//$DIRSEP/g"`
+libs=`echo $CORE_LIBS | sed -e "s/\.c\$/.$OBJEXT/" -e "s/\//$DIRSEP/g"`
+link=`echo $CORE_LINK | sed -e "s/\.c\$/.$OBJEXT/" -e "s/\//$DIRSEP/g"`
+
+if [ $MAKE_SL = YES ]; then
+    echo " $obj $libs $CORE_LINK"                                 >> $MAKEFILE
+    echo                                                          >> $MAKEFILE
+else
+    echo "	$obj \\"                                          >> $MAKEFILE
+    echo "	$libs \\"                                         >> $MAKEFILE
+    echo "	$link"                                            >> $MAKEFILE
+    echo                                                          >> $MAKEFILE
+fi
+
+
+# ngx_modules.c
+
+deps="\$(CORE_DEPS)"
+
+if [ $PCH != NO ]; then
+    args="\$(CFLAGS) $USEPCH \$(ALL_INCS)"
+else
+    args="\$(CFLAGS) $USEPCH \$(CORE_INCS)"
+fi
+
+if [ $MAKE_SL = YES ]; then
+    echo "$obj: $NGX_MODULES_C $deps"                             >> $MAKEFILE
+    echo $ngx_n "	\$(CC) $COMPOPT $args" $ngx_c             >> $MAKEFILE
+    echo " $OBJOUT$obj $src"                                      >> $MAKEFILE
+    echo                                                          >> $MAKEFILE
+else
+    echo "$obj: \\"                                               >> $MAKEFILE
+    echo "	$NGX_MODULES_C $deps"                             >> $MAKEFILE
+    echo "	\$(CC) $COMPOPT $args \\"                         >> $MAKEFILE
+    echo "		$OBJOUT$obj \\"                           >> $MAKEFILE
+    echo "		$src"                                     >> $MAKEFILE
+    echo                                                          >> $MAKEFILE
+fi
+
+
+# core sources
+
+for src in $CORE_SRCS
+do
+    obj=`echo $src | sed -e "s/\.c\$/.$OBJEXT/" -e "s/\.S\$/.$OBJEXT/"`
+    obj=`echo $OBJS/$obj | sed -e "s/\//$DIRSEP/g"`
+    src=`echo $src | sed -e "s/\//$DIRSEP/g"`
+
+    if [ $MAKE_SL = YES ]; then
+        echo "$obj: $src $deps"                                   >> $MAKEFILE
+        echo "	\$(CC) $COMPOPT $args $OBJOUT$obj $src"           >> $MAKEFILE
+        echo                                                      >> $MAKEFILE
+    else
+        echo "$obj: \\"                                           >> $MAKEFILE
+        echo "	$src $deps"                                       >> $MAKEFILE
+        echo "	\$(CC) $COMPOPT $args \\"                         >> $MAKEFILE
+        echo "		$OBJOUT$obj \\"                           >> $MAKEFILE
+        echo "		$src"                                     >> $MAKEFILE
+        echo                                                      >> $MAKEFILE
+    fi
+done
+
+
+# http sources
+
+if [ $HTTP = YES ]; then
+
+    deps="\$(CORE_DEPS) \$(HTTP_DEPS)"
+
+    if [ $PCH != NO ]; then
+        args="\$(CFLAGS) $USEPCH \$(ALL_INCS)"
+    else
+        args="\$(CFLAGS) $USEPCH \$(CORE_INCS) \$(HTTP_INCS)"
+    fi
+
+    for src in $HTTP_SRCS
+    do
+        obj=`echo $src | sed -e "s/\.c\$/.$OBJEXT/"`
+        obj=`echo $OBJS/$obj | sed -e "s/\//$DIRSEP/g"`
+        src=`echo $src | sed -e "s/\//$DIRSEP/g"`
+
+        if [ $MAKE_SL = YES ]; then
+            echo "$obj: $src $deps"                               >> $MAKEFILE
+            echo "	\$(CC) $COMPOPT $args $OBJOUT$obj $src"   >> $MAKEFILE
+            echo                                                  >> $MAKEFILE
+        else
+            echo "$obj: \\"                                       >> $MAKEFILE
+            echo "	$src $deps"                               >> $MAKEFILE
+            echo "	\$(CC) $COMPOPT $args \\"                 >> $MAKEFILE
+            echo "		$OBJOUT$obj \\"                   >> $MAKEFILE
+            echo "		$src"                             >> $MAKEFILE
+            echo                                                  >> $MAKEFILE
+        fi
+    done
+
+fi
+
+
+# imap sources
+
+if [ $IMAP = YES ]; then
+
+    deps="\$(CORE_DEPS) \$(IMAP_DEPS)"
+
+    if [ $PCH != NO ]; then
+        args="\$(CFLAGS) $USEPCH \$(ALL_INCS)"
+    else
+        args="\$(CFLAGS) $USEPCH \$(CORE_INCS) \$(IMAP_INCS)"
+    fi
+
+    for src in $IMAP_SRCS
+    do
+        obj=`echo $src | sed -e "s/\.c\$/.$OBJEXT/"`
+        obj=`echo $OBJS/$obj | sed -e "s/\//$DIRSEP/g"`
+        src=`echo $src | sed -e "s/\//$DIRSEP/g"`
+
+        if [ $MAKE_SL = YES ]; then
+            echo "$obj: $src $deps"                               >> $MAKEFILE
+            echo "	\$(CC) $COMPOPT $args $OBJOUT$obj $src"   >> $MAKEFILE
+            echo                                                  >> $MAKEFILE
+        else
+            echo "$obj: \\"                                       >> $MAKEFILE
+            echo "	$src $deps"                               >> $MAKEFILE
+            echo "	\$(CC) $COMPOPT $args \\"                 >> $MAKEFILE
+            echo "		$OBJOUT$obj \\"                   >> $MAKEFILE
+            echo "		$src"                             >> $MAKEFILE
+            echo                                                  >> $MAKEFILE
+        fi
+    done
+
+fi
+
+
+# precompiled headers
+
+if [ $PCH != NO ]; then
+    echo "#include <ngx_config.h>" > $OBJS/pch.c
+
+    pch="$PCH:	src/core/ngx_config.h $OS_CONFIG $OBJS/ngx_auto_config.h"
+    pch=`echo $pch | sed -e "s/\//$DIRSEP/g"`
+    src="\$(CC) \$(CFLAGS) $BUILDPCH $COMPOPT \$(ALL_INCS)"
+    src="$src $OBJOUT$OBJS/pch.obj $OBJS/pch.c"
+    src=`echo $src | sed -e "s/\//$DIRSEP/g"`
+
+    echo "$pch"                                                   >> $MAKEFILE
+    echo "	$src"                                             >> $MAKEFILE
+    echo                                                          >> $MAKEFILE
+fi

@@ -1,0 +1,98 @@
+
+# Copyright (C) Igor Sysoev
+
+
+echo
+echo "Configuration summary"
+
+
+if [ $USE_PCRE = DISABLED ]; then
+    echo " + PCRE library is disabled"
+
+else
+    case $PCRE in
+        YES)   echo "  + using system PCRE library" ;;
+        NONE)  echo "  + PCRE library is not used" ;;
+        NO)    echo "  + PCRE library is not found" ;;
+        *)     echo "  + using PCRE library: $PCRE" ;;
+    esac
+fi
+
+case $MD5 in
+    YES)   echo "  + md5: using system $MD5_LIB library" ;;
+    NONE)  echo "  + md5 library is not used" ;;
+    NO)    echo "  + md5 library is not found" ;;
+    *)     echo "  + using md5 library: $MD5" ;;
+esac
+
+case $OPENSSL in
+    YES)   echo "  + using system OpenSSL library" ;;
+    NONE)  echo "  + OpenSSL library is not used" ;;
+    NO)    echo "  + OpenSSL library is not found" ;;
+    *)     echo "  + using OpenSSL library: $OPENSSL" ;;
+esac
+
+case $ZLIB in
+    YES)   echo "  + using system zlib library" ;;
+    NONE)  echo "  + zlib library is not used" ;;
+    NO)    echo "  + zlib library is not found" ;;
+    *)     echo "  + using zlib library: $ZLIB" ;;
+esac
+
+echo
+
+
+if [ $HTTP_REWRITE = YES ]; then
+    if [ $USE_PCRE = DISABLED ]; then
+
+cat << END
+$0: error: the HTTP rewrite module requires the PCRE library.
+You can either disable the module by using --without-http_rewrite_module
+option or you have to enable the PCRE support.
+
+END
+        exit 1
+    fi
+
+    if [ $PCRE = NONE -o $PCRE = NO ]; then
+
+cat << END
+$0: error: the HTTP rewrite module requires the PCRE library.
+You can either disable the module by using --without-http_rewrite_module
+option, or install the PCRE library into the system, or build the PCRE library
+statically from the source with nginx by using --with-pcre=<path> option.
+
+END
+
+        exit 1
+    fi
+fi
+
+
+if [ $HTTP_GZIP = YES ]; then
+    if [ $ZLIB = NONE -o $ZLIB = NO ]; then
+
+cat << END
+$0: error: the HTTP gzip module requires the zlib library.
+You can either disable the module by using --without-http_gzip_module
+option, or install the zlib library into the system, or build the zlib library
+statically from the source with nginx by using --with-zlib=<path> option.
+
+END
+
+        exit 1
+    fi
+fi
+
+
+echo "  nginx path prefix: $PREFIX"
+echo "  nginx binary file: $SBIN_PATH"
+echo "  nginx configuration file: $CONF_PATH"
+echo "  nginx pid file: $PID_PATH"
+if [ ".$ERROR_LOG_PATH" != "." ]; then
+    echo "  nginx error log file: $ERROR_LOG_PATH"
+else
+    echo "  nginx logs errors to stderr"
+fi
+echo "  nginx http access log file: $HTTP_LOG_PATH"
+echo

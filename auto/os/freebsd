@@ -1,0 +1,89 @@
+
+# Copyright (C) Igor Sysoev
+
+
+CORE_INCS="$UNIX_INCS"
+CORE_DEPS="$UNIX_DEPS $FREEBSD_DEPS"
+CORE_SRCS="$UNIX_SRCS $FREEBSD_SRCS"
+
+PIPE="-pipe"
+
+
+# __FreeBSD_version is the best way to determine whether
+# some capability exists and is safe to use
+
+version=`grep "#define __FreeBSD_version" /usr/include/osreldate.h \
+         | sed -e 's/^.* \(.*\)$/\1/'`
+
+
+# setproctitle() in libutil
+
+if [ \( $version -ge 500000 -a $version -lt 500012 \) \
+     -o $version -lt 410002 ]
+then
+    echo " + setproctitle() in libutil"
+
+    CORE_LIBS="$CORE_LIBS -lutil"
+fi
+
+# sendfile
+
+if [ $version -gt 300007 ]; then
+    echo " + using sendfile()"
+
+    have=HAVE_SENDFILE . auto/have
+    CORE_SRCS="$CORE_SRCS $FREEBSD_SENDFILE_SRCS"
+fi
+
+
+# kqueue
+
+if [ \( $version -lt 500000 -a $version -ge 410000 \) \
+     -o $version -ge 500011 ]
+then
+    echo " + using kqueue"
+
+    have=HAVE_KQUEUE . auto/have
+    have=HAVE_CLEAR_EVENT . auto/have
+    EVENT_MODULES="$EVENT_MODULES $KQUEUE_MODULE"
+    CORE_SRCS="$CORE_SRCS $KQUEUE_SRCS"
+    EVENT_FOUND=YES
+fi
+
+
+# kqueue's NOTE_LAWAT
+
+if [ \( $version -lt 500000 -a $version -ge 430000 \) \
+     -o $version -ge 500018 ]
+then
+    echo " + using kqueue's NOTE_LOWAT"
+    have=HAVE_LOWAT_EVENT . auto/have
+fi
+
+
+if [ $USE_THREADS = "rfork" ]; then
+
+    echo " + using rfork()"
+
+#    # kqueue's EVFILT_SIGNAL is safe
+#
+#    if [ $version -gt 460101 ]; then
+#        echo " + kqueue's EVFILT_SIGNAL is safe"
+#        have=HAVE_SAFE_EVFILT_SIGNAL . auto/have
+#    else
+#        echo "$0: error: the kqueue's EVFILT_SIGNAL is unsafe on this"
+#        echo "FreeBSD version, so --with-threads=rfork could not be used"
+#        echo
+#
+#        exit 1
+#    fi
+fi
+
+
+if [ $EVENT_AIO = YES ]; then
+    have=HAVE_AIO . auto/have
+    EVENT_MODULES="$EVENT_MODULES $AIO_MODULE"
+    CORE_SRCS="$CORE_SRCS $AIO_SRCS"
+else
+    have=HAVE_AIO . auto/nohave
+fi

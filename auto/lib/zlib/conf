@@ -1,0 +1,60 @@
+
+# Copyright (C) Igor Sysoev
+
+
+if [ $ZLIB != NONE ]; then
+    CORE_INCS="$CORE_INCS $ZLIB"
+
+    case "$CC" in
+
+        cl | wcl386 | bcc32)
+            LINK_DEPS="$LINK_DEPS $ZLIB/zlib.lib"
+            CORE_LIBS="$CORE_LIBS $ZLIB/zlib.lib"
+        ;;
+
+        *icc)
+            LINK_DEPS="$LINK_DEPS $ZLIB/libz.a"
+
+            # to allow -ipo optimization we link with the *.o but not library
+            CORE_LIBS="$CORE_LIBS $ZLIB/adler32.o"
+            CORE_LIBS="$CORE_LIBS $ZLIB/crc32.o"
+            CORE_LIBS="$CORE_LIBS $ZLIB/deflate.o"
+            CORE_LIBS="$CORE_LIBS $ZLIB/trees.o"
+            CORE_LIBS="$CORE_LIBS $ZLIB/zutil.o"
+
+            if [ $ZLIB_ASM != NO ]; then
+                CORE_LIBS="$CORE_LIBS $ZLIB/match.o"
+            fi
+        ;;
+
+        *)
+            LINK_DEPS="$LINK_DEPS $ZLIB/libz.a"
+            CORE_LIBS="$CORE_LIBS $ZLIB/libz.a"
+            #CORE_LIBS="$CORE_LIBS -L $ZLIB -lz"
+        ;;
+
+    esac
+
+else
+
+    if [ $PLATFORM != win32 ]; then
+
+        # FreeBSD, Solaris, Linux
+
+        ngx_lib_cflags=
+        ngx_lib_inc="#include <zlib.h>"
+        ngx_lib="zlib library"
+        ngx_lib_test="z_stream z; deflate(&z, Z_NO_FLUSH)"
+        ngx_libs=-lz
+        . auto/lib/test
+
+
+        if [ $ngx_found = yes ]; then
+            CORE_LIBS="$CORE_LIBS $ngx_libs"
+            ZLIB=YES
+        else
+            ZLIB=NO
+        fi
+    fi
+
+fi

@@ -1,0 +1,260 @@
+
+# Copyright (C) Igor Sysoev
+
+help=no
+
+PREFIX=
+SBIN_PATH=
+CONF_PATH=
+HTTP_LOG_PATH=
+ERROR_LOG_PATH=
+PID_PATH=
+
+CC=gcc
+CPP=
+OBJS=objs
+
+DEBUG=NO
+CC_OPT=
+CPU=NO
+
+TEST_BUILD_DEVPOLL=NO
+TEST_BUILD_EPOLL=NO
+TEST_BUILD_RTSIG=NO
+
+EVENT_FOUND=NO
+
+EVENT_RTSIG=NO
+EVENT_SELECT=NO
+EVENT_POLL=NO
+EVENT_AIO=NO
+
+USE_THREADS=NO
+
+HTTP=YES
+HTTP_CHARSET=YES
+HTTP_GZIP=YES
+HTTP_SSL=NO
+HTTP_SSI=NO
+HTTP_ACCESS=YES
+HTTP_USERID=YES
+HTTP_STATUS=NO
+HTTP_REWRITE=YES
+HTTP_PROXY=YES
+
+IMAP=NO
+
+USE_PCRE=NO
+PCRE=NONE
+PCRE_OPT=
+
+USE_OPENSSL=NO
+OPENSSL=NONE
+
+USE_MD5=NO
+MD5=NONE
+MD5_OPT=
+MD5_ASM=NO
+
+USE_ZLIB=NO
+ZLIB=NONE
+ZLIB_OPT=
+ZLIB_ASM=NO
+
+
+for option
+do
+    case "$option" in
+        -*=*) value=`echo "$option" | sed -e 's/[-_a-zA-Z0-9]*=//'` ;;
+           *) value="" ;;
+    esac
+
+    case "$option" in
+        --help)                          help=yes                   ;;
+
+        --prefix=*)                      PREFIX="$value"            ;;
+        --sbin-path=*)                   SBIN_PATH="$value"         ;;
+        --conf-path=*)                   CONF_PATH="$value"         ;;
+        --error-log-path=*)              ERROR_LOG_PATH="$value"    ;;
+        --pid-path=*)                    PID_PATH="$value"          ;;
+
+        --crossbuild=*)                  PLATFORM="$value"          ;;
+
+        --builddir=*)                    OBJS="$value"              ;;
+
+        --with-rtsig_module)             EVENT_RTSIG=YES            ;;
+        --with-select_module)            EVENT_SELECT=YES           ;;
+        --without-select_module)         EVENT_SELECT=NONE          ;;
+        --with-poll_module)              EVENT_POLL=YES             ;;
+        --without-poll_module)           EVENT_POLL=NONE            ;;
+        --with-aio_module)               EVENT_AIO=YES              ;;
+
+        --with-threads=*)                USE_THREADS="$value"       ;;
+        --with-threads)                  USE_THREADS="pthreads"     ;;
+
+        --without-http)                  HTTP=NO                    ;;
+        --http-log-path=*)               HTTP_LOG_PATH="$value"     ;;
+
+        --with-http_ssl_module)          HTTP_SSL=YES               ;;
+        --without-http_charset_module)   HTTP_CHARSET=NO            ;;
+        --without-http_gzip_module)      HTTP_GZIP=NO               ;;
+        --without-http_ssi_module)       HTTP_SSI=NO                ;;
+        --without-http_userid_module)    HTTP_USERID=NO             ;;
+        --without-http_access_module)    HTTP_ACCESS=NO             ;;
+        --without-http_status_module)    HTTP_STATUS=NO             ;;
+        --without-http_rewrite_module)   HTTP_REWRITE=NO            ;;
+        --without-http_proxy_module)     HTTP_PROXY=NO              ;;
+
+        --with-imap)                     IMAP=YES                   ;;
+
+        --with-cc=*)                     CC="$value"                ;;
+        --with-cpp=*)                    CPP="$value"               ;;
+        --with-cc-opt=*)                 CC_OPT="$value"            ;;
+        --with-cpu-opt=*)                CPU="$value"               ;;
+        --with-debug)                    DEBUG=YES                  ;;
+
+        --without-pcre)                  USE_PCRE=DISABLED          ;;
+        --with-pcre=*)                   PCRE="$value"              ;;
+        --with-pcre-opt=*)               PCRE_OPT="$value"          ;;
+
+        --with-openssl=*)                OPENSSL="$value"           ;;
+
+        --with-md5=*)                    MD5="$value"               ;;
+        --with-md5-opt=*)                MD5_OPT="$value"           ;;
+        --with-md5-asm)                  MD5_ASM=YES                ;;
+
+        --with-zlib=*)                   ZLIB="$value"              ;;
+        --with-zlib-opt=*)               ZLIB_OPT="$value"          ;;
+        --with-zlib-asm=*)               ZLIB_ASM="$value"          ;;
+
+        --test-build-devpoll)            TEST_BUILD_DEVPOLL=YES     ;;
+        --test-build-epoll)              TEST_BUILD_EPOLL=YES       ;;
+        --test-build-rtsig)              TEST_BUILD_RTSIG=YES       ;;
+
+        *)
+            echo "$0: error: invalid option \"$option\""
+            exit 1
+        ;;
+    esac
+done
+
+
+if [ $help = yes ]; then
+    echo
+    echo "  --help                         this message"
+    echo
+
+    echo "  --without-select_module        disable select_module"
+    echo "  --without-poll_module          disable poll_module"
+
+    echo "  --without-http_rewrite_module  disable http_rewrite_module"
+    echo "  --without-http_gzip_module     disable http_gzip_module"
+    echo "  --without-http_proxy_module    disable http_proxy_module"
+
+    echo "  --with-cc=NAME                 name of or path to C compiler"
+    echo
+
+    echo "  --with-pcre=DIR                path to PCRE library"
+    echo "  --with-md5=DIR                 path to md5 library"
+    echo "  --with-zlib=DIR                path to zlib library"
+    echo
+
+    exit 1
+fi
+
+
+if [ $HTTP = NO ]; then
+    HTTP_CHARSET=NO
+    HTTP_GZIP=NO
+    HTTP_SSI=NO
+    HTTP_USERID=NO
+    HTTP_ACCESS=NO
+    HTTP_STATUS=NO
+    HTTP_REWRITE=NO
+    HTTP_PROXY=NO
+fi
+
+
+if [ ".$PLATFORM" = ".win32" -a $EVENT_POLL = YES ]; then
+    EVENT_POLL=NO
+    echo "$0: warning: --with-poll_module option is ignored for win32"
+fi
+
+
+if [ ".$PREFIX" = "." ]; then
+    PREFIX=/usr/local/nginx
+fi
+
+
+case ".$SBIN_PATH" in
+    ./*)
+    ;;
+
+    .)
+        SBIN_PATH=$PREFIX/sbin/nginx
+    ;;
+
+    *)
+        SBIN_PATH=$PREFIX/$SBIN_PATH
+    ;;
+esac
+
+
+case ".$CONF_PATH" in
+    ./*)
+    ;;
+
+    .)
+        CONF_PATH=$PREFIX/conf/nginx.conf
+    ;;
+
+    *)
+        CONF_PATH=$PREFIX/$CONF_PATH
+    ;;
+esac
+
+
+case ".$PID_PATH" in
+    ./*)
+    ;;
+
+    .)
+        PID_PATH=$PREFIX/logs/nginx.pid
+    ;;
+
+    *)
+        PID_PATH=$PREFIX/$PID_PATH
+    ;;
+esac
+
+
+case ".$ERROR_LOG_PATH" in
+    ./*)
+    ;;
+
+    .)
+        ERROR_LOG_PATH=$PREFIX/logs/error.log
+    ;;
+
+    .stderr)
+        ERROR_LOG_PATH=
+    ;;
+
+    *)
+        ERROR_LOG_PATH=$PREFIX/$ERROR_LOG_PATH
+    ;;
+esac
+
+
+case ".$HTTP_LOG_PATH" in
+    ./*)
+    ;;
+
+    .)
+        HTTP_LOG_PATH=$PREFIX/logs/access.log
+    ;;
+
+    *)
+        HTTP_LOG_PATH=$PREFIX/$HTTP_LOG_PATH
+    ;;
+esac

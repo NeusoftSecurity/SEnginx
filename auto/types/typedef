@@ -1,0 +1,60 @@
+
+# Copyright (C) Igor Sysoev
+
+
+echo $ngx_n "checking for $ngx_type ..." $ngx_c
+echo >> $NGX_ERR
+echo "checking for $ngx_type" >> $NGX_ERR
+
+found=no
+
+for type in $ngx_type $ngx_types
+do
+
+    cat << END > $NGX_AUTOTEST.c
+
+#include <sys/types.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <netinet/in.h>
+$NGX_INTTYPES_H
+
+int main() {
+    $type i = 0;
+    return 0;
+}
+
+END
+
+    eval "$CC -o $NGX_AUTOTEST $NGX_AUTOTEST.c >> $NGX_ERR 2>&1"
+
+    if [ -x $NGX_AUTOTEST ]; then
+        if [ $type = $ngx_type ]; then
+            echo " found"
+            found=yes
+        else
+            echo ", $type used"
+            found=$type
+        fi
+    fi
+
+    rm $NGX_AUTOTEST*
+
+    if [ $found = no ]; then
+        echo $ngx_n " $type not found" $ngx_c
+    else
+        break
+    fi
+done
+
+if [ $found = no ]; then
+    echo
+    echo "$0: error: can not define $ngx_type"
+    exit 1
+fi
+
+if [ $found != yes ]; then
+    echo "typedef $found  $ngx_type;"   >> $NGX_AUTO_CONFIG_H
+fi

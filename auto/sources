@@ -1,0 +1,307 @@
+
+# Copyright (C) Igor Sysoev
+
+
+CORE_MODULES="ngx_core_module ngx_errlog_module ngx_conf_module"
+
+CORE_INCS="src/core"
+
+CORE_DEPS="src/core/nginx.h \
+           src/core/ngx_config.h \
+           src/core/ngx_core.h \
+           src/core/ngx_log.h \
+           src/core/ngx_palloc.h \
+           src/core/ngx_array.h \
+           src/core/ngx_list.h \
+           src/core/ngx_table.h \
+           src/core/ngx_buf.h \
+           src/core/ngx_string.h \
+           src/core/ngx_parse.h \
+           src/core/ngx_inet.h \
+           src/core/ngx_file.h \
+           src/core/ngx_crc.h \
+           src/core/ngx_rbtree.h \
+           src/core/ngx_times.h \
+           src/core/ngx_connection.h \
+           src/core/ngx_cycle.h \
+           src/core/ngx_conf_file.h \
+           src/core/ngx_garbage_collector.h"
+
+#           src/core/ngx_radix_tree.h \
+#           src/core/ngx_radix_tree.c \
+
+CORE_SRCS="src/core/nginx.c \
+           src/core/ngx_log.c \
+           src/core/ngx_palloc.c \
+           src/core/ngx_array.c \
+           src/core/ngx_list.c \
+           src/core/ngx_buf.c \
+           src/core/ngx_output_chain.c \
+           src/core/ngx_string.c \
+           src/core/ngx_parse.c \
+           src/core/ngx_inet.c \
+           src/core/ngx_file.c \
+           src/core/ngx_rbtree.c \
+           src/core/ngx_times.c \
+           src/core/ngx_connection.c \
+           src/core/ngx_cycle.c \
+           src/core/ngx_spinlock.c \
+           src/core/ngx_conf_file.c \
+           src/core/ngx_garbage_collector.c"
+
+
+REGEX_DEPS=src/core/ngx_regex.h
+REGEX_SRCS=src/core/ngx_regex.c
+
+
+EVENT_MODULES="ngx_events_module ngx_event_core_module"
+
+EVENT_INCS="src/event src/event/modules"
+
+EVENT_DEPS="src/event/ngx_event.h \
+            src/event/ngx_event_timer.h \
+            src/event/ngx_event_posted.h \
+            src/event/ngx_event_busy_lock.h \
+            src/event/ngx_event_connect.h \
+            src/event/ngx_event_pipe.h"
+
+EVENT_SRCS="src/event/ngx_event.c \
+            src/event/ngx_event_timer.c \
+            src/event/ngx_event_posted.c \
+            src/event/ngx_event_busy_lock.c \
+            src/event/ngx_event_accept.c \
+            src/event/ngx_event_connect.c \
+            src/event/ngx_event_pipe.c"
+
+
+SELECT_MODULE=ngx_select_module
+SELECT_SRCS=src/event/modules/ngx_select_module.c
+
+POLL_MODULE=ngx_poll_module
+POLL_SRCS=src/event/modules/ngx_poll_module.c
+
+KQUEUE_MODULE=ngx_kqueue_module
+KQUEUE_SRCS=src/event/modules/ngx_kqueue_module.c
+
+DEVPOLL_MODULE=ngx_devpoll_module
+DEVPOLL_SRCS=src/event/modules/ngx_devpoll_module.c
+
+EPOLL_MODULE=ngx_epoll_module
+EPOLL_SRCS=src/event/modules/ngx_epoll_module.c
+
+RTSIG_MODULE=ngx_rtsig_module
+RTSIG_SRCS=src/event/modules/ngx_rtsig_module.c
+
+IOCP_MODULE=ngx_iocp_module
+IOCP_SRCS=src/event/modules/ngx_iocp_module.c
+
+AIO_MODULE=ngx_aio_module
+AIO_SRCS="src/event/modules/ngx_aio_module.c \
+          src/os/unix/ngx_aio_read.c \
+          src/os/unix/ngx_aio_write.c \
+          src/os/unix/ngx_aio_read_chain.c \
+          src/os/unix/ngx_aio_write_chain.c"
+
+
+OPENSSL_DEPS=src/event/ngx_event_openssl.h
+OPENSSL_SRCS=src/event/ngx_event_openssl.c
+
+
+UNIX_INCS="$CORE_INCS $EVENT_INCS src/os/unix"
+
+UNIX_DEPS="$CORE_DEPS $EVENT_DEPS \
+            src/os/unix/ngx_time.h \
+            src/os/unix/ngx_types.h \
+            src/os/unix/ngx_errno.h \
+            src/os/unix/ngx_alloc.h \
+            src/os/unix/ngx_files.h \
+            src/os/unix/ngx_channel.h \
+            src/os/unix/ngx_shared.h \
+            src/os/unix/ngx_process.h \
+            src/os/unix/ngx_atomic.h \
+            src/os/unix/ngx_thread.h \
+            src/os/unix/ngx_socket.h \
+            src/os/unix/ngx_os.h \
+            src/os/unix/ngx_process_cycle.h"
+
+UNIX_SRCS="$CORE_SRCS $EVENT_SRCS \
+            src/os/unix/ngx_time.c \
+            src/os/unix/ngx_errno.c \
+            src/os/unix/ngx_alloc.c \
+            src/os/unix/ngx_files.c \
+            src/os/unix/ngx_socket.c \
+            src/os/unix/ngx_recv.c \
+            src/os/unix/ngx_readv_chain.c \
+            src/os/unix/ngx_send.c \
+            src/os/unix/ngx_writev_chain.c \
+            src/os/unix/ngx_channel.c \
+            src/os/unix/ngx_shared.c \
+            src/os/unix/ngx_process.c \
+            src/os/unix/ngx_daemon.c \
+            src/os/unix/ngx_posix_init.c \
+            src/os/unix/ngx_process_cycle.c"
+
+POSIX_DEPS=src/os/unix/ngx_posix_config.h
+
+FREEBSD_DEPS=src/os/unix/ngx_freebsd_config.h
+FREEBSD_SRCS=src/os/unix/ngx_freebsd_init.c
+FREEBSD_SENDFILE_SRCS=src/os/unix/ngx_freebsd_sendfile_chain.c
+FREEBSD_RFORK_DEPS="src/os/unix/ngx_freebsd_rfork_thread.h"
+FREEBSD_RFORK_SRCS="src/os/unix/ngx_freebsd_rfork_thread.c"
+FREEBSD_RFORK_THREAD_SRCS="src/os/unix/rfork_thread.S"
+
+PTHREAD_SRCS="src/os/unix/ngx_pthread_thread.c"
+
+LINUX_DEPS=src/os/unix/ngx_linux_config.h
+LINUX_SRCS=src/os/unix/ngx_linux_init.c
+LINUX_SENDFILE_SRCS=src/os/unix/ngx_linux_sendfile_chain.c
+
+
+SOLARIS_DEPS=src/os/unix/ngx_solaris_config.h
+SOLARIS_SRCS=src/os/unix/ngx_solaris_init.c
+SOLARIS_SENDFILEV_SRCS=src/os/unix/ngx_solaris_sendfilev_chain.c
+
+
+WIN32_INCS="$CORE_INCS $EVENT_INCS src/os/win32"
+
+WIN32_DEPS="$CORE_DEPS $EVENT_DEPS \
+            src/os/win32/ngx_win32_config.h \
+            src/os/win32/ngx_time.h \
+            src/os/win32/ngx_types.h \
+            src/os/win32/ngx_errno.h \
+            src/os/win32/ngx_alloc.h \
+            src/os/win32/ngx_files.h \
+            src/os/win32/ngx_shared.h \
+            src/os/win32/ngx_process.h \
+            src/os/win32/ngx_atomic.h \
+            src/os/win32/ngx_socket.h \
+            src/os/win32/ngx_os.h \
+            src/os/win32/ngx_process_cycle.h"
+
+WIN32_CONFIG=src/os/win32/ngx_win32_config.h
+
+WIN32_SRCS="$CORE_SRCS $EVENT_SRCS \
+            src/os/win32/ngx_errno.c \
+            src/os/win32/ngx_alloc.c \
+            src/os/win32/ngx_files.c \
+            src/os/win32/ngx_time.c \
+            src/os/win32/ngx_process.c \
+            src/os/win32/ngx_socket.c \
+            src/os/win32/ngx_wsarecv.c \
+            src/os/win32/ngx_wsarecv_chain.c \
+            src/os/win32/ngx_wsasend_chain.c \
+            src/os/win32/ngx_win32_init.c \
+            src/os/win32/ngx_process_cycle.c \
+            src/event/ngx_event_acceptex.c"
+
+
+HTTP_MODULES="ngx_http_module \
+              ngx_http_core_module \
+              ngx_http_log_module"
+
+HTTP_FILE_CACHE_MODULE=ngx_http_cache_module
+
+HTTP_WRITE_FILTER_MODULE="ngx_http_write_filter_module"
+HTTP_HEADER_FILTER_MODULE="ngx_http_header_filter_module"
+
+HTTP_CHUNKED_FILTER_MODULE=ngx_http_chunked_filter_module
+HTTP_HEADERS_FILTER_MODULE=ngx_http_headers_filter_module
+HTTP_COPY_FILTER_MODULE=ngx_http_copy_filter_module
+
+HTTP_RANGE_HEADER_FILTER_MODULE=ngx_http_range_header_filter_module
+HTTP_RANGE_BODY_FILTER_MODULE=ngx_http_range_body_filter_module
+
+HTTP_NOT_MODIFIED_FILTER_MODULE=ngx_http_not_modified_filter_module
+
+HTTP_STATIC_MODULE=ngx_http_static_module
+HTTP_INDEX_MODULE=ngx_http_index_module
+
+HTTP_INCS="src/http src/http/modules"
+
+HTTP_DEPS="src/http/ngx_http.h \
+           src/http/ngx_http_request.h \
+           src/http/ngx_http_config.h \
+           src/http/ngx_http_core_module.h \
+           src/http/ngx_http_cache.h \
+           src/http/ngx_http_busy_lock.h \
+           src/http/ngx_http_log_handler.h"
+
+HTTP_SRCS="src/http/ngx_http.c \
+           src/http/ngx_http_core_module.c \
+           src/http/ngx_http_special_response.c \
+           src/http/ngx_http_request.c \
+           src/http/ngx_http_parse.c \
+           src/http/ngx_http_header_filter.c \
+           src/http/ngx_http_write_filter.c \
+           src/http/ngx_http_copy_filter.c \
+           src/http/ngx_http_log_handler.c \
+           src/http/ngx_http_request_body.c \
+           src/http/ngx_http_parse_time.c \
+           src/http/modules/ngx_http_static_handler.c \
+           src/http/modules/ngx_http_index_handler.c \
+           src/http/modules/ngx_http_chunked_filter.c \
+           src/http/modules/ngx_http_range_filter.c \
+           src/http/modules/ngx_http_headers_filter.c \
+           src/http/modules/ngx_http_not_modified_filter.c"
+
+# STUB
+HTTP_SRCS="$HTTP_SRCS src/http/ngx_http_busy_lock.c"
+
+HTPP_CACHE_SRCS=src/http/ngx_http_cache.c
+HTPP_FILE_CACHE_SRCS=src/http/ngx_http_file_cache.c
+
+
+HTTP_CHARSET_FILTER_MODULE=ngx_http_charset_filter_module
+HTTP_CHARSET_SRCS=src/http/modules/ngx_http_charset_filter.c
+
+
+HTTP_GZIP_FILTER_MODULE=ngx_http_gzip_filter_module
+HTTP_GZIP_SRCS=src/http/modules/ngx_http_gzip_filter.c
+
+
+HTTP_SSI_FILTER_MODULE=ngx_http_ssi_filter_module
+HTTP_SSI_SRCS=src/http/modules/ngx_http_ssi_filter.c
+
+
+HTTP_USERID_FILTER_MODULE=ngx_http_userid_filter_module
+HTTP_USERID_SRCS=src/http/modules/ngx_http_userid_filter.c
+
+
+HTTP_ACCESS_MODULE=ngx_http_access_module
+HTTP_ACCESS_SRCS=src/http/modules/ngx_http_access_handler.c
+
+
+HTTP_STATUS_MODULE=ngx_http_status_module
+HTTP_STATUS_SRCS=src/http/modules/ngx_http_status_handler.c
+
+
+HTTP_REWRITE_MODULE=ngx_http_rewrite_module
+HTTP_REWRITE_SRCS=src/http/modules/ngx_http_rewrite_handler.c
+
+
+HTTP_SSL_MODULE=ngx_http_ssl_module
+HTTP_SSL_DEPS=src/http/modules/ngx_http_ssl_module.h
+HTTP_SSL_SRCS=src/http/modules/ngx_http_ssl_module.c
+
+
+HTTP_PROXY_MODULE=ngx_http_proxy_module
+HTTP_PROXY_INCS="src/http/modules/proxy"
+HTTP_PROXY_DEPS=src/http/modules/proxy/ngx_http_proxy_handler.h
+HTTP_PROXY_SRCS="src/http/modules/proxy/ngx_http_proxy_handler.c \
+                 src/http/modules/proxy/ngx_http_proxy_upstream.c \
+                 src/http/modules/proxy/ngx_http_proxy_parse.c \
+                 src/http/modules/proxy/ngx_http_proxy_header.c"
+
+# STUB
+#                 src/http/modules/proxy/ngx_http_proxy_cache.c \
+
+
+IMAP_INCS="src/imap"
+
+IMAP_DEPS="src/imap/ngx_imap.h"
+
+IMAP_MODULE=ngx_imap_module
+IMAP_SRCS="src/imap/ngx_imap.c \
+	   src/imap/ngx_imap_handler.c \
+	   src/imap/ngx_imap_parse.c \
+	   src/imap/ngx_imap_proxy.c"

@@ -1,4 +1,12 @@
 
+Changes with nginx 0.1.20                                        17 Feb 2005
+
+    *) Feature: the new "script_filename" and "remote_port" parameters 
+       ofthe fastcgi_params directive.
+
+    *) Bugfix: the FastCGI stderr stream was handled incorre”tly.
+
+
 Changes with nginx 0.1.19                                        16 Feb 2005
 
     *) Bugfix: now, if request contains the zero, then the 404 error is 

@@ -1,4 +1,44 @@
 
+Changes with nginx 0.1.11                                        02 Dec 2004
+
+    *) Feature: the worker_priority directive.
+
+    *) Change: both tcp_nopush and tcp_nodelay directives affect the 
+       transferred response.
+
+    *) Bugfix: nginx did not call initgroups().
+       Thanks to Andrew Sitnikov and Andrei Nigmatulin.
+
+    *) Change: now the ngx_http_autoindex_module shows the file size in the 
+       bytes.
+
+    *) Bugfix: the ngx_http_autoindex_module returned the 500 error if the 
+       broken symlink was in a directory.
+
+    *) Bugfix: the files bigger than 4G could not be transferred using 
+       sendfile.
+
+    *) Bugfix: if the backend was resolved to several backends and there was 
+       an error while the response waiting then process may got caught in an 
+       endless loop.
+
+    *) Bugfix: the worker process may exit with the "unknown cycle" message 
+       when the /dev/poll method was used.
+
+    *) Bugfix: "close() channel failed" errors.
+
+    *) Bugfix: the autodetection of the nobody and nogroup groups.
+
+    *) Bugfix: the send_lowat directive did not work on Linux.
+
+    *) Bugfix: the segmentation fault occurred if there was no events section 
+       in configuration.
+
+    *) Bugfix: nginx could not be built on OpenBSD.
+
+    *) Bugfix: the double slashes in "://" in the URI were converted to ":/".
+
+
 Changes with nginx 0.1.10                                        26 Nov 2004
 
     *) Bugfix: if the request without arguments contains "//", "/./", "/../" 
@@ -36,8 +76,8 @@ Changes with nginx 0.1.8                                         20 Nov 2004
 
 Changes with nginx 0.1.7                                         12 Nov 2004
 
-    *) Bugfix: on FreeBSD the segmentation fault may occure if the size of 
-       the transferred file was changed; bug appeared in 0.1.5.
+    *) Bugfix: on FreeBSD the segmentation fault may occur if the size of the 
+       transferred file was changed; bug appeared in 0.1.5.
 
 
 Changes with nginx 0.1.6                                         11 Nov 2004

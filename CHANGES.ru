@@ -1,4 +1,37 @@
 
+Изменения в nginx 0.1.14                                          18.01.2005
+
+    *) Добавление: параметры автоконфигурации 
+       --http-client-body-temp-path=PATH, --http-proxy-temp-path=PATH и 
+       --http-fastcgi-temp-path=PATH
+
+    *) Изменение: имя каталога с временными файлами, содержащие тело запроса 
+       клиента, задаётся директивой client_body_temp_path, по умолчанию 
+       <prefix>/client_body_temp.
+
+    *) Добавление: модуль ngx_http_fastcgi_module и директивы fastcgi_pass, 
+       fastcgi_root, fastcgi_index, fastcgi_params, fastcgi_connect_timeout, 
+       fastcgi_send_timeout, fastcgi_read_timeout, fastcgi_send_lowat, 
+       fastcgi_header_buffer_size, fastcgi_buffers, 
+       fastcgi_busy_buffers_size, fastcgi_temp_path, 
+       fastcgi_max_temp_file_size, fastcgi_temp_file_write_size, 
+       fastcgi_next_upstream и fastcgi_x_powered_by.
+
+    *) Исправление: ошибка "[alert] zero size buf"; ошибка появилась в 0.1.3.
+
+    *) Изменение: в директиве proxy_pass нужно обязательно указывать URI 
+       после имени хоста.
+
+    *) Изменение: если в URI встречался символ %3F, то он считался началом 
+       строки аргументов.
+
+    *) Добавление: поддержка unix domain сoкетов в модуле 
+       ngx_http_proxy_module.
+
+    *) Добавление: директивы ssl_engine и ssl_ciphers.
+       Спасибо Сергею Скворцову за SSL-акселератор.
+
+
 Изменения в nginx 0.1.13                                          21.12.2004
 
     *) Добавление: директивы server_names_hash и server_names_hash_threshold.

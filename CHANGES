@@ -1,4 +1,31 @@
 
+Changes with nginx 0.1.17                                        03 Feb 2005
+
+    *) Feature: the ngx_http_rewrite_module was rewritten from the scratch. 
+       Now it is possible to redirect, to return the error codes, to check 
+       the variables and referrers. The directives can be used inside 
+       locations. The redirect directive was canceled.
+
+    *) Feature: the ngx_http_geo_module.
+
+    *) Feature: the proxy_set_x_var and fastcgi_set_var directives.
+
+    *) Bugfix: the location configuration with "=" modifier may be used in 
+       another location.
+
+    *) Bugfix: the correct content type was set only for requests that use 
+       small caps letters in extension.
+
+    *) Bugfix: if the proxy_pass or fastcgi_pass directives were set in the 
+       location, and access was denied, and the error was redirected to a 
+       static page, then the segmentation fault occurred.
+
+    *) Bugfix: if in a proxied "Location" header was a relative URL, then a 
+       host name and a slash were added to them; bug appeared in 0.1.14.
+
+    *) Bugfix: the system error message was not logged on Linux.
+
+
 Changes with nginx 0.1.16                                        25 Jan 2005
 
     *) Bugfix: if the response were transferred by chunks, then on the HEAD 

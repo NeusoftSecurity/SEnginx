@@ -1,4 +1,15 @@
 
+Changes with nginx 0.1.21                                        22 Feb 2005
+
+    *) Bugfix: the ngx_http_stub_status_module showed incorrect statictics 
+       if "rtsig" method was used or if several worker process ran on SMP.
+
+    *) Bugfix: nginx could not be built by the icc compiler on Linux or if 
+       the zlib-1.2.x library was building from sources.
+
+    *) Bugfix: nginx could not be built on NetBSD 2.0.
+
+
 Changes with nginx 0.1.20                                        17 Feb 2005
 
     *) Feature: the new "script_filename" and "remote_port" parameters 

@@ -1,4 +1,15 @@
 
+Changes with nginx 0.1.19                                        16 Feb 2005
+
+    *) Bugfix: now, if request contains the zero, then the 404 error is 
+       returned for the local requests.
+
+    *) Bugfix: nginx could not be built on NetBSD 2.0.
+
+    *) Bugfix: the timeout may occur while reading of the the client 
+       request body via SSL connections.
+
+
 Changes with nginx 0.1.18                                        09 Feb 2005
 
     *) Workaround: the default values of the devpoll_events and the 

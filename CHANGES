@@ -1,4 +1,27 @@
 
+Changes with nginx 0.1.5                                         11 Nov 2004
+
+    *) Bugfix: on Solaris and Linux there may be too many "recvmsg() returned 
+       not enough data" alerts.
+
+    *) Bugfix: there were the "writev() failed (22: Invalid argument)" errors 
+       on Solaris in proxy mode without sendfile. On other platforms that do 
+       not support sendfile at all the process got caught in an endless loop.
+
+    *) Bugfix: segmentation fault on Solaris in proxy mode and using sendfile.
+
+    *) Bugfix: segmentation fault on Solaris.
+
+    *) Bugfix: on-line upgrade did not work on Linux.
+
+    *) Bugfix: the ngx_http_autoindex_module module did not escape the 
+       spaces, the quotes, and the percent signs in the directory listing.
+
+    *) Change: the decrease of the copy operations.
+
+    *) Feature: the userid_p3p directive.
+
+
 Changes with nginx 0.1.4                                         26 Oct 2004
 
     *) Bugfix: in the ngx_http_autoindex_module.

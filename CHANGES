@@ -1,4 +1,27 @@
 
+Changes with nginx 0.1.16                                        25 Jan 2005
+
+    *) Bugfix: if the response were transferred by chunks, then on the HEAD 
+       request the final chunk was issued.
+
+    *) Bugfix: the "Connection: keep-alive" header were issued, even if the 
+       keepalive_timeout derective forbade the keep-alive use.
+
+    *) Bugfix: the errors in the ngx_http_fastcgi_module caused the 
+       segmentation faults.
+
+    *) Bugfix: the compressed response encrypted by SSL may not transferred 
+       complete.
+
+    *) Bugfix: the TCP-specific TCP_NODELAY, TCP_NOPSUH, and TCP_CORK 
+       options, are not used for the unix domain sockets.
+
+    *) Feature: the rewrite directive supports the agruments rewriting.
+
+    *) Bugfix: the response code 400 was returend for the POST request with 
+       the "Content-Length: 0" header; bug appeared in 0.1.14.
+
+
 Changes with nginx 0.1.15                                        19 Jan 2005
 
     *) Bugfix: the error while the connecting to the FastCGI server caused 
@@ -13,16 +36,17 @@ Changes with nginx 0.1.15                                        19 Jan 2005
     *) Bugfix: the FastCGI's parameter REQUEST_URI is now passed with the 
        arguments and in the original state.
 
-    *) Bugfix: the ngx_http_rewrite_module module was required to be built to 
-       use the regular expressions in locations.
+    *) Bugfix: the ngx_http_rewrite_module module was required to be built 
+       to use the regular expressions in locations.
 
     *) Bugfix: the directive "proxy_preserve_host  on" adds port 80 to the 
-       "Host" headers, if upstream listen on port 80; bug appeared in 0.1.14.
+       "Host" headers, if upstream listen on port 80; bug appeared in 
+       0.1.14.
 
     *) Bugfix: the same pathes in autoconfiguration paramters 
-       --http-client-body-temp-path=PATH and --http-proxy-temp-path=PATH, or 
-       --http-client-body-temp-path=PATH nad --http-fastcgi-temp-path=PATH 
-       caused segmentation fault.
+       --http-client-body-temp-path=PATH and --http-proxy-temp-path=PATH, 
+       or --http-client-body-temp-path=PATH nad 
+       --http-fastcgi-temp-path=PATH caused segmentation fault.
 
 
 Changes with nginx 0.1.14                                        18 Jan 2005
@@ -35,10 +59,10 @@ Changes with nginx 0.1.14                                        18 Jan 2005
        request body is specified by directive client_body_temp_path, by 
        default it is <prefix>/client_body_temp.
 
-    *) Feature: the ngx_http_fastcgi_module and the directives: fastcgi_pass, 
-       fastcgi_root, fastcgi_index, fastcgi_params, fastcgi_connect_timeout, 
-       fastcgi_send_timeout, fastcgi_read_timeout, fastcgi_send_lowat, 
-       fastcgi_header_buffer_size, fastcgi_buffers, 
+    *) Feature: the ngx_http_fastcgi_module and the directives: 
+       fastcgi_pass, fastcgi_root, fastcgi_index, fastcgi_params, 
+       fastcgi_connect_timeout, fastcgi_send_timeout, fastcgi_read_timeout, 
+       fastcgi_send_lowat, fastcgi_header_buffer_size, fastcgi_buffers, 
        fastcgi_busy_buffers_size, fastcgi_temp_path, 
        fastcgi_max_temp_file_size, fastcgi_temp_file_write_size, 
        fastcgi_next_upstream, and fastcgi_x_powered_by.
@@ -51,7 +75,8 @@ Changes with nginx 0.1.14                                        18 Jan 2005
     *) Change: the %3F symbol in the URI was considered as the argument 
        string start.
 
-    *) Feature: the unix domain sockets support in the ngx_http_proxy_module.
+    *) Feature: the unix domain sockets support in the 
+       ngx_http_proxy_module.
 
     *) Feature: the ssl_engine and ssl_ciphers directives.
        Thanks to Sergey Skvortsov for SSL-accelerator.
@@ -65,7 +90,8 @@ Changes with nginx 0.1.13                                        21 Dec 2004
     *) Bugfix: the *.domain.tld names in the server_name directive did not 
        work.
 
-    *) Bugfix: the %request_length log parameter logged the incorrect length.
+    *) Bugfix: the %request_length log parameter logged the incorrect 
+       length.
 
 
 Changes with nginx 0.1.12                                        06 Dec 2004
@@ -100,9 +126,9 @@ Changes with nginx 0.1.11                                        02 Dec 2004
     *) Bugfix: the files bigger than 4G could not be transferred using 
        sendfile.
 
-    *) Bugfix: if the backend was resolved to several backends and there was 
-       an error while the response waiting then process may got caught in an 
-       endless loop.
+    *) Bugfix: if the backend was resolved to several backends and there 
+       was an error while the response waiting then process may got caught 
+       in an endless loop.
 
     *) Bugfix: the worker process may exit with the "unknown cycle" message 
        when the /dev/poll method was used.
@@ -113,28 +139,29 @@ Changes with nginx 0.1.11                                        02 Dec 2004
 
     *) Bugfix: the send_lowat directive did not work on Linux.
 
-    *) Bugfix: the segmentation fault occurred if there was no events section 
-       in configuration.
+    *) Bugfix: the segmentation fault occurred if there was no events 
+       section in configuration.
 
     *) Bugfix: nginx could not be built on OpenBSD.
 
-    *) Bugfix: the double slashes in "://" in the URI were converted to ":/".
+    *) Bugfix: the double slashes in "://" in the URI were converted to 
+       ":/".
 
 
 Changes with nginx 0.1.10                                        26 Nov 2004
 
-    *) Bugfix: if the request without arguments contains "//", "/./", "/../" 
-       or "%XX" then the lost character in the request line was lost; bug 
-       appeared in 0.1.9.
+    *) Bugfix: if the request without arguments contains "//", "/./", 
+       "/../" or "%XX" then the lost character in the request line was 
+       lost; bug appeared in 0.1.9.
 
-    *) Bugfix: the fix in 0.1.9 for the files bigger than 2G on Linux did not 
-       work.
+    *) Bugfix: the fix in 0.1.9 for the files bigger than 2G on Linux did 
+       not work.
 
 
 Changes with nginx 0.1.9                                         25 Nov 2004
 
-    *) Bugfix: the proxied request was sent without arguments if the request 
-       contains "//", "/./", "/../" or "%XX".
+    *) Bugfix: the proxied request was sent without arguments if the 
+       request contains "//", "/./", "/../" or "%XX".
 
     *) Bugfix: the large compressed responses may be transferred not 
        completely.
@@ -142,8 +169,8 @@ Changes with nginx 0.1.9                                         25 Nov 2004
     *) Bugfix: the files bigger than 2G was not transferred on Linux that 
        does not support sendfile64().
 
-    *) Bugfix: while the build configuration on Linux the --with-poll_module 
-       parameter was required; bug appeared in 0.1.8.
+    *) Bugfix: while the build configuration on Linux the 
+       --with-poll_module parameter was required; bug appeared in 0.1.8.
 
 
 Changes with nginx 0.1.8                                         20 Nov 2004
@@ -158,8 +185,8 @@ Changes with nginx 0.1.8                                         20 Nov 2004
 
 Changes with nginx 0.1.7                                         12 Nov 2004
 
-    *) Bugfix: on FreeBSD the segmentation fault may occur if the size of the 
-       transferred file was changed; bug appeared in 0.1.5.
+    *) Bugfix: on FreeBSD the segmentation fault may occur if the size of 
+       the transferred file was changed; bug appeared in 0.1.5.
 
 
 Changes with nginx 0.1.6                                         11 Nov 2004
@@ -170,14 +197,16 @@ Changes with nginx 0.1.6                                         11 Nov 2004
 
 Changes with nginx 0.1.5                                         11 Nov 2004
 
-    *) Bugfix: on Solaris and Linux there may be too many "recvmsg() returned 
-       not enough data" alerts.
+    *) Bugfix: on Solaris and Linux there may be too many "recvmsg() 
+       returned not enough data" alerts.
 
-    *) Bugfix: there were the "writev() failed (22: Invalid argument)" errors 
-       on Solaris in proxy mode without sendfile. On other platforms that do 
-       not support sendfile at all the process got caught in an endless loop.
+    *) Bugfix: there were the "writev() failed (22: Invalid argument)" 
+       errors on Solaris in proxy mode without sendfile. On other platforms 
+       that do not support sendfile at all the process got caught in an 
+       endless loop.
 
-    *) Bugfix: segmentation fault on Solaris in proxy mode and using sendfile.
+    *) Bugfix: segmentation fault on Solaris in proxy mode and using 
+       sendfile.
 
     *) Bugfix: segmentation fault on Solaris.
 

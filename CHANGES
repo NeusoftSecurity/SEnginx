@@ -1,4 +1,14 @@
 
+Changes with nginx 0.1.10                                        26 Nov 2004
+
+    *) Bugfix: if the request without arguments contains "//", "/./", "/../" 
+       or "%XX" then the lost character in the request line was lost; bug 
+       appeared in 0.1.9.
+
+    *) Bugfix: the fix in 0.1.9 for the files bigger than 2G on Linux did not 
+       work.
+
+
 Changes with nginx 0.1.9                                         25 Nov 2004
 
     *) Bugfix: the proxied request was sent without arguments if the request 

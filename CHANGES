@@ -1,8 +1,18 @@
 
+Changes with nginx 0.1.8                                         20 Nov 2004
+
+    *) Bugfix: in the ngx_http_autoindex_module if the long file names were 
+       in the listing.
+
+    *) Feature: the "^~" modifier in the location directive.
+
+    *) Feature: the proxy_max_temp_file_size directive.
+
+
 Changes with nginx 0.1.7                                         12 Nov 2004
 
     *) Bugfix: on FreeBSD the segmentation fault may occure if the size of 
-       the transferred file was changed; bug appeared in 0.1.2.
+       the transferred file was changed; bug appeared in 0.1.5.
 
 
 Changes with nginx 0.1.6                                         11 Nov 2004

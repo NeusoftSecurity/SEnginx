@@ -1,4 +1,15 @@
 
+Changes with nginx 0.1.26                                        22 Mar 2005
+
+    *) Change: the invalid client header lines are now ignored and logged 
+       at the info level.
+
+    *) Change: the host name is also logged in error log.
+
+    *) Feature: the ngx_http_auth_basic_module module and the auth_basic 
+       and auth_basic_user_file directives.
+
+
 Changes with nginx 0.1.25                                        19 Mar 2005
 
     *) Bugfix: nginx did run on Linux parisc.

@@ -1,0 +1,32 @@
+
+Changes with nginx 0.1.1                                         11 Oct 2004
+
+    *) Feature: the gzip_types directive.
+
+    *) Feature: the tcp_nodelay directive.
+
+    *) Feature: the send_lowat directive is working not only on OSes that 
+       support kqueue NOTE_LOWAT, but also on OSes that support SO_SNDLOWAT.
+
+    *) Feature: the setproctitle() emulation for Linux and Solaris.
+
+    *) Bugfix: the "Location" header rewrite bug fixed while the proxing.
+
+    *) Bugfix: the ngx_http_chunked_module module bug fixed that caused an 
+       endless loop.
+
+    *) Bugfix: the /dev/poll module bugs fixed.
+
+    *) Bugfix: the responses were corrupted when the temporary files were 
+       used while the proxing.
+
+    *) Bugfix: the unescaped requests were passed to the backend.
+
+    *) Bugfix: while the build configuration on Linux 2.4 the 
+       --with-poll_module parameter was required.
+
+
+Changes with nginx 0.1.0                                         04 Oct 2004
+
+    *) The first public version.
+

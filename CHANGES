@@ -1,4 +1,30 @@
 
+Changes with nginx 0.1.15                                        19 Jan 2005
+
+    *) Bugfix: the error while the connecting to the FastCGI server caused 
+       segmentation fault.
+
+    *) Bugfix: the correct handling of the regular exporession, that has 
+       different number of the captures and substitutions.
+
+    *) Feature: the location, that is passed to the FastCGI server, can be 
+       regualar expression.
+
+    *) Bugfix: the FastCGI's parameter REQUEST_URI is now passed with the 
+       arguments and in the original state.
+
+    *) Bugfix: the ngx_http_rewrite_module module was required to be built to 
+       use the regular expressions in locations.
+
+    *) Bugfix: the directive "proxy_preserve_host  on" adds port 80 to the 
+       "Host" headers, if upstream listen on port 80; bug appeared in 0.1.14.
+
+    *) Bugfix: the same pathes in autoconfiguration paramters 
+       --http-client-body-temp-path=PATH and --http-proxy-temp-path=PATH, or 
+       --http-client-body-temp-path=PATH nad --http-fastcgi-temp-path=PATH 
+       caused segmentation fault.
+
+
 Changes with nginx 0.1.14                                        18 Jan 2005
 
     *) Feature: the autoconfiguration directives: 

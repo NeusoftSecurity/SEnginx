@@ -1,4 +1,9 @@
 
+Изменения в nginx 0.1.4                                           26.10.2004
+
+    *) Исправление: ошибка в модуле ngx_http_autoindex_module.
+
+
 Изменения в nginx 0.1.3                                           25.10.2004
 
     *) Добавление: модуль ngx_http_autoindex_module и директива autoindex.

@@ -1,4 +1,28 @@
 
+Changes with nginx 0.1.2                                         21 Oct 2004
+
+    *) Feature: the --user=USER, --group=GROUP, and --with-ld-opt=OPTIONS 
+       options in configure.
+
+    *) Feature: the server_name directive supports *.domain.tld.
+
+    *) Bugfix: the portability improvements.
+
+    *) Bugfix: if configuration file was set in command line, the 
+       reconfiguration was impossible, bug appeared in 0.1.1.
+
+    *) Bugfix: proxy module may get caught in an endless loop when sendfile 
+       is not used.
+
+    *) Bugfix: with sendfile the response was not recoded according to the 
+       charset module directives, bug appeared in 0.1.1.
+
+    *) Bugfix: very seldom bug in the kqueue processing.
+
+    *) Bugfix: the gzip module compressed the proxied responses that was 
+       already compressed.
+
+
 Changes with nginx 0.1.1                                         11 Oct 2004
 
     *) Feature: the gzip_types directive.
@@ -12,7 +36,7 @@ Changes with nginx 0.1.1                                         11 Oct 2004
 
     *) Bugfix: the "Location" header rewrite bug fixed while the proxing.
 
-    *) Bugfix: the ngx_http_chunked_module module bug fixed that caused an 
+    *) Bugfix: the ngx_http_chunked_module module may get caught in an 
        endless loop.
 
     *) Bugfix: the /dev/poll module bugs fixed.

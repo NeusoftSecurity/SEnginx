@@ -1,4 +1,10 @@
 
+Changes with nginx 0.1.6                                         11 Nov 2004
+
+    *) Bugfix: some location directive combiations with the regular 
+       expressions caused the wrong configuration choose.
+
+
 Changes with nginx 0.1.5                                         11 Nov 2004
 
     *) Bugfix: on Solaris and Linux there may be too many "recvmsg() returned 

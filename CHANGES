@@ -1,4 +1,14 @@
 
+Changes with nginx 0.1.3                                         25 Oct 2004
+
+    *) Feature: the ngx_http_autoindex_module and the autoindex directive.
+
+    *) Feature: the proxy_set_x_url directive.
+
+    *) Bugfix: proxy module may get caught in an endless loop when sendfile 
+       is not used.
+
+
 Changes with nginx 0.1.2                                         21 Oct 2004
 
     *) Feature: the --user=USER, --group=GROUP, and --with-ld-opt=OPTIONS 
@@ -9,13 +19,13 @@ Changes with nginx 0.1.2                                         21 Oct 2004
     *) Bugfix: the portability improvements.
 
     *) Bugfix: if configuration file was set in command line, the 
-       reconfiguration was impossible, bug appeared in 0.1.1.
+       reconfiguration was impossible; bug appeared in 0.1.1.
 
     *) Bugfix: proxy module may get caught in an endless loop when sendfile 
        is not used.
 
     *) Bugfix: with sendfile the response was not recoded according to the 
-       charset module directives, bug appeared in 0.1.1.
+       charset module directives; bug appeared in 0.1.1.
 
     *) Bugfix: very seldom bug in the kqueue processing.
 

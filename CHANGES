@@ -1,4 +1,38 @@
 
+Changes with nginx 0.1.25                                        19 Mar 2005
+
+    *) Bugfix: nginx did run on Linux parisc.
+
+    *) Feature: nginx now does not start under FreeBSD if the sysctl 
+       kern.ipc.somaxconn value is too big.
+
+    *) Bugfix: if a request was internally redirected by the 
+       ngx_http_index_module module to the ngx_http_proxy_module or 
+       ngx_http_fastcgi_module modules, then the index file was not closed 
+       after request completion.
+
+    *) Feature: the "proxy_pass" can be used in location with regular 
+       expression.
+
+    *) Feature: the ngx_http_rewrite_filter_module module supports the 
+       condition like "if ($HTTP_USER_AGENT ~ MSIE)".
+
+    *) Bugfix: nginx started too slow if the large number of addresses and 
+       text values were used in the "geo" directive.
+
+    *) Change: a variable name must be declared as "$name" in the "geo" 
+       directive. The previous variant without "$" is still supported, but 
+       will be removed soon.
+
+    *) Feature: the "%{VARIABLE}v" logging parameter.
+
+    *) Feature: the "set $name value" directive.
+
+    *) Bugfix: gcc 4.0 compatibility.
+
+    *) Feature: the --with-openssl-opt=OPTIONS autoconfiguration directive.
+
+
 Changes with nginx 0.1.24                                        04 Mar 2005
 
     *) Feature: the ngx_http_ssi_filter_module supports the QUERY_STRING 

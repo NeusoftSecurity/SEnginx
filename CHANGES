@@ -1,4 +1,34 @@
 
+Changes with nginx 0.1.18                                        09 Feb 2005
+
+    *) Workaround: the default values of the devpoll_events and the 
+       devpoll_changes directives changed from 512 to 32 to be compatible 
+       with Solaris 10.
+
+    *) Bugfix: the proxy_set_x_var and fastcgi_set_var directives were not 
+       inherited.
+
+    *) Bugfix: in the redirect rewrite directive the arguments were 
+       concatenated with URI by the "&" rather than the "?".
+
+    *) Bugfix: the lines without trailing ";" in the file being included by 
+       the ngx_http_geo_module were silently ignored.
+
+    *) Feature: the ngx_http_stub_status_module.
+
+    *) Bugfix: the unknown log format in the access_log directive caused 
+       the segmentation fault.
+
+    *) Feature: the new "document_root" parameter of the fastcgi_params 
+       directive.
+
+    *) Feature: the fastcgi_redirect_errors directive.
+
+    *) Feature: the new "break" modifier of the "rewrite" directive allows 
+       to stop the rewrite/location cycle and sets the current 
+       configuration to the request.
+
+
 Changes with nginx 0.1.17                                        03 Feb 2005
 
     *) Feature: the ngx_http_rewrite_module was rewritten from the scratch. 
@@ -32,7 +62,7 @@ Changes with nginx 0.1.16                                        25 Jan 2005
        request the final chunk was issued.
 
     *) Bugfix: the "Connection: keep-alive" header were issued, even if the 
-       keepalive_timeout derective forbade the keep-alive use.
+       keepalive_timeout directive forbade the keep-alive use.
 
     *) Bugfix: the errors in the ngx_http_fastcgi_module caused the 
        segmentation faults.
@@ -43,9 +73,9 @@ Changes with nginx 0.1.16                                        25 Jan 2005
     *) Bugfix: the TCP-specific TCP_NODELAY, TCP_NOPSUH, and TCP_CORK 
        options, are not used for the unix domain sockets.
 
-    *) Feature: the rewrite directive supports the agruments rewriting.
+    *) Feature: the rewrite directive supports the arguments rewriting.
 
-    *) Bugfix: the response code 400 was returend for the POST request with 
+    *) Bugfix: the response code 400 was returned for the POST request with 
        the "Content-Length: 0" header; bug appeared in 0.1.14.
 
 

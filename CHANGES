@@ -1,7 +1,14 @@
 
+Changes with nginx 0.1.28                                        08 Apr 2005
+
+    *) Bugfix: nginx hogs CPU while proxing the huge files.
+
+    *) Bugfix: nginx could not be built by gcc 4.0 on Linux.
+
+
 Changes with nginx 0.1.27                                        28 Mar 2005
 
-    *) Feature: the "blocked" parameter of the "invalid_referers" directive.
+    *) Feature: the "blocked" parameter of the "valid_referers" directive.
 
     *) Change: the errors while handling the request header now logged at 
        "info" level. The server name and the "Host" and "Referer" header 

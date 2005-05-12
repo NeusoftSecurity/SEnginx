@@ -1,4 +1,91 @@
 
+Changes with nginx 0.1.29                                        12 May 2005
+
+    *) Feature: the ngx_http_ssi_module supports "include virtual" command.
+
+    *) Feature: the ngx_http_ssi_module supports the condition command like 
+       'if expr="$NAME"' and "else" and "endif" commands. Only one nested 
+       level is supported.
+
+    *) Feature: the ngx_http_ssi_module supports the DATE_LOCAL and 
+       DATE_GMT variables and "config timefmt" command.
+
+    *) Feature: the "ssi_ignore_recycled_buffers" directive.
+
+    *) Bugfix: the "echo" command did not show the default value for the 
+       empty QUERY_STRING variable.
+
+    *) Change: the ngx_http_proxy_module was rewritten.
+
+    *) Feature: the "proxy_redirect", "proxy_pass_request_headers", 
+       "proxy_pass_request_body", and "proxy_method" directives.
+
+    *) Feature: the "proxy_set_header" directive. The "proxy_x_var" is 
+       canceled and must be replaced with the proxy_set_header directive.
+
+    *) Change: the "proxy_preserve_host" is canceled and must be replaced 
+       with the "proxy_set_header Host $host" and the "proxy_redirect off" 
+       directives, the "proxy_set_header Host $host:$proxy_port" directive 
+       and the appropriate proxy_redirect directives.
+
+    *) Change: the "proxy_set_x_real_ip" is canceled and must be replaced 
+       with the "proxy_set_header X-Real-IP $remote_addr" directive.
+
+    *) Change: the "proxy_add_x_forwarded_for" is canceled and must be 
+       replaced with 
+       the "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for" 
+       directive.
+
+    *) Change: the "proxy_set_x_url" is canceled and must be replaced with 
+       the "proxy_set_header X-URL http://$host:$server_port$request_uri" 
+       directive.
+
+    *) Feature: the "fastcgi_param" directive.
+
+    *) Change: the "fastcgi_set_var" and "fastcgi_params" directive are 
+       canceled and must be replaced with the fastcgi_param directives.
+
+    *) Feature: the "index" directive can use the variables.
+
+    *) Feature: the "index" directive can be used at http and server levels.
+
+    *) Change: the last index only in the "index" directive can be absolute.
+
+    *) Feature: the "rewrite" directive can use the variables.
+
+    *) Feature: the "internal" directive.
+
+    *) Feature: the CONTENT_LENGTH, CONTENT_TYPE, REMOTE_PORT, SERVER_ADDR, 
+       SERVER_PORT, SERVER_PROTOCOL, DOCUMENT_ROOT, SERVER_NAME, 
+       REQUEST_METHOD, REQUEST_URI, and REMOTE_USER variables.
+
+    *) Change: nginx now passes the invalid lines in a client request 
+       headers or a backend response header.
+
+    *) Bugfix: if the backend did not transfer response for a long time and 
+       the "send_timeout" was less than "proxy_read_timeout", then nginx 
+       returned the 408 response.
+
+    *) Bugfix: the segmentation fault was occurred if the backend sent an 
+       invalid line in response header; bug appeared in 0.1.26.
+
+    *) Bugfix: the segmentation fault may occurred in FastCGI fault 
+       tolerance configuration.
+
+    *) Bugfix: the "expires" directive did not remove the previous 
+       "Expires" and "Cache-Control" headers.
+
+    *) Bugfix: nginx did not take into account trailing dot in "Host" 
+       header line.
+
+    *) Bugfix: the ngx_http_auth_module did not work under Linux.
+
+    *) Bugfix: the rewrite directive worked incorrectly, if the arguments 
+       were in a request.
+
+    *) Bugfix: nginx could not be built on MacOS X.
+
+
 Changes with nginx 0.1.28                                        08 Apr 2005
 
     *) Bugfix: nginx hogs CPU while proxing the huge files.
@@ -180,7 +267,7 @@ Changes with nginx 0.1.18                                        09 Feb 2005
 
 Changes with nginx 0.1.17                                        03 Feb 2005
 
-    *) Feature: the ngx_http_rewrite_module was rewritten from the scratch. 
+    *) Change: the ngx_http_rewrite_module was rewritten from the scratch. 
        Now it is possible to redirect, to return the error codes, to check 
        the variables and referrers. The directives can be used inside 
        locations. The redirect directive was canceled.

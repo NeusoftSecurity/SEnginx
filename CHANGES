@@ -1,4 +1,23 @@
 
+Changes with nginx 0.1.30                                        14 May 2005
+
+    *) Bugfix: the worker process may got caught in an endless loop if the 
+       SSI was used.
+
+    *) Bugfix: the response encrypted by SSL may not transferred complete.
+
+    *) Bugfix: if the length of the response part received at once from 
+       proxied or FastCGI server was equal to 500, then nginx returns the 
+       500 response code; in proxy mode the bug appeared in 0.1.29 only.
+
+    *) Bugfix: nginx did not consider the directives with 8 or 9 parameters 
+       as invalid.
+
+    *) Feature: the "return" directive can return the 204 response code.
+
+    *) Feature: the "ignore_invalid_headers" directive.
+
+
 Changes with nginx 0.1.29                                        12 May 2005
 
     *) Feature: the ngx_http_ssi_module supports "include virtual" command.
@@ -42,8 +61,9 @@ Changes with nginx 0.1.29                                        12 May 2005
 
     *) Feature: the "fastcgi_param" directive.
 
-    *) Change: the "fastcgi_set_var" and "fastcgi_params" directive are 
-       canceled and must be replaced with the fastcgi_param directives.
+    *) Change: the "fastcgi_root", "fastcgi_set_var" and "fastcgi_params" 
+       directive are canceled and must be replaced with the fastcgi_param 
+       directives.
 
     *) Feature: the "index" directive can use the variables.
 

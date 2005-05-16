@@ -1,4 +1,16 @@
 
+Changes with nginx 0.1.31                                        16 May 2005
+
+    *) Bugfix: the response encrypted by SSL may not transferred complete.
+
+    *) Bugfix: errors while processing FastCGI response by SSI.
+
+    *) Bugfix: errors while using SSI and gzipping.
+
+    *) Bugfix: the redirect with the 301 code was transferred without 
+       response body; bug appeared in 0.1.30.
+
+
 Changes with nginx 0.1.30                                        14 May 2005
 
     *) Bugfix: the worker process may got caught in an endless loop if the 

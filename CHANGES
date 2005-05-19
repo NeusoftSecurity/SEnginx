@@ -1,4 +1,19 @@
 
+Changes with nginx 0.1.32                                        19 May 2005
+
+    *) Bugfix: the arguments were omitted in the redirects, issued by the 
+       "rewrite" directive; bug appeared in 0.1.29.
+
+    *) Feature: the "if" directive supports the captures in regular 
+       expressions.
+
+    *) Feature: the "set" directive supports the variables and the captures 
+       of regular expressions.
+
+    *) Feature: the "X-Accel-Redirect" response header line is supported in 
+       proxy and FastCGI mode.
+
+
 Changes with nginx 0.1.31                                        16 May 2005
 
     *) Bugfix: the response encrypted by SSL may not transferred complete.

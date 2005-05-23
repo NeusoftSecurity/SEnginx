@@ -1,4 +1,18 @@
 
+Changes with nginx 0.1.33                                        23 May 2005
+
+    *) Bugfix: nginx could not be built with the --without-pcre parameter; 
+       bug appeared in 0.1.29.
+
+    *) Bugfix: 3, 4, 7, and 8 the "proxy_set_header" directives in one 
+       level cause the bus fault on start up.
+
+    *) Bugfix: the HTTP protocol was specified in the HTTPS redirects.
+
+    *) Bugfix: if the "rewrite" directive used the captures inside the "if" 
+       directive, then the 500 error code was returned.
+
+
 Changes with nginx 0.1.32                                        19 May 2005
 
     *) Bugfix: the arguments were omitted in the redirects, issued by the 

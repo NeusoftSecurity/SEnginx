@@ -1,4 +1,18 @@
 
+Changes with nginx 0.1.34                                        26 May 2005
+
+    *) Bugfix: the worker process may got caught in an endless loop if the 
+       big response part were include by SSI.
+
+    *) Bugfix: the variables set by the "set" directive were not available 
+       in SSI.
+
+    *) Feature: the "autoindex_localtime" directive.
+
+    *) Bugfix: the empty value of the "proxy_set_header" directive forbids 
+       the client request header line passing.
+
+
 Changes with nginx 0.1.33                                        23 May 2005
 
     *) Bugfix: nginx could not be built with the --without-pcre parameter; 

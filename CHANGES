@@ -1,4 +1,26 @@
 
+Changes with nginx 0.1.36                                        15 Jun 2005
+
+    *) Change: if the request header has duplicate the "Host", 
+       "Connection", "Content-Length", or "Authorization" lines, then nginx 
+       now returns the 400 error.
+
+    *) Change: The "post_accept_timeout" directive was canceled.
+
+    *) Feature: the "default", "af=", "bl=", "deferred", and "bind" 
+       parameters of the "listen" directive.
+
+    *) Feature: the FreeBSD accept filters support.
+
+    *) Feature: the Linux TCP_DEFER_ACCEPT support.
+
+    *) Bugfix: the ngx_http_autoindex_module did not support the file names 
+       in UTF-8.
+
+    *) Bugfix: the new log file can be rotated by the -USR1 signal only if 
+       the reconfiguration by the -HUP signal was made twice.
+
+
 Changes with nginx 0.1.35                                        07 Jun 2005
 
     *) Feature: the "working_directory" directive.

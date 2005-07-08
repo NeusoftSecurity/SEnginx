@@ -1,4 +1,39 @@
 
+Changes with nginx 0.1.38                                        08 Jul 2005
+
+    *) Feature: the "limit_rate" directive is supported in in proxy and 
+       FastCGI mode.
+
+    *) Feature: the "X-Accel-Limit-Rate" response header line is supported 
+       in proxy and FastCGI mode.
+
+    *) Feature: the "break" directive.
+
+    *) Feature: the "log_not_found" directive.
+
+    *) Bugfix: the response status code was not changed when request was 
+       redirected by the ""X-Accel-Redirect" header line.
+
+    *) Bugfix: the variables set by the "set" directive could not be used 
+       in SSI.
+
+    *) Bugfix: the segmentation fault may occurred if the SSI page has more 
+       than one remote subrequest.
+
+    *) Bugfix: nginx treated the backend response as invalid if the status 
+       line in the header was transferred in two packets; bug appeared in 
+       0.1.29.
+
+    *) Feature: the "ssi_types" directive.
+
+    *) Feature: the "autoindex_exact_size" directive.
+
+    *) Bugfix: the ngx_http_autoindex_module did not support the long file 
+       names in UTF-8.
+
+    *) Feature: the IMAP/POP3 proxy.
+
+
 Changes with nginx 0.1.37                                        23 Jun 2005
 
     *) Change: now the "\n" is added to the end of the "nginx.pid" file.

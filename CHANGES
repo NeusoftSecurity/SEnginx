@@ -1,4 +1,40 @@
 
+Changes with nginx 0.1.39                                        14 Jul 2005
+
+    *) The changes in the ngx_http_charset_module: the "default_charset" 
+       directive is canceled; the "charset" directive sets the response 
+       charset; the "source_charset" directive sets the source charset only.
+
+    *) Bugfix: the backend "WWW-Authenticate" header line did not 
+       transferred while the 401 response code redirecting.
+
+    *) Bugfix: the ngx_http_proxy_module and ngx_http_fastcgi_module may 
+       close a connection before anything was transferred to a client; bug 
+       appeared in 0.1.38.
+
+    *) Workaround: the Linux glibc crypt_r() initialization bug.
+
+    *) Bugfix: the ngx_http_ssi_module did not support the relative URI in 
+       the "include virtual" command.
+
+    *) Bugfix: if the backend response had the "Location" header line and 
+       nginx should not rewrite this line, then the 500 code response body 
+       was transferred; bug appeared in 0.1.29.
+
+    *) Bugfix: some directives of the ngx_http_proxy_module and 
+       ngx_http_fastcgi_module were not inherited from the server to the 
+       location level; bug appeared in 0.1.29.
+
+    *) Bugfix: the ngx_http_ssl_module did not support the certificate 
+       chain.
+
+    *) Bugfix: the ngx_http_autoindex_module did not show correctly the 
+       long file names; bug appeared in 0.1.38.
+
+    *) Bugfixes in IMAP/POP3 proxy in interaction with a backend at the 
+       login state.
+
+
 Changes with nginx 0.1.38                                        08 Jul 2005
 
     *) Feature: the "limit_rate" directive is supported in in proxy and 

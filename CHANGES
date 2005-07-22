@@ -1,4 +1,22 @@
 
+Changes with nginx 0.1.40                                        22 Jul 2005
+
+    *) Bugfix: if a client sent too long header line, then the request 
+       information did not logged in the error log.
+
+    *) Bugfix: the "Set-Cookie" header line was not transferred when the 
+       "X-Accel-Redirect" was used; bug appeared in 0.1.39.
+
+    *) Bugfix: the "Content-Disposition" header line was not transferred 
+       when the "X-Accel-Redirect" was used.
+
+    *) Bugfix: the master process did not close the listen socket on the 
+       SIGQUIT signal.
+
+    *) Bugfix: after on-line upgrade on Linux and Solaris the process name 
+       became shorter in the "ps" command.
+
+
 Changes with nginx 0.1.39                                        14 Jul 2005
 
     *) The changes in the ngx_http_charset_module: the "default_charset" 

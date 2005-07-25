@@ -1,4 +1,10 @@
 
+Changes with nginx 0.1.41                                        25 Jul 2005
+
+    *) Bugfix: if the variable was used in the configuration file, then it 
+       can not be used in SSI.
+
+
 Changes with nginx 0.1.40                                        22 Jul 2005
 
     *) Bugfix: if a client sent too long header line, then the request 

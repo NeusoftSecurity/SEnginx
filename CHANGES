@@ -1,4 +1,14 @@
 
+Changes with nginx 0.1.42                                        23 Aug 2005
+
+    *) Bugfix: if the request URI had a zero length after the processing in 
+       the ngx_http_proxy_module, then the segmentation fault or bus error 
+       occurred in the ngx_http_proxy_module.
+
+    *) Bugfix: the "limit_rate" directive did not work inside the "if" 
+       block; bug appeared in 0.1.38.
+
+
 Changes with nginx 0.1.41                                        25 Jul 2005
 
     *) Bugfix: if the variable was used in the configuration file, then it 

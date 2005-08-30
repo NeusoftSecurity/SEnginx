@@ -1,4 +1,20 @@
 
+Changes with nginx 0.1.43                                        30 Aug 2005
+
+    *) Feature: the listen(2) backlog in the "listen" directive can be 
+       changed using the -HUP signal.
+
+    *) Feature: the geo2nginx.pl script was added to contrib.
+
+    *) Change: the FastCGI parameters with the empty values now are passed 
+       to a server.
+
+    *) Bugfix: the segmentation fault occurred or the worker process may 
+       got caught in an endless loop if the proxied or FastCGI server sent 
+       the "Cache-Control" header line and the "expires" directive was 
+       used; in the proxied mode the bug appeared in 0.1.29.
+
+
 Changes with nginx 0.1.42                                        23 Aug 2005
 
     *) Bugfix: if the request URI had a zero length after the processing in 

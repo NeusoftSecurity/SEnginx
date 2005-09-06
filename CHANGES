@@ -1,4 +1,16 @@
 
+Changes with nginx 0.1.44                                        06 Sep 2005
+
+    *) Feature: the IMAP/POP3 proxy supports SSL.
+
+    *) Feature: the "proxy_timeout" directive.
+
+    *) Feature: the "userid_mark" directive.
+
+    *) Feature: the $remote_user variable value is determined independently 
+       of authorization use.
+
+
 Changes with nginx 0.1.43                                        30 Aug 2005
 
     *) Feature: the listen(2) backlog in the "listen" directive can be 

@@ -1,9 +1,20 @@
 
+Changes with nginx 0.1.45                                        08 Sep 2005
+
+    *) Change: the "ssl_engine" directive is canceled in the 
+       ngx_http_ssl_module and now is introduced at global level.
+
+    *) Bugfix: the responses with SSI subrequests did not transferred via 
+       SSL connection.
+
+    *) Various bug fixes in the IMAP/POP3 proxy.
+
+
 Changes with nginx 0.1.44                                        06 Sep 2005
 
     *) Feature: the IMAP/POP3 proxy supports SSL.
 
-    *) Feature: the "proxy_timeout" directive.
+    *) Feature: the "proxy_timeout" directive of the ngx_imap_proxy_module.
 
     *) Feature: the "userid_mark" directive.
 

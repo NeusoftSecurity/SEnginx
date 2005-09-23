@@ -1,4 +1,11 @@
 
+Changes with nginx 0.2.1                                         23 Sep 2005
+
+    *) Bugfix: if all backend using in load-balancing failed after one 
+       error, then nginx may got caught in an endless loop; bug appeared in 
+       0.2.0.
+
+
 Changes with nginx 0.2.0                                         23 Sep 2005
 
     *) The pid-file names used during online upgrade was changed and now is 
@@ -26,7 +33,7 @@ Changes with nginx 0.2.0                                         23 Sep 2005
     *) Bugfix: if all backend using in load-balancing failed after one 
        error, then nginx did not try do connect to them during 60 seconds.
 
-    *) Bugfix: in IMAP/POP3 command argument parsing. Thanks to Rob Mueller.
+    *) Bugfix: in IMAP/POP3 command argument parsing.
 
     *) Bugfix: errors while using SSL in IMAP/POP3 proxy.
 

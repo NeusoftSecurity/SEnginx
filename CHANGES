@@ -1,4 +1,41 @@
 
+Changes with nginx 0.2.0                                         23 Sep 2005
+
+    *) The pid-file names used during online upgrade was changed and now is 
+       not required a manual rename operation. The old master process adds 
+       the ".oldbin" suffix to its pid-file and executes a new binary file. 
+       The new master process creates usual pid-file without the ".newbin" 
+       suffix. If the master process exits, then old master process renames 
+       back its pid-file with the ".oldbin" suffix to the pid-file without 
+       suffix.
+
+    *) Change: the "worker_connections" directive, new name of the 
+       "connections" directive; now the directive specifies maximum number 
+       of connections, but not maximum socket descriptor number.
+
+    *) Feature: SSL supports the session cache inside one worker process.
+
+    *) Feature: the "satisfy_any" directive.
+
+    *) Change: the ngx_http_access_module and ngx_http_auth_basic_module do 
+       not run for subrequests.
+
+    *) Feature: the "worker_rlimit_nofile" and "worker_rlimit_sigpending" 
+       directives.
+
+    *) Bugfix: if all backend using in load-balancing failed after one 
+       error, then nginx did not try do connect to them during 60 seconds.
+
+    *) Bugfix: in IMAP/POP3 command argument parsing. Thanks to Rob Mueller.
+
+    *) Bugfix: errors while using SSL in IMAP/POP3 proxy.
+
+    *) Bugfix: errors while using SSI and gzipping.
+
+    *) Bugfix: the "Expires" and "Cache-Control" header lines were omitted 
+       from the 304 responses. Thanks to Alexandr Kukushkin.
+
+
 Changes with nginx 0.1.45                                        08 Sep 2005
 
     *) Change: the "ssl_engine" directive is canceled in the 

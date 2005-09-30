@@ -1,4 +1,26 @@
 
+Changes with nginx 0.2.2                                         30 Sep 2005
+
+    *) Feature: the "config errmsg" command of the ngx_http_ssi_module.
+
+    *) Change: the ngx_http_geo_module variables can be overridden by the 
+       "set" directive.
+
+    *) Feature: the "ssl_protocols" and "ssl_prefer_server_ciphers" 
+       directives of the ngx_http_ssl_module and ngx_imap_ssl_module.
+
+    *) Bugfix: the ngx_http_autoindex_module did not show correctly the 
+       long file names;
+
+    *) Bugfix: the ngx_http_autoindex_module now do not show the files 
+       starting by dot.
+
+    *) Bugfix: if the SSL handshake failed then another connection may be 
+       closed too. Thanks to Rob Mueller.
+
+    *) Bugfix: the export versions of MSIE 5.x could not connect via HTTPS.
+
+
 Changes with nginx 0.2.1                                         23 Sep 2005
 
     *) Bugfix: if all backend using in load-balancing failed after one 
@@ -33,7 +55,7 @@ Changes with nginx 0.2.0                                         23 Sep 2005
     *) Bugfix: if all backend using in load-balancing failed after one 
        error, then nginx did not try do connect to them during 60 seconds.
 
-    *) Bugfix: in IMAP/POP3 command argument parsing.
+    *) Bugfix: in IMAP/POP3 command argument parsing. Thanks to Rob Mueller.
 
     *) Bugfix: errors while using SSL in IMAP/POP3 proxy.
 

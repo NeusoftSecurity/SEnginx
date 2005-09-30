@@ -1,4 +1,10 @@
 
+Changes with nginx 0.2.3                                         30 Sep 2005
+
+    *) Bugfix: nginx could not be built without the --with-debug option; 
+       bug appeared in 0.2.2.
+
+
 Changes with nginx 0.2.2                                         30 Sep 2005
 
     *) Feature: the "config errmsg" command of the ngx_http_ssi_module.

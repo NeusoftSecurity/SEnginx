@@ -1,4 +1,16 @@
 
+Changes with nginx 0.2.4                                         03 Oct 2005
+
+    *) Feature: the ngx_http_ssi_module supports "$var=text", "$var!=text", 
+       "$var=/text/", and "$var!=/text/" expressions in the "if" command.
+
+    *) Bugfix: in proxying location without trailing slash; bug appeared in 
+       0.1.44.
+
+    *) Bugfix: the segmentation fault may occurred if the "rtsig" method 
+       was used; bug appeared in 0.2.0.
+
+
 Changes with nginx 0.2.3                                         30 Sep 2005
 
     *) Bugfix: nginx could not be built without the --with-debug option; 

@@ -1,4 +1,18 @@
 
+Changes with nginx 0.2.5                                         04 Oct 2005
+
+    *) Change: the duplicate value of the ngx_http_geo_module variable now 
+       causes the warning and changes old value.
+
+    *) Feature: the ngx_http_ssi_module supports the "set" command.
+
+    *) Feature: the ngx_http_ssi_module supports the "file" parameter in 
+       the "include" command.
+
+    *) Feature: the ngx_http_ssi_module supports the variable value 
+       substitutions in epxiressions of the "if" command.
+
+
 Changes with nginx 0.2.4                                         03 Oct 2005
 
     *) Feature: the ngx_http_ssi_module supports "$var=text", "$var!=text", 

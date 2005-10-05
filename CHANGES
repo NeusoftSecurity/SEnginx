@@ -1,4 +1,28 @@
 
+Changes with nginx 0.2.6                                         05 Oct 2005
+
+    *) Change: while using load-balancing the time before the failed 
+       backend retry was decreased from 60 to 10 seconds.
+
+    *) Change: the "proxy_pass_unparsed_uri" was canceled, the original URI 
+       now passed, if the URI part is omitted in "proxy_pass" directive.
+
+    *) Feature: the "error_page" directive supports redirects and allows 
+       more flexible to change an error code.
+
+    *) Change: the charset in the "Content-Type" header line now is ignored 
+       in proxied subrequests.
+
+    *) Bugfix: if the URI was changed in the "if" block and request did not 
+       found new configuration, then the ngx_http_rewrite_module rules ran 
+       again.
+
+    *) Bugfix: if the "set" directive set the ngx_http_geo_module variable 
+       in some configuration part, the this variable was not available in 
+       other configuration parts and the "using uninitialized variable" 
+       error was occurred; bug appeared in 0.2.2.
+
+
 Changes with nginx 0.2.5                                         04 Oct 2005
 
     *) Change: the duplicate value of the ngx_http_geo_module variable now 
@@ -10,7 +34,7 @@ Changes with nginx 0.2.5                                         04 Oct 2005
        the "include" command.
 
     *) Feature: the ngx_http_ssi_module supports the variable value 
-       substitutions in epxiressions of the "if" command.
+       substitutions in expressions of the "if" command.
 
 
 Changes with nginx 0.2.4                                         03 Oct 2005

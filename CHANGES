@@ -1,4 +1,13 @@
 
+Changes with nginx 0.3.1                                         10 Oct 2005
+
+    *) Bugfix: the segmentation fault occurred when the signal queue 
+       overflowed if the "rtsig" method was used; bug appeared in 0.2.0.
+
+    *) Change: correct handling of the "\\", "\"", "\'", and "\$" pairs in 
+       SSI.
+
+
 Changes with nginx 0.3.0                                         07 Oct 2005
 
     *) Change: the 10-days live time limit of worker process was 

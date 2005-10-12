@@ -1,4 +1,13 @@
 
+Изменения в nginx 0.3.2                                           12.10.2005
+
+    *) Добавление: поддержка Sun Studio 10 C compiler.
+
+    *) Добавление: директивы proxy_upstream_max_fails, 
+       proxy_upstream_fail_timeout, fastcgi_upstream_max_fails и 
+       fastcgi_upstream_fail_timeout.
+
+
 Изменения в nginx 0.3.1                                           10.10.2005
 
     *) Исправление: во время переполнения очереди сигналов при 

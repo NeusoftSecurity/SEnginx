@@ -1,4 +1,13 @@
 
+Changes with nginx 0.3.2                                         12 Oct 2005
+
+    *) Feature: the Sun Studio 10 C compiler support.
+
+    *) Feature: the "proxy_upstream_max_fails", 
+       "proxy_upstream_fail_timeout", "fastcgi_upstream_max_fails", and 
+       "fastcgi_upstream_fail_timeout" directives.
+
+
 Changes with nginx 0.3.1                                         10 Oct 2005
 
     *) Bugfix: the segmentation fault occurred when the signal queue 

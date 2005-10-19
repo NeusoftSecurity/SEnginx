@@ -1,4 +1,42 @@
 
+Changes with nginx 0.3.3                                         19 Oct 2005
+
+    *) Change: the "bl" and "af" parameters of the "listen" directive was 
+       renamed to the "backlog" and "accept_filter".
+
+    *) Feature: the "rcvbuf" and "sndbuf" parameters of the "listen" 
+       directive.
+
+    *) Change: the "$msec" log parameter does not require now the 
+       additional the gettimeofday() system call.
+
+    *) Feature: the -t switch now tests the "listen" directives.
+
+    *) Bugfix: if the invalid address was specified in the "listen" 
+       directive, then after the -HUP signal nginx left an open socket in 
+       the CLOSED state.
+
+    *) Bugfix: the mime type may be incorrectly set to default value for 
+       index file with variable in the name; bug appeared in 0.3.0.
+
+    *) Feature: the "timer_resolution" directive.
+
+    *) Feature: the millisecond "$upstream_response_time" log parameter.
+
+    *) Bugfix: a temporary file with client request body now is removed 
+       just after the response header was transferred to a client.
+
+    *) Bugfix: OpenSSL 0.9.6 compatibility.
+
+    *) Bugfix: the SSL certificate and key file paths could not be relative.
+
+    *) Bugfix: the "ssl_prefer_server_ciphers" directive did not work in 
+       the ngx_imap_ssl_module.
+
+    *) Bugfix: the "ssl_protocols" directive allowed to specify the single 
+       protocol only.
+
+
 Changes with nginx 0.3.2                                         12 Oct 2005
 
     *) Feature: the Sun Studio 10 C compiler support.

@@ -1,4 +1,10 @@
 
+Changes with nginx 0.3.4                                         19 Sep 2005
+
+    *) Bugfix: nginx could not be built on Linux 2.4+ and MacOS X; bug 
+       appeared in 0.3.3.
+
+
 Changes with nginx 0.3.3                                         19 Oct 2005
 
     *) Change: the "bl" and "af" parameters of the "listen" directive was 

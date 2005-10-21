@@ -1,5 +1,17 @@
 
-Changes with nginx 0.3.4                                         19 Sep 2005
+Changes with nginx 0.3.5                                         21 Oct 2005
+
+    *) Bugfix: the segmentation fault may occurred if the IMAP/POP3 login 
+       was changed by authorization server; bug appeared in 0.2.2.
+
+    *) Bugfix: the accept mutex did not work and all connections were 
+       handled by one process; bug appeared in 0.3.3.
+
+    *) Bugfix: the timeout did not work if the "rtsig" method and the 
+       "timer_resolution" directive were used.
+
+
+Changes with nginx 0.3.4                                         19 Oct 2005
 
     *) Bugfix: nginx could not be built on Linux 2.4+ and MacOS X; bug 
        appeared in 0.3.3.

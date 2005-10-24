@@ -1,4 +1,18 @@
 
+Changes with nginx 0.3.6                                         24 Oct 2005
+
+    *) Change: now the IMAP/POP3 proxy do not send the empty login to 
+       authorization server.
+
+    *) Feature: the "log_format" supports the variables in the $name form.
+
+    *) Bugfix: if at least in one server was no the "listen" directive, 
+       then nginx did not listen on the 80 port; bug appeared in 0.3.3.
+
+    *) Bugfix: if the URI part is omitted in "proxy_pass" directive, the 
+       the 80 port was always used.
+
+
 Changes with nginx 0.3.5                                         21 Oct 2005
 
     *) Bugfix: the segmentation fault may occurred if the IMAP/POP3 login 

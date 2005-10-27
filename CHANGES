@@ -1,4 +1,12 @@
 
+Changes with nginx 0.3.7                                         27 Oct 2005
+
+    *) Feature: the "access_log" supports the "buffer=" parameter.
+
+    *) Bugfix: nginx could not be built on platforms different from i386, 
+       amd64, sparc É ppc; bug appeared in 0.3.2.
+
+
 Changes with nginx 0.3.6                                         24 Oct 2005
 
     *) Change: now the IMAP/POP3 proxy do not send the empty login to 

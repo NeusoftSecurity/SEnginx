@@ -1,4 +1,58 @@
 
+Changes with nginx 0.3.8                                         09 Nov 2005
+
+    *) Security: nginx now checks URI got from a backend in 
+       "X-Accel-Redirect" header line or in SSI file for the "/../" paths 
+       and zeroes.
+
+    *) Change: nginx now does not treat the empty user name in the 
+       "Authorization" header line as valid one.
+
+    *) Feature: the "ssl_session_timeout" directives of the 
+       ngx_http_ssl_module and ngx_imap_ssl_module.
+
+    *) Feature: the "auth_http_header" directive of the 
+       ngx_imap_auth_http_module.
+
+    *) Feature: the "add_header" directive.
+
+    *) Feature: the ngx_http_realip_module. directives.
+
+    *) Feature: the new variables to use in the "log_format" directive: 
+       $bytes_sent, $apache_bytes_sent, $status, $time_gmt, $uri, 
+       $request_time, $request_length, $upstream_status, 
+       $upstream_response_time, $gzip_ratio, $uid_got, $uid_set, 
+       $connection, $pipe, and $msec. The parameters in the "%name" form 
+       will be canceled soon.
+
+    *) Change: now the false variable values in the "if" directive are the 
+       empty string "" and string starting with "0".
+
+    *) Bugfix: while using proxied or FastCGI-server nginx may leave 
+       connections and temporary files with client requests in open state.
+
+    *) Bugfix: the worker processes did not flush the buffered logs on 
+       graceful exit.
+
+    *) Bugfix: if the request URI was changes by the "rewrite" directive 
+       and the request was proxied in location given by regular expression, 
+       then the incorrect request was transferred to backend; bug appeared 
+       in 0.2.6.
+
+    *) Bugfix: the "expires" directive did not remove the previous 
+       "Expires" header.
+
+    *) Bugfix: nginx may stop to accept requests if the "rtsig" method and 
+       several worker processes were used.
+
+    *) Bugfix: the "\"" and "\'" escape symbols were incorrectly handled in 
+       SSI commands.
+
+    *) Bugfix: if the response was ended just after the SSI command and 
+       gzipping was used, then the response did not transferred complete or 
+       did not transferred at all.
+
+
 Changes with nginx 0.3.7                                         27 Oct 2005
 
     *) Feature: the "access_log" supports the "buffer=" parameter.

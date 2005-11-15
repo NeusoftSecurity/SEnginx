@@ -1,4 +1,37 @@
 
+Changes with nginx 0.3.10                                        15 Nov 2005
+
+    *) Change: the "valid_referers" directive and the "$invalid_referer" 
+       variable was moved to the new ngx_http_referer_module from the 
+       ngx_http_rewrite_module.
+
+    *) Change: the "$apache_bytes_sent" variable name was changed to 
+       "$body_bytes_sent".
+
+    *) Feature: the "$sent_http_..." variables.
+
+    *) Feature: the "if" directive supports the "=" and "!=" operations.
+
+    *) Feature: the "proxy_set_body" directive supports the HTTPS protocol.
+
+    *) Feature: the "proxy_set_body" directive.
+
+    *) Feature: the "post_action" directive.
+
+    *) Feature: the ngx_http_empty_gif_module.
+
+    *) Feature: the "worker_cpu_affinity" directive for Linux.
+
+    *) Bugfix: the "rewrite" directive did not unescape URI part in 
+       redirect, now it is unescaped except the %00-%25 and %7F-%FF 
+       characters.
+
+    *) Bugfix: nginx could not be built by the icc 9.0 compiler.
+
+    *) Bugfix: if the SSI was enabled for zero size static file, then the 
+       chunked response was encoded incorrectly.
+
+
 Changes with nginx 0.3.9                                         10 Nov 2005
 
     *) Bugfix: nginx considered URI as unsafe if two any symbols was 
@@ -22,7 +55,7 @@ Changes with nginx 0.3.8                                         09 Nov 2005
 
     *) Feature: the "add_header" directive.
 
-    *) Feature: the ngx_http_realip_module. directives.
+    *) Feature: the ngx_http_realip_module.
 
     *) Feature: the new variables to use in the "log_format" directive: 
        $bytes_sent, $apache_bytes_sent, $status, $time_gmt, $uri, 

@@ -1,8 +1,46 @@
 
+Changes with nginx 0.3.12                                        26 Nov 2005
+
+    *) Security: if nginx was built with the ngx_http_realip_module and the 
+       "satisfy_any on" directive was used, then access and authorization 
+       directives did not work. The ngx_http_realip_module was not built 
+       and is not built by default.
+
+    *) Change: the "$time_gmt" variable name was changed to "$time_local".
+
+    *) Change: the "proxy_header_buffer_size" and 
+       "fastcgi_header_buffer_size" directives was renamed to the 
+       "proxy_buffer_size" and "fastcgi_buffer_size" directives.
+
+    *) Feature: the ngx_http_memcached_module.
+
+    *) Feature: the "proxy_buffering" directive.
+
+    *) Bugfix: the changes in accept mutex handling when the "rtsig" method 
+       was used; bug appeared in 0.3.0.
+
+    *) Bugfix: if the client sent the "Transfer-Encoding: chunked" header 
+       line, then nginx returns the 411 error.
+
+    *) Bugfix: if the "auth_basic" directive was inherited from the http 
+       level, then the realm in the "WWW-Authenticate" header line was 
+       without the "Basic realm" text.
+
+    *) Bugfix: if the "combined" format was explicitly specified in the 
+       "access_log" directive, then the empty lines was written to the log; 
+       bug appeared in 0.3.8.
+
+    *) Bugfix: nginx did not run on the sparc platform under any OS except 
+       Solaris.
+
+    *) Bugfix: now it is not necessary to place space between the quoted 
+       string and closing bracket in the "if" directive.
+
+
 Changes with nginx 0.3.11                                        15 Nov 2005
 
-    *) Bugfix: nginx did not pass while proxying the client request headers 
-       and body; bug appeared in 0.3.10.
+    *) Bugfix: nginx did not pass the client request headers and body while 
+       proxying; bug appeared in 0.3.10.
 
 
 Changes with nginx 0.3.10                                        15 Nov 2005

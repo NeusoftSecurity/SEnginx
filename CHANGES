@@ -1,4 +1,20 @@
 
+Changes with nginx 0.3.13                                        05 Dec 2005
+
+    *) Feature: the IMAP/POP3 proxy supports STARTTLS and STLS.
+
+    *) Bugfix: the IMAP/POP3 proxy did not work with the select, poll, and 
+       /dev/poll methods.
+
+    *) Bugfix: in SSI handling.
+
+    *) Bugfix: now Solaris sendfilev() is not used to transfer the client 
+       request body to FastCGI-server via the unix domain socket.
+
+    *) Bugfix: the "auth_basic" directive did not disable the 
+       authorization; bug appeared in 0.3.11.
+
+
 Changes with nginx 0.3.12                                        26 Nov 2005
 
     *) Security: if nginx was built with the ngx_http_realip_module and the 

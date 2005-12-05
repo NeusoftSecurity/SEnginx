@@ -1,4 +1,10 @@
 
+Changes with nginx 0.3.14                                        05 Dec 2005
+
+    *) Bugfix: in the 304 response the body was transferred; bug appeared 
+       in 0.3.13.
+
+
 Changes with nginx 0.3.13                                        05 Dec 2005
 
     *) Feature: the IMAP/POP3 proxy supports STARTTLS and STLS.

@@ -1,4 +1,15 @@
 
+Changes with nginx 0.3.15                                        07 Dec 2005
+
+    *) Feature: the new 444 code of the "return" directive to close 
+       connection.
+
+    *) Feature: the "so_keepalive" directive in IMAP/POP3 proxy.
+
+    *) Bugfix: if there are unclosed connection nginx now calls abort() 
+       only on gracefull quit and active "debug_points" directive.
+
+
 Changes with nginx 0.3.14                                        05 Dec 2005
 
     *) Bugfix: in the 304 response the body was transferred; bug appeared 

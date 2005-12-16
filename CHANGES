@@ -1,4 +1,28 @@
 
+Changes with nginx 0.3.16                                        16 Dec 2005
+
+    *) Feature: the ngx_http_map_module.
+
+    *) Feature: the "types_hash_max_size" and "types_hash_bucket_size" 
+       directives.
+
+    *) Feature: the "ssi_value_length" directive.
+
+    *) Feature: the "worker_rlimit_core" directive.
+
+    *) Workaround: the connection number in logs was always 1 if nginx was 
+       built by the icc 8.1 or 9.0 compilers with optimization for 
+       Pentium 4.
+
+    *) Bugfix: the "config timefmt" SSI command set incorrect time format.
+
+    *) Bugfix: nginx did not close connection to IMAP/POP3 backend for the 
+       SSL connections. Thanks to Rob Mueller. Bug appeared in 0.3.13.
+
+    *) Bugfix: segmentation fault may occurred in at SSL shutdown; bug 
+       appeared in 0.3.13.
+
+
 Changes with nginx 0.3.15                                        07 Dec 2005
 
     *) Feature: the new 444 code of the "return" directive to close 

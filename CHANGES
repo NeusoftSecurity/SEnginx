@@ -1,4 +1,20 @@
 
+Changes with nginx 0.3.17                                        18 Dec 2005
+
+    *) Change: now on Linux configure checks the presence of epoll and 
+       sendfile64() in kernel.
+
+    *) Feature: the "map" directive supports domain names in the 
+       ".domain.tld" form.
+
+    *) Bugfix: the timeouts were not used in SSL handshake.
+
+    *) Bugfix: in the HTTP protocol in the "proxy_pass" directive.
+
+    *) Bugfix: when the HTTP protocol was used in the "proxy_pass" 
+       directive the port 80 was used by default.
+
+
 Changes with nginx 0.3.16                                        16 Dec 2005
 
     *) Feature: the ngx_http_map_module.
@@ -113,7 +129,7 @@ Changes with nginx 0.3.10                                        15 Nov 2005
 
     *) Feature: the "if" directive supports the "=" and "!=" operations.
 
-    *) Feature: the "proxy_set_body" directive supports the HTTPS protocol.
+    *) Feature: the "proxy_pass" directive supports the HTTPS protocol.
 
     *) Feature: the "proxy_set_body" directive.
 

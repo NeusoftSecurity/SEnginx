@@ -1,4 +1,33 @@
 
+Changes with nginx 0.3.18                                        26 Dec 2005
+
+    *) Feature: the "server_names" directive supports the ".domain.tld" 
+       names.
+
+    *) Feature: the "server_names" directive uses the hash for the 
+       "*.domain.tld" names and more effective hash for usual names.
+
+    *) Change: the "server_names_hash_max_size" and 
+       "server_names_hash_bucket_size" directives.
+
+    *) Change: the "server_names_hash" and "server_names_hash_threshold" 
+       directives were canceled.
+
+    *) Feature: the "valid_referers" directive uses the hash site names.
+
+    *) Change: now the "valid_referers" directive checks the site names 
+       only without the URI part.
+
+    *) Bugfix: some ".domain.tld" names incorrectly processed by the 
+       ngx_http_map_module.
+
+    *) Bugfix: segmentation fault was occurred if configuration file did 
+       not exist; bug appeared in 0.3.12.
+
+    *) Bugfix: on 64-bit platforms segmentation fault may occurred on 
+       start; bug appeared in 0.3.16.
+
+
 Changes with nginx 0.3.17                                        18 Dec 2005
 
     *) Change: now on Linux configure checks the presence of epoll and 
@@ -7,7 +36,8 @@ Changes with nginx 0.3.17                                        18 Dec 2005
     *) Feature: the "map" directive supports domain names in the 
        ".domain.tld" form.
 
-    *) Bugfix: the timeouts were not used in SSL handshake.
+    *) Bugfix: the timeouts were not used in SSL handshake; bug appeared in 
+       0.2.4.
 
     *) Bugfix: in the HTTP protocol in the "proxy_pass" directive.
 
@@ -597,7 +627,7 @@ Changes with nginx 0.1.36                                        15 Jun 2005
        "Connection", "Content-Length", or "Authorization" lines, then nginx 
        now returns the 400 error.
 
-    *) Change: The "post_accept_timeout" directive was canceled.
+    *) Change: the "post_accept_timeout" directive was canceled.
 
     *) Feature: the "default", "af=", "bl=", "deferred", and "bind" 
        parameters of the "listen" directive.

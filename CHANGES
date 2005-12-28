@@ -1,4 +1,13 @@
 
+Changes with nginx 0.3.19                                        28 Dec 2005
+
+    *) Feature: the "path" and "alias" directives support the variables.
+
+    *) Change: now the "valid_referers" directive again checks the URI part.
+
+    *) Bugfix: in SSI handling.
+
+
 Changes with nginx 0.3.18                                        26 Dec 2005
 
     *) Feature: the "server_names" directive supports the ".domain.tld" 

@@ -1,4 +1,12 @@
 
+Changes with nginx 0.3.20                                        11 Jan 2006
+
+    *) Bugfix: in SSI handling.
+
+    *) Bugfix: the ngx_http_memcached_module did not support the keys in 
+       the "/usr?args" form.
+
+
 Changes with nginx 0.3.19                                        28 Dec 2005
 
     *) Feature: the "path" and "alias" directives support the variables.

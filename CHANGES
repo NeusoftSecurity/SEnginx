@@ -1,4 +1,12 @@
 
+Changes with nginx 0.3.21                                        16 Jan 2006
+
+    *) Feature: the ngx_http_perl_module.
+
+    *) Change: the "valid_referers" directive allows the referreres without 
+       URI part.
+
+
 Changes with nginx 0.3.20                                        11 Jan 2006
 
     *) Bugfix: in SSI handling.

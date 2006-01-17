@@ -1,4 +1,17 @@
 
+Changes with nginx 0.3.22                                        17 Jan 2006
+
+    *) Feature: the ngx_http_perl_module supports the $r->args and 
+       $r->unescape methods.
+
+    *) Feature: the method $r->query_string of ngx_http_perl_module is 
+       canceled.
+
+    *) Bugfix: segmentation fault was occurred if the "none" or "blocked" 
+       values was specified in the "valid_referers" directive; bug appeared 
+       in 0.3.18.
+
+
 Changes with nginx 0.3.21                                        16 Jan 2006
 
     *) Feature: the ngx_http_perl_module.

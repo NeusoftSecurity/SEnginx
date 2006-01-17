@@ -1,4 +1,16 @@
 
+Изменения в nginx 0.3.22                                          17.01.2006
+
+    *) Добавление: модуль ngx_http_perl_module поддерживает методы $r->args 
+       и $r->unescape.
+
+    *) Добавление: метод $r->query_string в модуле ngx_http_perl_module 
+       упразднён.
+
+    *) Исправление: если в директиве valid_referers указаны только none или 
+       blocked, то происходил segmentation fault; ошибка появилась в 0.3.18.
+
+
 Изменения в nginx 0.3.21                                          16.01.2006
 
     *) Добавление: модуль ngx_http_perl_module.

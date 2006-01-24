@@ -1,4 +1,15 @@
 
+Changes with nginx 0.3.23                                        24 Jan 2006
+
+    *) Feature: the "optimize_host_names" directive.
+
+    *) Bugfix: in using of the variables in the "path" and "alias" 
+       directives.
+
+    *) Bugfix: the ngx_http_perl_module was incorrectly built on Linux and 
+       Solaris.
+
+
 Changes with nginx 0.3.22                                        17 Jan 2006
 
     *) Feature: the ngx_http_perl_module supports the $r->args and 

@@ -1,4 +1,11 @@
 
+Changes with nginx 0.3.25                                        01 Feb 2006
+
+    *) Bugfix: the segmentation fault was occurred on start or while 
+       reconfiguration if there was invalid configuration; bug appeared in 
+       0.3.24.
+
+
 Changes with nginx 0.3.24                                        01 Feb 2006
 
     *) Workaround: for bug in FreeBSD kqueue.

@@ -1,4 +1,27 @@
 
+Changes with nginx 0.3.27                                        08 Feb 2006
+
+    *) Change: the "variables_hash_max_size" and 
+       "variables_hash_bucket_size" directives.
+
+    *) Feature: the $body_bytes_sent variable can be used not only in the 
+       "log_format" directive.
+
+    *) Feature: the $ssl_protocol and $ssl_cipher variables.
+
+    *) Feature: the cache line size detection for widespread CPUs at start 
+       time.
+
+    *) Feature: now the "accept_mutex" directive is supported using 
+       fcntl(2) on platforms different from i386, amd64, sparc64, and ppc.
+
+    *) Feature: the "lock_file" directive and the --with-lock-path=PATH 
+       autoconfiguration directive.
+
+    *) Bugfix: if the HTTP protocol was used in the "proxy_pass" directive 
+       then the requests with the body did not transferred.
+
+
 Changes with nginx 0.3.26                                        03 Feb 2006
 
     *) Change: the "optimize_host_names" directive was renamed to the 

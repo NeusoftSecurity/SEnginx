@@ -1,4 +1,16 @@
 
+Changes with nginx 0.3.30                                        22 Feb 2006
+
+    *) Change: the ECONNABORTED error log level was changed to "error" from 
+       "crit".
+
+    *) Bugfix: the ngx_http_perl_module could not be build without the 
+       ngx_http_ssi_filter_module.
+
+    *) Bugfix: nginx could not be built on i386 platform, if the PIC was 
+       used.
+
+
 Changes with nginx 0.3.29                                        20 Feb 2006
 
     *) Feature: now nginx uses less memory, if PHP in FastCGI mode sends 

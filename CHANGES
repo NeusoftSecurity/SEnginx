@@ -1,4 +1,27 @@
 
+Changes with nginx 0.3.31                                        10 Mar 2006
+
+    *) Change: now nginx passes the malformed proxied backend responses.
+
+    *) Feature: the "listen" directives support the address in the "*:port" 
+       form.
+
+    *) Feature: the EVFILER_TIMER support in MacOSX 10.4.
+
+    *) Workaround: for MacOSX 64-bit kernel kqueue millisecond timeout bug. 
+       Thanks Andrei Nigmatulin.
+
+    *) Bugfix: if there were several "listen" directives listening one 
+       various addresses inside one server, then server names like 
+       "*.domain.tld" worked for first address only; bug appeared in 0.3.18.
+
+    *) Bugfix: if the HTTP protocol was used in the "proxy_pass" directive 
+       and the request body was in temporarily file then the request was 
+       not transferred.
+
+    *) Bugfix: perl 5.8.8 compatibility.
+
+
 Changes with nginx 0.3.30                                        22 Feb 2006
 
     *) Change: the ECONNABORTED error log level was changed to "error" from 
@@ -8,7 +31,7 @@ Changes with nginx 0.3.30                                        22 Feb 2006
        ngx_http_ssi_filter_module.
 
     *) Bugfix: nginx could not be built on i386 platform, if the PIC was 
-       used.
+       used; bug appeared in 0.3.27.
 
 
 Changes with nginx 0.3.29                                        20 Feb 2006
@@ -67,7 +90,7 @@ Changes with nginx 0.3.27                                        08 Feb 2006
        autoconfiguration directive.
 
     *) Bugfix: if the HTTP protocol was used in the "proxy_pass" directive 
-       then the requests with the body did not transferred.
+       then the requests with the body was not transferred.
 
 
 Changes with nginx 0.3.26                                        03 Feb 2006

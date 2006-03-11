@@ -1,4 +1,10 @@
 
+Changes with nginx 0.3.32                                        11 Mar 2006
+
+    *) Bugfix: the debug logging on startup and reconfiguration time was 
+       removed; bug appeared in 0.3.31.
+
+
 Changes with nginx 0.3.31                                        10 Mar 2006
 
     *) Change: now nginx passes the malformed proxied backend responses.

@@ -1,4 +1,9 @@
 
+Changes with nginx 0.3.34                                        21 Mar 2006
+
+    *) Feature: the "add_header" directive supports the variables.
+
+
 Changes with nginx 0.3.33                                        15 Mar 2006
 
     *) Feature: the "http_503" parameter of the "proxy_next_upstream" or 

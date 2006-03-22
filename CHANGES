@@ -1,4 +1,13 @@
 
+Changes with nginx 0.3.35                                        22 Mar 2006
+
+    *) Bugfix: the accept-filter and the TCP_DEFER_ACCEPT option were set 
+       for first "listen" directive only; bug appeared in 0.3.31.
+
+    *) Bugfix: in the "proxy_pass" directive without the URI part in a 
+       subrequest.
+
+
 Changes with nginx 0.3.34                                        21 Mar 2006
 
     *) Feature: the "add_header" directive supports the variables.

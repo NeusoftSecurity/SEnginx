@@ -1,4 +1,17 @@
 
+Changes with nginx 0.3.37                                        07 Apr 2006
+
+    *) Feature: the "limit_except" directive.
+
+    *) Feature: the "if" directive supports the "!~", "!~*", "-f", and 
+       "!-f" operators.
+
+    *) Feature: the ngx_http_perl_module supports the $r->request_body 
+       method.
+
+    *) Bugfix: in the ngx_http_addition_filter_module.
+
+
 Changes with nginx 0.3.36                                        05 Apr 2006
 
     *) Feature: the ngx_http_addition_filter_module.

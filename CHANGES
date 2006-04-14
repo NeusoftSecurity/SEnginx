@@ -1,4 +1,29 @@
 
+Changes with nginx 0.3.38                                        14 Apr 2006
+
+    *) Feature: the ngx_http_dav_module.
+
+    *) Change: the ngx_http_perl_module optimizations.
+       Thanks to Sergey Skvortsov.
+
+    *) Feature: the ngx_http_perl_module supports the $r->request_body_file 
+       method.
+
+    *) Feature: the "client_body_in_file_only" directive.
+
+    *) Workaround: no on disk overflow nginx tries to write access logs 
+       once a second only.
+       Thanks to Anton Yuzhaninov and Maxim Dounin.
+
+    *) Bugfix: now the "limit_rate" directive more precisely limits rate if 
+       rate is more than 100 Kbyte/s.
+       Thanks to ForJest.
+
+    *) Bugfix: now the IMAP/POP3 proxy escapes the "\r" and "\n" symbols in 
+       login and password to pass authorization server.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.3.37                                        07 Apr 2006
 
     *) Feature: the "limit_except" directive.
@@ -81,7 +106,8 @@ Changes with nginx 0.3.31                                        10 Mar 2006
 
     *) Feature: the EVFILER_TIMER support in MacOSX 10.4.
 
-    *) Workaround: for MacOSX 64-bit kernel kqueue millisecond timeout bug. 
+    *) Workaround: for MacOSX 64-bit kernel kqueue millisecond timeout 
+       bug.
        Thanks Andrei Nigmatulin.
 
     *) Bugfix: if there were several "listen" directives listening one 
@@ -130,7 +156,8 @@ Changes with nginx 0.3.28                                        16 Feb 2006
     *) Feature: the --with-cpu-opt=ppc64 configuration parameter.
 
     *) Bugfix: on some condition the proxied connection with a client was 
-       terminated prematurely. Thanks to Vladimir Shutoff.
+       terminated prematurely.
+       Thanks to Vladimir Shutoff.
 
     *) Bugfix: the "X-Accel-Limit-Rate" header line was not taken into 
        account if the request was redirected using the "X-Accel-Redirect" 
@@ -313,7 +340,8 @@ Changes with nginx 0.3.16                                        16 Dec 2005
     *) Bugfix: the "config timefmt" SSI command set incorrect time format.
 
     *) Bugfix: nginx did not close connection to IMAP/POP3 backend for the 
-       SSL connections. Thanks to Rob Mueller. Bug appeared in 0.3.13.
+       SSL connections; bug appeared in 0.3.13.
+       Thanks to Rob Mueller.
 
     *) Bugfix: segmentation fault may occurred in at SSL shutdown; bug 
        appeared in 0.3.13.
@@ -665,7 +693,8 @@ Changes with nginx 0.2.2                                         30 Sep 2005
        starting by dot.
 
     *) Bugfix: if the SSL handshake failed then another connection may be 
-       closed too. Thanks to Rob Mueller.
+       closed too.
+       Thanks to Rob Mueller.
 
     *) Bugfix: the export versions of MSIE 5.x could not connect via HTTPS.
 
@@ -704,14 +733,16 @@ Changes with nginx 0.2.0                                         23 Sep 2005
     *) Bugfix: if all backend using in load-balancing failed after one 
        error, then nginx did not try do connect to them during 60 seconds.
 
-    *) Bugfix: in IMAP/POP3 command argument parsing. Thanks to Rob Mueller.
+    *) Bugfix: in IMAP/POP3 command argument parsing.
+       Thanks to Rob Mueller.
 
     *) Bugfix: errors while using SSL in IMAP/POP3 proxy.
 
     *) Bugfix: errors while using SSI and gzipping.
 
     *) Bugfix: the "Expires" and "Cache-Control" header lines were omitted 
-       from the 304 responses. Thanks to Alexandr Kukushkin.
+       from the 304 responses.
+       Thanks to Alexandr Kukushkin.
 
 
 Changes with nginx 0.1.45                                        08 Sep 2005

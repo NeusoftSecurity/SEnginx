@@ -1,4 +1,24 @@
 
+Changes with nginx 0.3.39                                        17 Apr 2006
+
+    *) Feature: the "uninitialized_variable_warn" directive; the logging 
+       level of the "uninitialized variable" message was lowered from 
+       "alert" to "warn".
+
+    *) Feature: the "override_charset" directive.
+
+    *) Change: now if the unknown variable is used in the "echo" and "if 
+       expr='$name'" SSI-commands, then the "unknown variable" message is 
+       not logged.
+
+    *) Bugfix: the active connection counter increased on the exceeding of 
+       the connection limit specified by the "worker_connections" 
+       directive; bug appeared in 0.2.0.
+
+    *) Bugfix: the limit rate might not work on some condition; bug 
+       appeared in 0.3.38.
+
+
 Changes with nginx 0.3.38                                        14 Apr 2006
 
     *) Feature: the ngx_http_dav_module.

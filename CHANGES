@@ -1,4 +1,13 @@
 
+Changes with nginx 0.3.40                                        19 Apr 2006
+
+    *) Feature: the ngx_http_dav_module supports the MKCOL method.
+
+    *) Feature: the "create_full_put_path" directive.
+
+    *) Feature: the "$limit_rate" variable.
+
+
 Changes with nginx 0.3.39                                        17 Apr 2006
 
     *) Feature: the "uninitialized_variable_warn" directive; the logging 

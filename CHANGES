@@ -1,4 +1,18 @@
 
+Changes with nginx 0.3.41                                        21 Apr 2006
+
+    *) Feature: the -v switch.
+
+    *) Bugfix: the segmentation fault may occurred if the SSI page has 
+       remote subrequests.
+
+    *) Bugfix: in FastCGI handling.
+
+    *) Bugfix: if the perl modules path was not set using 
+       --with-perl_modules_path=PATH or the "perl_modules", then the 
+       segmentation fault was occurred.
+
+
 Changes with nginx 0.3.40                                        19 Apr 2006
 
     *) Feature: the ngx_http_dav_module supports the MKCOL method.

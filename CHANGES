@@ -1,4 +1,21 @@
 
+Changes with nginx 0.3.42                                        26 Apr 2006
+
+    *) Feature: the "bind" option of the "listen" directive in IMAP/POP3 
+       proxy.
+
+    *) Bugfix: if the same capture in the "rewrite" directive was used more 
+       then once.
+
+    *) Bugfix: the $sent_http_content_type, $sent_http_content_length, 
+       $sent_http_last_modified, $sent_http_connection, 
+       $sent_http_keep_alive, and $sent_http_transfer_encoding variables 
+       were not written to access log.
+
+    *) Bugfix: the $sent_http_cache_control returned value of the single 
+       "Cache-Control" response header line.
+
+
 Changes with nginx 0.3.41                                        21 Apr 2006
 
     *) Feature: the -v switch.

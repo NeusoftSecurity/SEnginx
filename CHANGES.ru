@@ -1,4 +1,20 @@
 
+Изменения в nginx 0.3.42                                          26.04.2006
+
+    *) Добавление: параметр bind в директиве listen в IMAP/POP3 прокси.
+
+    *) Исправление: ошибки при использовании в директиве rewrite одного и 
+       того же выделения более одного раза.
+
+    *) Исправление: в лог не записывались переменные 
+       $sent_http_content_type, $sent_http_content_length, 
+       $sent_http_last_modified, $sent_http_connection, 
+       $sent_http_keep_alive и $sent_http_transfer_encoding.
+
+    *) Исправление: переменная $sent_http_cache_control возвращала 
+       содержимое только одной строки "Cache-Control" в заголовке ответа.
+
+
 Изменения в nginx 0.3.41                                          21.04.2006
 
     *) Добавление: ключ -v.

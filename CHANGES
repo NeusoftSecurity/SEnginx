@@ -1,4 +1,9 @@
 
+Changes with nginx 0.3.43                                        26 Apr 2006
+
+    *) Bugfix: in the SSI.
+
+
 Changes with nginx 0.3.42                                        26 Apr 2006
 
     *) Feature: the "bind" option of the "listen" directive in IMAP/POP3 

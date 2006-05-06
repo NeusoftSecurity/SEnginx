@@ -1,4 +1,23 @@
 
+Changes with nginx 0.3.45                                        06 May 2006
+
+    *) Feature: the "ssl_verify_client", "ssl_verify_depth", and 
+       "ssl_client_certificate" directives.
+
+    *) Change: the $request_method variable now returns the main request 
+       method.
+
+    *) Change: the &deg; symbol codes were changed in koi-win conversion 
+       table.
+
+    *) Feature: the euro É N symbols were added to koi-win conversion table.
+
+    *) Bugfix: if nginx distributed the requests among several backends and 
+       some backend failed, then requests intended for this backend was 
+       directed to one live backend only instead of being distributed among 
+       the rest.
+
+
 Changes with nginx 0.3.44                                        04 May 2006
 
     *) Feature: the "wait" parameter in the SSI "include" command.

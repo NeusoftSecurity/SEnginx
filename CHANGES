@@ -1,4 +1,19 @@
 
+Changes with nginx 0.3.46                                        11 May 2006
+
+    *) Feature: the "proxy_hide_header", "proxy_pass_header", 
+       "fastcgi_hide_header", and "fastcgi_pass_header" directives.
+
+    *) Change: the "proxy_pass_x_powered_by", "fastcgi_x_powered_by", and 
+       "proxy_pass_server" directives were canceled.
+
+    *) Feature: the "X-Accel-Buffering" response header line is supported 
+       in proxy mode.
+
+    *) Bugfix: the reconfiguration bug and memory leaks in the 
+       ngx_http_perl_module.
+
+
 Changes with nginx 0.3.45                                        06 May 2006
 
     *) Feature: the "ssl_verify_client", "ssl_verify_depth", and 
@@ -245,7 +260,7 @@ Changes with nginx 0.3.29                                        20 Feb 2006
 
 Changes with nginx 0.3.28                                        16 Feb 2006
 
-    *) Feature: the "restrict_host_names" directive is canceled.
+    *) Feature: the "restrict_host_names" directive was canceled.
 
     *) Feature: the --with-cpu-opt=ppc64 configuration parameter.
 
@@ -337,7 +352,7 @@ Changes with nginx 0.3.22                                        17 Jan 2006
     *) Feature: the ngx_http_perl_module supports the $r->args and 
        $r->unescape methods.
 
-    *) Feature: the method $r->query_string of ngx_http_perl_module is 
+    *) Feature: the method $r->query_string of ngx_http_perl_module was 
        canceled.
 
     *) Bugfix: segmentation fault was occurred if the "none" or "blocked" 
@@ -841,7 +856,7 @@ Changes with nginx 0.2.0                                         23 Sep 2005
 
 Changes with nginx 0.1.45                                        08 Sep 2005
 
-    *) Change: the "ssl_engine" directive is canceled in the 
+    *) Change: the "ssl_engine" directive was canceled in the 
        ngx_http_ssl_module and now is introduced at global level.
 
     *) Bugfix: the responses with SSI subrequests did not transferred via 
@@ -915,7 +930,7 @@ Changes with nginx 0.1.40                                        22 Jul 2005
 Changes with nginx 0.1.39                                        14 Jul 2005
 
     *) The changes in the ngx_http_charset_module: the "default_charset" 
-       directive is canceled; the "charset" directive sets the response 
+       directive was canceled; the "charset" directive sets the response 
        charset; the "source_charset" directive sets the source charset only.
 
     *) Bugfix: the backend "WWW-Authenticate" header line did not 
@@ -1133,7 +1148,7 @@ Changes with nginx 0.1.29                                        12 May 2005
     *) Feature: the "proxy_redirect", "proxy_pass_request_headers", 
        "proxy_pass_request_body", and "proxy_method" directives.
 
-    *) Feature: the "proxy_set_header" directive. The "proxy_x_var" is 
+    *) Feature: the "proxy_set_header" directive. The "proxy_x_var" was 
        canceled and must be replaced with the proxy_set_header directive.
 
     *) Change: the "proxy_preserve_host" is canceled and must be replaced 

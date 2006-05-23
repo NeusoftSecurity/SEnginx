@@ -1,4 +1,12 @@
 
+Changes with nginx 0.3.47                                        23 May 2006
+
+    *) Feature: the "upstream" directive.
+
+    *) Change: now the "\" escape symbol in the "\"" and "\'" pairs in the 
+       SSI command is always removed.
+
+
 Changes with nginx 0.3.46                                        11 May 2006
 
     *) Feature: the "proxy_hide_header", "proxy_pass_header", 

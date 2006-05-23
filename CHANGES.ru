@@ -1,10 +1,18 @@
 
+Изменения в nginx 0.3.47                                          23.05.2006
+
+    *) Добавление: директива upstream.
+
+    *) Изменение: символ "\" в парах "\"" и "\'" в SSI командах теперь 
+       всегда убирается.
+
+
 Изменения в nginx 0.3.46                                          11.05.2006
 
     *) Добавление: директивы proxy_hide_header, proxy_pass_header, 
        fastcgi_hide_header и fastcgi_pass_header.
 
-    *) Изменение: директивы proxy_x_powered_by, fastcgi_x_powered_by и 
+    *) Изменение: директивы proxy_pass_x_powered_by, fastcgi_x_powered_by и 
        proxy_pass_server упразднены.
 
     *) Добавление: в режиме прокси поддерживается строка заголовка 

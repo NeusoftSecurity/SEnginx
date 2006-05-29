@@ -1,4 +1,21 @@
 
+Changes with nginx 0.3.48                                        29 May 2006
+
+    *) Change: now the ngx_http_charset_module works for subrequests, if 
+       the response has no "Content-Type" header line.
+
+    *) Bugfix: if the "proxy_pass" directive has no URI part, then the 
+       "proxy_redirect default" directive add the unnecessary slash in 
+       start of the rewritten redirect.
+
+    *) Bugfix: the internal redirect always transform client's HTTP method 
+       to GET, now the transformation is made for the "X-Accel-Redirect" 
+       redirects only and if the method is not HEAD; bug appeared in 0.3.42.
+
+    *) Bugfix: the ngx_http_perl_module could not be built, if the perl was 
+       built with the threads support; bug appeared in 0.3.46.
+
+
 Changes with nginx 0.3.47                                        23 May 2006
 
     *) Feature: the "upstream" directive.

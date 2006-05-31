@@ -1,4 +1,13 @@
 
+Changes with nginx 0.3.49                                        31 May 2006
+
+    *) Bugfix: in the "set" directive.
+
+    *) Bugfix: if two or more FastCGI subrequests was in SSI, then first 
+       subrequest output was included instead of second and following 
+       subrequests.
+
+
 Changes with nginx 0.3.48                                        29 May 2006
 
     *) Change: now the ngx_http_charset_module works for subrequests, if 

@@ -1,4 +1,26 @@
 
+Changes with nginx 0.3.50                                        28 Jun 2006
+
+    *) Change: the "proxy_redirect_errors" and "fastcgi_redirect_errors" 
+       directives was renamed to the "proxy_intercept_errors" and 
+       "fastcgi_intercept_errors" directives.
+
+    *) Feature: the ngx_http_charset_module supports the recoding from the 
+       single byte encodings to the UTF-8 encoding and back.
+
+    *) Feature: the "X-Accel-Charset" response header line is supported in 
+       proxy and FastCGI mode.
+
+    *) Bugfix: the "\" escape symbol in the "\"" and "\'" pairs in the SSI 
+       command was removed only if the command also has the "$" symbol.
+
+    *) Bugfix: the "<!--" string might be added on some conditions in the 
+       SSI after inclusion.
+
+    *) Bugfix: if the "Content-Length: 0" header line was in response, then 
+       in nonbuffered proxying mode the client connection was not closed.
+
+
 Changes with nginx 0.3.49                                        31 May 2006
 
     *) Bugfix: in the "set" directive.

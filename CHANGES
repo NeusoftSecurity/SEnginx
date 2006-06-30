@@ -1,4 +1,10 @@
 
+Changes with nginx 0.3.51                                        30 Jun 2006
+
+    *) Bugfix: the "<" symbols might disappeared some conditions in the 
+       SSI; bug appeared in 0.3.50.
+
+
 Changes with nginx 0.3.50                                        28 Jun 2006
 
     *) Change: the "proxy_redirect_errors" and "fastcgi_redirect_errors" 

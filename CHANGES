@@ -1,4 +1,27 @@
 
+Changes with nginx 0.3.53                                        07 Jul 2006
+
+    *) Change: the "add_header" directive adds the string to 204, 301, and 
+       302 responses.
+
+    *) Feature: the "server" directive if the "upstream" context supports 
+       the "weight" parameter.
+
+    *) Feature: the "server_name" directive supports the "*" wildcard.
+
+    *) Feature: nginx supports the request body size more than 2G.
+
+    *) Bugfix: if a client was successfully authorized using "satisfy_any 
+       on", then anyway the "access forbidden by rule" message was written 
+       in the log.
+
+    *) Bugfix: the "PUT" method may erroneously not create a file and 
+       return the 409 code.
+
+    *) Bugfix: if the IMAP/POP3 backend returned an error, then nginx 
+       continued proxying anyway.
+
+
 Changes with nginx 0.3.52                                        03 Jul 2006
 
     *) Change: the ngx_http_index_module behavior for the "POST /" requests 
@@ -1390,8 +1413,8 @@ Changes with nginx 0.1.23                                        01 Mar 2005
     *) Feature: the %request_time log parameter.
 
     *) Feature: if the request has no the "Host" header line, then the 
-       proxy_preserve_host directive set this header line to the first 
-       server name of the server_name directive.
+       "proxy_preserve_host" directive set this header line to the first 
+       server name of the "server_name" directive.
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
        amd64, sparc É ppc; bug appeared in 0.1.22.
@@ -1587,8 +1610,8 @@ Changes with nginx 0.1.13                                        21 Dec 2004
     *) Feature: the server_names_hash and server_names_hash_threshold 
        directives.
 
-    *) Bugfix: the *.domain.tld names in the server_name directive did not 
-       work.
+    *) Bugfix: the *.domain.tld names in the "server_name" directive did 
+       not work.
 
     *) Bugfix: the %request_length log parameter logged the incorrect 
        length.

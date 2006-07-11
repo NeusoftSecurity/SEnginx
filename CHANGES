@@ -1,4 +1,24 @@
 
+Changes with nginx 0.3.54                                        11 Jul 2006
+
+    *) Feature: nginx now logs the subrequest information to the error log.
+
+    *) Feature: the "proxy_next_upstream", "fastcgi_next_upstream", and 
+       "memcached_next_upstream" directives support the "off" parameter.
+
+    *) Feature: the "debug_connection" directive supports the CIDR address 
+       form.
+
+    *) Bugfix: if a response of proxied server or FastCGI server was 
+       converted from UTF-8 or back, then it may be transferred incomplete.
+
+    *) Bugfix: the $upstream_response_time variable had the time of the 
+       first request to a backend only.
+
+    *) Bugfix: nginx could not be built on amd64 platform; bug appeared in 
+       0.3.53.
+
+
 Changes with nginx 0.3.53                                        07 Jul 2006
 
     *) Change: the "add_header" directive adds the string to 204, 301, and 
@@ -12,7 +32,7 @@ Changes with nginx 0.3.53                                        07 Jul 2006
     *) Feature: nginx supports the request body size more than 2G.
 
     *) Bugfix: if a client was successfully authorized using "satisfy_any 
-       on", then anyway the "access forbidden by rule" message was written 
+       on", then anyway the message "access forbidden by rule" was written 
        in the log.
 
     *) Bugfix: the "PUT" method may erroneously not create a file and 

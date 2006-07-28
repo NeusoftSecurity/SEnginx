@@ -1,4 +1,30 @@
 
+Changes with nginx 0.3.55                                        28 Jul 2006
+
+    *) Feature: the "stub" parameter in the "include" SSI command.
+
+    *) Feature: the "block" SSI command.
+
+    *) Feature: the unicode2nginx script was added to contrib.
+
+    *) Bugfix: if a "root" was specified by variable only, then the root 
+       was relative to a server prefix.
+
+    *) Bugfix: if the request contained "//" or "/./" and escaped symbols 
+       after them, then the proxied request was sent unescaped.
+
+    *) Bugfix: the $r->headers_in("Cookie") of the ngx_http_perl_module now 
+       returns all "Cookie" header lines.
+
+    *) Bugfix: a segmentation fault occurred if 
+       "client_body_in_file_only on" was used and nginx was switches to a 
+       next upstream.
+
+    *) Bugfix: on some condition while reconfiguration character codes 
+       inside the "charset_map" may be treated invalid; bug appeared in 
+       0.3.50.
+
+
 Changes with nginx 0.3.54                                        11 Jul 2006
 
     *) Feature: nginx now logs the subrequest information to the error log.
@@ -156,7 +182,7 @@ Changes with nginx 0.3.45                                        06 May 2006
 
 Changes with nginx 0.3.44                                        04 May 2006
 
-    *) Feature: the "wait" parameter in the SSI "include" command.
+    *) Feature: the "wait" parameter in the "include" SSI command.
 
     *) Feature: the Ukrainian and Byelorussian characters were added to 
        koi-win conversion table.

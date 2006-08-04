@@ -1,4 +1,16 @@
 
+Changes with nginx 0.3.56                                        04 Aug 2006
+
+    *) Feature: the "dav_access" directive.
+
+    *) Feature: the "if" directive supports the "-d", "!-d", "-e", "!-e", 
+       "-x", and "!-x" operators.
+
+    *) Bugfix: a segmentation fault occurred if an request returned an 
+       redirect and some sent to client header lines were logged in the 
+       access log.
+
+
 Changes with nginx 0.3.55                                        28 Jul 2006
 
     *) Feature: the "stub" parameter in the "include" SSI command.

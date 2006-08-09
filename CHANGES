@@ -1,4 +1,18 @@
 
+Changes with nginx 0.3.57                                        09 Aug 2006
+
+    *) Feature: the $ssl_client_serial variable.
+
+    *) Bugfix: in the "!-e" operator of the "if" directive.
+       Thanks to Andrian Budanstov.
+
+    *) Bugfix: while a client certificate verification nginx did not send 
+       to a client the required certificates information.
+
+    *) Bugfix: the $document_root variable did not support the variables in 
+       the "root" directive.
+
+
 Changes with nginx 0.3.56                                        04 Aug 2006
 
     *) Feature: the "dav_access" directive.

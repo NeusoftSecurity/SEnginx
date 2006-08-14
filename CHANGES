@@ -1,4 +1,21 @@
 
+Changes with nginx 0.3.58                                        14 Aug 2006
+
+    *) Feature: the "error_page" directive supports the variables.
+
+    *) Change: now the procfs interface instead of sysctl is used on Linux.
+
+    *) Change: now the "Content-Type" header line is inherited from first 
+       response when the "X-Accel-Redirect" was used.
+
+    *) Bugfix: the "error_page" directive did not redirect the 413 error.
+
+    *) Bugfix: the trailing "?" did not remove old arguments if no new 
+       arguments were added to a rewritten URI.
+
+    *) Bugfix: nginx could not run on 64-bit FreeBSD 7.0-CURRENT.
+
+
 Changes with nginx 0.3.57                                        09 Aug 2006
 
     *) Feature: the $ssl_client_serial variable.

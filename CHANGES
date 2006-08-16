@@ -1,4 +1,16 @@
 
+Changes with nginx 0.3.59                                        16 Aug 2006
+
+    *) Feature: now is possible to do several redirection using the 
+       "error_page" directive.
+
+    *) Bugfix: the "dav_access" directive did not support three parameters.
+
+    *) Bugfix: the "error_page" directive did not changes the 
+       "Content-Type" header line after the "X-Accel-Redirect" was used; 
+       bug appeared in 0.3.58.
+
+
 Changes with nginx 0.3.58                                        14 Aug 2006
 
     *) Feature: the "error_page" directive supports the variables.

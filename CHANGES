@@ -1,4 +1,10 @@
 
+Changes with nginx 0.3.60                                        18 Aug 2006
+
+    *) Bugfix: a worker process may got caught in an endless loop while an 
+       error redirection; bug appeared in 0.3.59.
+
+
 Changes with nginx 0.3.59                                        16 Aug 2006
 
     *) Feature: now is possible to do several redirection using the 

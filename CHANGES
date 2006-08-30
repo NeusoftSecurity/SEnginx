@@ -1,5 +1,28 @@
 
+Changes with nginx 0.4.0                                         30 Aug 2006
+
+    *) Change in internal API: the HTTP modules initialization was moved 
+       from the init module phase to the HTTP postconfiguration phase.
+
+    *) Change: now the request body is not read beforehand for the 
+       ngx_http_perl_module: it's required to start the reading using the 
+       $r->has_request_body method.
+
+    *) Feature: the ngx_http_perl_module supports the DECLINED return code.
+
+    *) Feature: the ngx_http_dav_module supports the incoming "Date" header 
+       line for the PUT method.
+
+    *) Feature: the "ssi" directive is available inside the "if" block.
+
+    *) Bugfix: a segmentation fault occurred if there was an "index" 
+       directive with variables and the first index name was without 
+       variables; bug appeared in 0.1.29.
+
+
 Changes with nginx 0.3.61                                        28 Aug 2006
+
+    *) Change: now the "tcp_nodelay" directive is turned on by default.
 
     *) Feature: the "msie_refresh" directive.
 

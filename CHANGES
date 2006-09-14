@@ -1,4 +1,17 @@
 
+Changes with nginx 0.4.1                                         14 Sep 2006
+
+    *) Bugfix: the DragonFlyBSD compatibility.
+       Thanks to Pavel Nazarov.
+
+    *) Workaround: of bug in 64-bit Linux sendfile(), when file is more 
+       than 2G.
+
+    *) Feature: now on Linux nginx uses O_NOATIME flag for static 
+       requests.
+       Thanks to Yusuf Goolamabbas.
+
+
 Changes with nginx 0.4.0                                         30 Aug 2006
 
     *) Change in internal API: the HTTP modules initialization was moved 

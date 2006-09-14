@@ -1,4 +1,10 @@
 
+Changes with nginx 0.4.2                                         14 Sep 2006
+
+    *) Bugfix: the O_NOATIME flag support on Linux was canceled; bug 
+       appeared in 0.4.1.
+
+
 Changes with nginx 0.4.1                                         14 Sep 2006
 
     *) Bugfix: the DragonFlyBSD compatibility.

@@ -95,6 +95,9 @@ KQUEUE_SRCS=src/event/modules/ngx_kqueue_module.c
 DEVPOLL_MODULE=ngx_devpoll_module
 DEVPOLL_SRCS=src/event/modules/ngx_devpoll_module.c
 
+EVENTPORT_MODULE=ngx_eventport_module
+EVENTPORT_SRCS=src/event/modules/ngx_eventport_module.c
+
 EPOLL_MODULE=ngx_epoll_module
 EPOLL_SRCS=src/event/modules/ngx_epoll_module.c
 
@@ -384,6 +387,10 @@ HTTP_MEMCACHED_SRCS=src/http/modules/ngx_http_memcached_module.c
 
 HTTP_EMPTY_GIF_MODULE=ngx_http_empty_gif_module
 HTTP_EMPTY_GIF_SRCS=src/http/modules/ngx_http_empty_gif_module.c
+
+
+HTTP_BROWSER_MODULE=ngx_http_browser_module
+HTTP_BROWSER_SRCS=src/http/modules/ngx_http_browser_module.c
 
 
 IMAP_INCS="src/imap"

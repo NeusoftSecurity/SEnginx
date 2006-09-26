@@ -23,6 +23,7 @@ NGX_LD_OPT=
 CPU=NO
 
 NGX_TEST_BUILD_DEVPOLL=NO
+NGX_TEST_BUILD_EVENTPORT=NO
 NGX_TEST_BUILD_EPOLL=NO
 NGX_TEST_BUILD_RTSIG=NO
 NGX_TEST_BUILD_SOLARIS_SENDFILEV=NO
@@ -68,6 +69,7 @@ HTTP_FASTCGI=YES
 HTTP_PERL=NO
 HTTP_MEMCACHED=YES
 HTTP_EMPTY_GIF=YES
+HTTP_BROWSER=YES
 
 # STUB
 HTTP_STUB_STATUS=NO
@@ -165,6 +167,7 @@ do
         --without-http_fastcgi_module)   HTTP_FASTCGI=NO            ;;
         --without-http_memcached_module) HTTP_MEMCACHED=NO          ;;
         --without-http_empty_gif_module) HTTP_EMPTY_GIF=NO          ;;
+        --without-http_browser_module)   HTTP_BROWSER=NO            ;;
 
         --with-http_perl_module)         HTTP_PERL=YES              ;;
         --with-perl_modules_path=*)      NGX_PERL_MODULES="$value"  ;;
@@ -205,6 +208,7 @@ do
         --with-zlib-asm=*)               ZLIB_ASM="$value"          ;;
 
         --test-build-devpoll)            NGX_TEST_BUILD_DEVPOLL=YES ;;
+        --test-build-eventport)          NGX_TEST_BUILD_EVENTPORT=YES ;;
         --test-build-epoll)              NGX_TEST_BUILD_EPOLL=YES   ;;
         --test-build-rtsig)              NGX_TEST_BUILD_RTSIG=YES   ;;
         --test-build-solaris-sendfilev)  NGX_TEST_BUILD_SOLARIS_SENDFILEV=YES ;;

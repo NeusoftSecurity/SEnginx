@@ -21,7 +21,7 @@ static void ngx_close_accepted_connection(ngx_connection_t *c);
 void
 ngx_event_accept(ngx_event_t *ev)
 {
-    socklen_t          sl;
+    socklen_t          socklen;
     ngx_err_t          err;
     ngx_log_t         *log;
     ngx_socket_t       s;
@@ -48,14 +48,16 @@ ngx_event_accept(ngx_event_t *ev)
                    "accept on %V, ready: %d", &ls->addr_text, ev->available);
 
     do {
-        sl = NGX_SOCKLEN;
+        socklen = NGX_SOCKLEN;
 
-        s = accept(lc->fd, (struct sockaddr *) sa, &sl);
+        s = accept(lc->fd, (struct sockaddr *) sa, &socklen);
 
         if (s == -1) {
             err = ngx_socket_errno;
 
             if (err == NGX_EAGAIN) {
+                ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, err,
+                               "accept() not ready");
                 return;
             }
 
@@ -104,13 +106,13 @@ ngx_event_accept(ngx_event_t *ev)
             return;
         }
 
-        c->sockaddr = ngx_palloc(c->pool, sl);
+        c->sockaddr = ngx_palloc(c->pool, socklen);
         if (c->sockaddr == NULL) {
             ngx_close_accepted_connection(c);
             return;
         }
 
-        ngx_memcpy(c->sockaddr, sa, sl);
+        ngx_memcpy(c->sockaddr, sa, socklen);
 
         log = ngx_palloc(c->pool, sizeof(ngx_log_t));
         if (log == NULL) {
@@ -152,7 +154,7 @@ ngx_event_accept(ngx_event_t *ev)
         c->pool->log = log;
 
         c->listening = ls;
-        c->socklen = sl;
+        c->socklen = socklen;
 
         c->unexpected_eof = 1;
 
@@ -264,7 +266,10 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                        "accept mutex locked");
 
-        if (ngx_accept_mutex_held && !(ngx_event_flags & NGX_USE_RTSIG_EVENT)) {
+        if (ngx_accept_mutex_held
+            && ngx_accept_events == 0
+            && !(ngx_event_flags & NGX_USE_RTSIG_EVENT))
+        {
             return NGX_OK;
         }
 
@@ -273,10 +278,14 @@ ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
             return NGX_ERROR;
         }
 
+        ngx_accept_events = 0;
         ngx_accept_mutex_held = 1;
 
         return NGX_OK;
     }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
+                   "accept mutex lock failed: %ui", ngx_accept_mutex_held);
 
     if (ngx_accept_mutex_held) {
         if (ngx_disable_accept_events(cycle) == NGX_ERROR) {

@@ -1,4 +1,24 @@
 
+Changes with nginx 0.4.3                                         26 Sep 2006
+
+    *) Change: now the 499 error could not be redirected using an 
+       "error_page" directive.
+
+    *) Feature: the Solaris 10 event ports support.
+
+    *) Feature: the ngx_http_browser_module.
+
+    *) Bugfix: a segmentation fault may occur while redirecting the 400 
+       error to the proxied server using an "proxy_pass" directive.
+
+    *) Bugfix: a segmentation fault occurred if an unix domain socket was 
+       used in an "proxy_pass" directive; bug appeared in 0.3.47.
+
+    *) Bugfix: SSI did work with memcached and nonbuffered responses.
+
+    *) Workaround: of the Sun Studio PAUSE hardware capability bug.
+
+
 Changes with nginx 0.4.2                                         14 Sep 2006
 
     *) Bugfix: the O_NOATIME flag support on Linux was canceled; bug 

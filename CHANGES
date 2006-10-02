@@ -1,4 +1,23 @@
 
+Changes with nginx 0.4.4                                         02 Oct 2006
+
+    *) Feature: the "scheme" variable.
+
+    *) Feature: the "expires" directive supports the "max" parameter.
+
+    *) Feature: the "include" directive supports the "*" mask.
+       Thanks to Jonathan Dance.
+
+    *) Bugfix: the "return" directive always overrode the "error_page" 
+       response code redirected by the "error_page" directive.
+
+    *) Bugfix: a segmentation fault occurred if zero-length body was in PUT 
+       method.
+
+    *) Bugfix: the redirect was changed incorrectly if the variables were 
+       used in the "proxy_redirect" directive.
+
+
 Changes with nginx 0.4.3                                         26 Sep 2006
 
     *) Change: now the 499 error could not be redirected using an 

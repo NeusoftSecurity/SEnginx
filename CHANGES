@@ -1,7 +1,27 @@
 
+Changes with nginx 0.4.6                                         06 Oct 2006
+
+    *) Bugfix: nginx did not run on 64-bit platforms except amd64, sparc64, 
+       and ppc64.
+
+    *) Bugfix: nginx sent the chunked response for HTTP/1.1 request,
+       if its length was set by text string in the 
+       $r->headers_out("Content-Length", ...) method.
+
+    *) Bugfix: after redirecting error by an "error_page" directive any 
+       ngx_http_rewrite_module directive returned this error code; bug 
+       appeared in 0.4.4.
+
+
+Changes with nginx 0.4.5                                         02 Oct 2006
+
+    *) Bugfix: nginx could not be built on Linux and Solaris; bug appeared 
+       in 0.4.4.
+
+
 Changes with nginx 0.4.4                                         02 Oct 2006
 
-    *) Feature: the "scheme" variable.
+    *) Feature: the $scheme variable.
 
     *) Feature: the "expires" directive supports the "max" parameter.
 

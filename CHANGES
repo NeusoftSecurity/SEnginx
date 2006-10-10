@@ -1,4 +1,25 @@
 
+Changes with nginx 0.4.7                                         10 Oct 2006
+
+    *) Feature: the ngx_http_flv_module.
+
+    *) Feature: the $request_body_file variable.
+
+    *) Feature: the "charset" and "source_charset" directives support the 
+       variables.
+
+    *) Bugfix: if before an "include" SSI command with an "wait" parameter 
+       were yet another "include" SSI command, then the "wait" parameter 
+       might not work.
+
+    *) Bugfix: if the "proxy_buffering off" directive was used or while 
+       working with memcached the connections might not be closed on 
+       timeout.
+
+    *) Bugfix: nginx did not run on 64-bit platforms except amd64, sparc64, 
+       and ppc64.
+
+
 Changes with nginx 0.4.6                                         06 Oct 2006
 
     *) Bugfix: nginx did not run on 64-bit platforms except amd64, sparc64, 

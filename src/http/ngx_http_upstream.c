@@ -1137,6 +1137,7 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
     umcf = ngx_http_get_module_main_conf(r, ngx_http_upstream_module);
 
     if (r->upstream->headers_in.x_accel_redirect) {
+
         ngx_http_upstream_finalize_request(r, u, NGX_DECLINED);
 
         part = &r->upstream->headers_in.headers.part;
@@ -1159,8 +1160,8 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
 
             if (hh && hh->redirect) {
                 if (hh->copy_handler(r, &h[i], hh->conf) != NGX_OK) {
-                    ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+                    ngx_http_finalize_request(r, 
+                                              NGX_HTTP_INTERNAL_SERVER_ERROR);
                     return;
                 }
             }
@@ -1172,7 +1173,7 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
         flags = 0;
 
         if (ngx_http_parse_unsafe_uri(r, uri, &args, &flags) != NGX_OK) {
-            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_NOT_FOUND);
+            ngx_http_finalize_request(r, NGX_HTTP_NOT_FOUND);
             return;
         }
 
@@ -1500,6 +1501,8 @@ ngx_http_upstream_process_non_buffered_body(ngx_event_t *ev)
     ngx_http_core_loc_conf_t  *clcf;
 
     c = ev->data;
+    r = c->data;
+    u = r->upstream;
 
     if (ev->write) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
@@ -1520,10 +1523,11 @@ ngx_http_upstream_process_non_buffered_body(ngx_event_t *ev)
         } else {
             ngx_connection_error(c, NGX_ETIMEDOUT, "upstream timed out");
         }
+
+        ngx_http_upstream_finalize_request(r, u, 0);
+        return;
     }
 
-    r = c->data;
-    u = r->upstream;
     client = r->connection;
 
     b = &u->buffer;
@@ -2941,7 +2945,7 @@ ngx_http_upstream_init_main_conf(ngx_conf_t *cf, void *conf)
     hash.hash = &umcf->headers_in_hash;
     hash.key = ngx_hash_key_lc;
     hash.max_size = 512;
-    hash.bucket_size = ngx_cacheline_size;
+    hash.bucket_size = ngx_align(64, ngx_cacheline_size);
     hash.name = "upstream_headers_in_hash";
     hash.pool = cf->pool;
     hash.temp_pool = NULL;

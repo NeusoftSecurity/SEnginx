@@ -1,4 +1,15 @@
 
+Changes with nginx 0.4.8                                         11 Oct 2006
+
+    *) Bugfix: if an "include" SSI command were before another "include" 
+       SSI command with an "wait" parameter, then the "wait" parameter 
+       might not work.
+
+    *) Bugfix: the ngx_http_flv_module added the FLV header to the full 
+       responses.
+       Thanks to Alexey Kovyrin.
+
+
 Changes with nginx 0.4.7                                         10 Oct 2006
 
     *) Feature: the ngx_http_flv_module.
@@ -8,8 +19,8 @@ Changes with nginx 0.4.7                                         10 Oct 2006
     *) Feature: the "charset" and "source_charset" directives support the 
        variables.
 
-    *) Bugfix: if before an "include" SSI command with an "wait" parameter 
-       were yet another "include" SSI command, then the "wait" parameter 
+    *) Bugfix: if an "include" SSI command were before another "include" 
+       SSI command with an "wait" parameter, then the "wait" parameter 
        might not work.
 
     *) Bugfix: if the "proxy_buffering off" directive was used or while 

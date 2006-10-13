@@ -1,4 +1,12 @@
 
+Changes with nginx 0.4.9                                         13 Oct 2006
+
+    *) Feature: the "set" parameter in the "include" SSI command.
+
+    *) Feature: the ngx_http_perl_module now tests the nginx.pm module 
+       version.
+
+
 Changes with nginx 0.4.8                                         11 Oct 2006
 
     *) Bugfix: if an "include" SSI command were before another "include" 

@@ -47,7 +47,9 @@
 
 #define NGX_HTTP_PARSE_INVALID_HEADER      13
 
+
 #define NGX_HTTP_ZERO_IN_URI               1
+#define NGX_HTTP_SUBREQUEST_IN_MEMORY      2
 
 
 #define NGX_HTTP_OK                        200
@@ -287,6 +289,15 @@ struct ngx_http_cleanup_s {
 };
 
 
+typedef ngx_int_t (*ngx_http_post_subrequest_pt)(ngx_http_request_t *r,
+    void *data, ngx_int_t rc);
+
+typedef struct {
+    ngx_http_post_subrequest_pt       handler;
+    void                             *data;
+} ngx_http_post_subrequest_t;
+
+
 typedef struct ngx_http_postponed_request_s  ngx_http_postponed_request_t;
 
 struct ngx_http_postponed_request_s {
@@ -330,8 +341,6 @@ struct ngx_http_request_s {
 
     ngx_uint_t                        method;
     ngx_uint_t                        http_version;
-    ngx_uint_t                        http_major;
-    ngx_uint_t                        http_minor;
 
     ngx_str_t                         request_line;
     ngx_str_t                         uri;
@@ -346,6 +355,7 @@ struct ngx_http_request_s {
     ngx_http_request_t               *main;
     ngx_http_request_t               *parent;
     ngx_http_postponed_request_t     *postponed;
+    ngx_http_post_subrequest_t       *post_subrequest;
 
     uint32_t                          in_addr;
     ngx_uint_t                        port;
@@ -358,8 +368,6 @@ struct ngx_http_request_s {
     ngx_uint_t                        access_code;
 
     ngx_http_variable_value_t        *variables;
-
-    size_t                            root_length;
 
     size_t                            limit_rate;
 
@@ -405,6 +413,7 @@ struct ngx_http_request_s {
     unsigned                          request_body_file_log_level:3;
 
     unsigned                          fast_subrequest:1;
+    unsigned                          subrequest_in_memory:1;
 
     unsigned                          header_timeout_set:1;
 
@@ -456,6 +465,7 @@ struct ngx_http_request_s {
     unsigned                          subrequests:8;
 
     /* used to parse HTTP headers */
+
     ngx_uint_t                        state;
     u_char                           *uri_start;
     u_char                           *uri_end;
@@ -474,6 +484,9 @@ struct ngx_http_request_s {
     u_char                           *header_name_end;
     u_char                           *header_start;
     u_char                           *header_end;
+
+    unsigned                          http_minor:16;
+    unsigned                          http_major:16;
 
     ngx_uint_t                        header_hash;
     ngx_uint_t                        lowcase_index;

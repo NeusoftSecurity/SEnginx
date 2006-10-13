@@ -794,6 +794,7 @@ ngx_int_t
 ngx_http_core_content_phase(ngx_http_request_t *r,
     ngx_http_phase_handler_t *ph)
 {
+    size_t     root;
     ngx_int_t  rc;
     ngx_str_t  path;
 
@@ -830,7 +831,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r,
 
     if (r->uri.data[r->uri.len - 1] == '/' && !r->zero_in_uri) {
 
-        if (ngx_http_map_uri_to_path(r, &path, 0) != NULL) {
+        if (ngx_http_map_uri_to_path(r, &path, &root, 0) != NULL) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                           "directory index of \"%V\" is forbidden", &path);
         }
@@ -1157,7 +1158,7 @@ ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
 u_char *
 ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
-    size_t reserved)
+    size_t *root_length, size_t reserved)
 {
     u_char                    *last;
     size_t                     alias;
@@ -1178,7 +1179,7 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
 
     if (clcf->root_lengths == NULL) {
 
-        r->root_length = clcf->root.len;
+        *root_length = clcf->root.len;
 
         path->len = clcf->root.len + reserved;
 
@@ -1201,8 +1202,8 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
             return NULL;
         }
 
-        r->root_length = path->len - reserved;
-        last = path->data + r->root_length;
+        *root_length = path->len - reserved;
+        last = path->data + *root_length;
     }
 
     last = ngx_cpystrn(last, r->uri.data + alias, r->uri.len - alias + 1);
@@ -1284,7 +1285,7 @@ ngx_http_auth_basic_user(ngx_http_request_t *r)
 ngx_int_t
 ngx_http_subrequest(ngx_http_request_t *r,
     ngx_str_t *uri, ngx_str_t *args, ngx_http_request_t **psr,
-    ngx_chain_t *out, ngx_uint_t flags)
+    ngx_http_post_subrequest_t *ps, ngx_uint_t flags)
 {
     ngx_connection_t              *c;
     ngx_http_request_t            *sr;
@@ -1341,7 +1342,6 @@ ngx_http_subrequest(ngx_http_request_t *r,
 
     sr->method = NGX_HTTP_GET;
     sr->http_version = r->http_version;
-    sr->http_major = r->http_minor;
 
     sr->request_line = r->request_line;
     sr->uri = *uri;
@@ -1353,9 +1353,8 @@ ngx_http_subrequest(ngx_http_request_t *r,
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "http subrequest \"%V?%V\"", uri, &sr->args);
 
-    if (flags & NGX_HTTP_ZERO_IN_URI) {
-        sr->zero_in_uri = 1;
-    }
+    sr->zero_in_uri = (flags & NGX_HTTP_ZERO_IN_URI) != 0;
+    sr->subrequest_in_memory = (flags & NGX_HTTP_SUBREQUEST_IN_MEMORY) != 0;
 
     sr->unparsed_uri = r->unparsed_uri;
     sr->method_name = r->method_name;
@@ -1365,9 +1364,9 @@ ngx_http_subrequest(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    sr->out = out;
     sr->main = r->main;
     sr->parent = r;
+    sr->post_subrequest = ps;
     sr->read_event_handler = ngx_http_request_empty_handler;
     sr->write_event_handler = ngx_http_request_empty_handler;
 
@@ -1431,7 +1430,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
         return NGX_AGAIN;
     }
 
-    return NGX_OK;
+    return NGX_DONE;
 }
 
 

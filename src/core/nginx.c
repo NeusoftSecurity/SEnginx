@@ -283,6 +283,10 @@ main(int argc, char *const *argv)
 
     ngx_os_status(cycle->log);
 
+    if (ngx_crc32_init(cycle->pool) != NGX_OK) {
+        return 1;
+    }
+
     ngx_cycle = cycle;
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);

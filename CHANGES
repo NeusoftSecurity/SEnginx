@@ -1,4 +1,22 @@
 
+Changes with nginx 0.4.10                                        23 Oct 2006
+
+    *) Feature: the IMAP/POP3 proxy supports the APOP command.
+
+    *) Bugfix: if the select, poll or /dev/poll methods were used, then 
+       while waiting authentication server response the IMAP/POP3 proxy 
+       hogged CPU.
+
+    *) Bugfix: a segmentation fault might occur if the $server_addr 
+       variable was used in the "map" directive.
+
+    *) Bugfix: the ngx_http_flv_module did not support the byte ranges for 
+       full responses; bug appeared in 0.4.7.
+
+    *) Bugfix: nginx could not be built on Debian amd64; bug appeared in 
+       0.4.9.
+
+
 Changes with nginx 0.4.9                                         13 Oct 2006
 
     *) Feature: the "set" parameter in the "include" SSI command.
@@ -1576,7 +1594,7 @@ Changes with nginx 0.1.29                                        12 May 2005
 
 Changes with nginx 0.1.28                                        08 Apr 2005
 
-    *) Bugfix: nginx hogs CPU while proxing the huge files.
+    *) Bugfix: nginx hogs CPU while proxying the huge files.
 
     *) Bugfix: nginx could not be built by gcc 4.0 on Linux.
 
@@ -1687,7 +1705,7 @@ Changes with nginx 0.1.23                                        01 Mar 2005
 Changes with nginx 0.1.22                                        22 Feb 2005
 
     *) Bugfix: the ngx_http_stub_status_module showed incorrect handled 
-       connections statistics if the proxing or FastCGI server were used.
+       connections statistics if the proxying or FastCGI server were used.
 
     *) Bugfix: the installation paths were incorrectly quoted on Linux and 
        Solaris; bug appeared in 0.1.21.
@@ -2051,7 +2069,7 @@ Changes with nginx 0.1.1                                         11 Oct 2004
 
     *) Feature: the setproctitle() emulation for Linux and Solaris.
 
-    *) Bugfix: the "Location" header rewrite bug fixed while the proxing.
+    *) Bugfix: the "Location" header rewrite bug fixed while the proxying.
 
     *) Bugfix: the ngx_http_chunked_module module may get caught in an 
        endless loop.
@@ -2059,7 +2077,7 @@ Changes with nginx 0.1.1                                         11 Oct 2004
     *) Bugfix: the /dev/poll module bugs fixed.
 
     *) Bugfix: the responses were corrupted when the temporary files were 
-       used while the proxing.
+       used while the proxying.
 
     *) Bugfix: the unescaped requests were passed to the backend.
 

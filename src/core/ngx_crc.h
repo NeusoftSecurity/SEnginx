@@ -8,10 +8,14 @@
 #define _NGX_CRC_H_INCLUDED_
 
 
+#include <ngx_config.h>
+#include <ngx_core.h>
+
+
 /* 32-bit crc16 */
 
 static ngx_inline uint32_t
-ngx_crc(char *data, size_t len)
+ngx_crc(u_char *data, size_t len)
 {
     uint32_t  sum;
 

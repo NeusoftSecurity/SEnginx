@@ -48,8 +48,25 @@ static ngx_str_t  ngx_imap_default_capabilities[] = {
 static ngx_conf_bitmask_t  ngx_imap_auth_methods[] = {
     { ngx_string("plain"), NGX_IMAP_AUTH_PLAIN_ENABLED },
     { ngx_string("apop"), NGX_IMAP_AUTH_APOP_ENABLED },
+    { ngx_string("cram-md5"), NGX_IMAP_AUTH_CRAM_MD5_ENABLED },
     { ngx_null_string, 0 }
 };
+
+
+static ngx_str_t  ngx_pop3_auth_plain_capability =
+    ngx_string("+OK methods supported:" CRLF
+               "LOGIN" CRLF
+               "PLAIN" CRLF
+               "." CRLF);
+
+
+static ngx_str_t  ngx_pop3_auth_cram_md5_capability =
+    ngx_string("+OK methods supported:" CRLF
+               "LOGIN" CRLF
+               "PLAIN" CRLF
+               "CRAM-MD5" CRLF
+               "." CRLF);
+
 
 
 static ngx_command_t  ngx_imap_core_commands[] = {
@@ -279,6 +296,13 @@ ngx_imap_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
         size += c[i].len + sizeof(CRLF) - 1;
     }
 
+    if (conf->auth_methods & NGX_IMAP_AUTH_CRAM_MD5_ENABLED) {
+        size += sizeof("SASL LOGIN PLAIN CRAM-MD5" CRLF) - 1;
+
+    } else {
+        size += sizeof("SASL LOGIN PLAIN" CRLF) - 1;
+    }
+
     p = ngx_palloc(cf->pool, size);
     if (p == NULL) {
         return NGX_CONF_ERROR;
@@ -293,6 +317,15 @@ ngx_imap_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     for (i = 0; i < conf->pop3_capabilities.nelts; i++) {
         p = ngx_cpymem(p, c[i].data, c[i].len);
         *p++ = CR; *p++ = LF;
+    }
+
+    if (conf->auth_methods & NGX_IMAP_AUTH_CRAM_MD5_ENABLED) {
+        p = ngx_cpymem(p, "SASL LOGIN PLAIN CRAM-MD5" CRLF,
+                       sizeof("SASL LOGIN PLAIN CRAM-MD5" CRLF) - 1);
+
+    } else {
+        p = ngx_cpymem(p, "SASL LOGIN PLAIN" CRLF,
+                       sizeof("SASL LOGIN PLAIN" CRLF) - 1);
     }
 
     *p++ = '.'; *p++ = CR; *p = LF;
@@ -313,6 +346,14 @@ ngx_imap_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     p = ngx_cpymem(p, "STLS" CRLF, sizeof("STLS" CRLF) - 1);
     *p++ = '.'; *p++ = CR; *p = LF;
+
+
+    if (conf->auth_methods & NGX_IMAP_AUTH_CRAM_MD5_ENABLED) {
+        conf->pop3_auth_capability = ngx_pop3_auth_cram_md5_capability;
+
+    } else {
+        conf->pop3_auth_capability = ngx_pop3_auth_plain_capability;
+    }
 
 
     if (conf->imap_capabilities.nelts == 0) {
@@ -471,56 +512,27 @@ ngx_imap_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_imap_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    char                       *err;
     ngx_str_t                  *value;
-    in_addr_t                   in_addr;
+    ngx_url_t                   u;
     ngx_uint_t                  i;
-    struct hostent             *h;
     ngx_imap_listen_t          *imls;
-    ngx_inet_upstream_t         inet_upstream;
     ngx_imap_core_main_conf_t  *cmcf;
 
     value = cf->args->elts;
 
-    ngx_memzero(&inet_upstream, sizeof(ngx_inet_upstream_t));
+    ngx_memzero(&u, sizeof(ngx_url_t));
 
-    inet_upstream.url = value[1];
-    inet_upstream.port_only = 1;
+    u.url = value[1];
+    u.listen = 1;
 
-    err = ngx_inet_parse_host_port(&inet_upstream);
-
-    if (err) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "%s in \"%V\" of the \"listen\" directive",
-                           err, &inet_upstream.url);
-        return NGX_CONF_ERROR;
-    }
-
-    if (inet_upstream.host.len == 1 && inet_upstream.host.data[0] == '*') {
-        inet_upstream.host.len = 0;
-    }
-
-    if (inet_upstream.host.len) {
-        inet_upstream.host.data[inet_upstream.host.len] = '\0';
-
-        in_addr = inet_addr((const char *) inet_upstream.host.data);
-
-        if (in_addr == INADDR_NONE) {
-            h = gethostbyname((const char *) inet_upstream.host.data);
-
-            if (h == NULL || h->h_addr_list[0] == NULL) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "can not resolve host \"%s\" "
-                                   "in the \"listen\" directive",
-                                   inet_upstream.host.data);
-                return NGX_CONF_ERROR;
-            }
-
-            in_addr = *(in_addr_t *)(h->h_addr_list[0]);
+    if (ngx_parse_url(cf, &u) != NGX_OK) {
+        if (u.err) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "%s in \"%V\" of the \"listen\" directive",
+                               u.err, &u.url);
         }
 
-    } else {
-        in_addr = INADDR_ANY;
+        return NGX_CONF_ERROR;
     }
 
     cmcf = ngx_imap_conf_get_module_main_conf(cf, ngx_imap_core_module);
@@ -529,13 +541,12 @@ ngx_imap_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     for (i = 0; i < cmcf->listen.nelts; i++) {
 
-        if (imls[i].addr != in_addr || imls[i].port != inet_upstream.port) {
+        if (imls[i].addr != u.addr.in_addr || imls[i].port != u.portn) {
             continue;
         }
 
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "duplicate \"%V\" address and port pair",
-                           &inet_upstream.url);
+                           "duplicate \"%V\" address and port pair", &u.url);
         return NGX_CONF_ERROR;
     }
 
@@ -546,8 +557,8 @@ ngx_imap_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ngx_memzero(imls, sizeof(ngx_imap_listen_t));
 
-    imls->addr = in_addr;
-    imls->port = inet_upstream.port;
+    imls->addr = u.addr.in_addr;
+    imls->port = u.portn;
     imls->family = AF_INET;
     imls->ctx = cf->ctx;
 

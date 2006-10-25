@@ -1,4 +1,15 @@
 
+Changes with nginx 0.4.11                                        25 Oct 2006
+
+    *) Feature: the POP3 proxy supports the AUTH LOGIN PLAIN and CRAM-MD5.
+
+    *) Feature: the ngx_http_perl_module supports the $r->allow_ranges 
+       method.
+
+    *) Bugfix: if the APOP was enabledi in the POP3 proxy, then the 
+       USER/PASS commands might not work; bug appeared in 0.4.10.
+
+
 Changes with nginx 0.4.10                                        23 Oct 2006
 
     *) Feature: the IMAP/POP3 proxy supports the APOP command.

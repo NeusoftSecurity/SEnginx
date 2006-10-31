@@ -1,4 +1,14 @@
 
+Changes with nginx 0.4.12                                        31 Oct 2006
+
+    *) Feature: the ngx_http_perl_module supports the $r->variable method.
+
+    *) Bugfix: if a big static file was included using SSI in a response, 
+       then the response may be transferred incomplete.
+
+    *) Bugfix: nginx did not omit the "#fragment" part in URI.
+
+
 Changes with nginx 0.4.11                                        25 Oct 2006
 
     *) Feature: the POP3 proxy supports the AUTH LOGIN PLAIN and CRAM-MD5.

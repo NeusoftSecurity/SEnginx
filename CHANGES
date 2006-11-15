@@ -1,4 +1,31 @@
 
+Changes with nginx 0.4.13                                        15 Nov 2006
+
+    *) Feature: the "proxy_pass" directive may be used inside the 
+       "limit_expect" block.
+
+    *) Feature: the "limit_expect" directive supports all WebDAV methods.
+
+    *) Bugfix: if the "add_before_body" directive was used without the 
+       "add_after_body" directive, then an response did not transferred 
+       complete.
+
+    *) Bugfix: a large request body did not receive if the epoll method and 
+       the deferred accept() were used.
+
+    *) Bugfix: a charset could not be set for ngx_http_autoindex_module 
+       responses; bug appeared in 0.3.50.
+
+    *) Bugfix: the "[alert] zero size buf" error when FastCGI server was 
+       used;
+
+    *) Bugfix: the --group= configuration parameter was ignored.
+       Thanks to Thomas Moschny.
+
+    *) Bugfix: the 50th subrequest in SSI response did not work; bug 
+       appeared in 0.3.50.
+
+
 Changes with nginx 0.4.12                                        31 Oct 2006
 
     *) Feature: the ngx_http_perl_module supports the $r->variable method.
@@ -16,13 +43,13 @@ Changes with nginx 0.4.11                                        25 Oct 2006
     *) Feature: the ngx_http_perl_module supports the $r->allow_ranges 
        method.
 
-    *) Bugfix: if the APOP was enabledi in the POP3 proxy, then the 
+    *) Bugfix: if the APOP was enabled in the POP3 proxy, then the 
        USER/PASS commands might not work; bug appeared in 0.4.10.
 
 
 Changes with nginx 0.4.10                                        23 Oct 2006
 
-    *) Feature: the IMAP/POP3 proxy supports the APOP command.
+    *) Feature: the POP3 proxy supports the APOP command.
 
     *) Bugfix: if the select, poll or /dev/poll methods were used, then 
        while waiting authentication server response the IMAP/POP3 proxy 

@@ -483,18 +483,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
         return NGX_OK;
     }
 
-
     if (ngx_accept_mutex_ptr) {
-
-        /* reinit ngx_accept_mutex */
-
-        if (ngx_shmtx_create(&ngx_accept_mutex, (void *) ngx_accept_mutex_ptr,
-                             ccf->lock_file.data, cycle->log)
-                != NGX_OK)
-        {
-            return NGX_ERROR;
-        }
-
         return NGX_OK;
     }
 
@@ -528,8 +517,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
     ngx_accept_mutex_ptr = (ngx_atomic_t *) shared;
 
-    if (ngx_shmtx_create(&ngx_accept_mutex, shared, ccf->lock_file.data,
-                         cycle->log)
+    if (ngx_shmtx_create(&ngx_accept_mutex, shared, cycle->lock_file.data)
         != NGX_OK)
     {
         return NGX_ERROR;
@@ -596,7 +584,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
     ecf = ngx_event_get_conf(cycle->conf_ctx, ngx_event_core_module);
 
-    if (ccf->worker_processes > 1 && ecf->accept_mutex) {
+    if (ccf->master && ccf->worker_processes > 1 && ecf->accept_mutex) {
         ngx_use_accept_mutex = 1;
         ngx_accept_mutex_held = 0;
         ngx_accept_mutex_delay = ecf->accept_mutex_delay;

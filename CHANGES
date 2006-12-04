@@ -1,21 +1,47 @@
 
+Changes with nginx 0.5.0                                         04 Dec 2006
+
+    *) Change: the parameters in the "%name" form in the "log_format" 
+       directive are not supported anymore.
+
+    *) Change: the "proxy_upstream_max_fails", 
+       "proxy_upstream_fail_timeout", "fastcgi_upstream_max_fails", 
+       "fastcgi_upstream_fail_timeout", "memcached_upstream_max_fails", and 
+       "memcached_upstream_fail_timeout" directives are not supported 
+       anymore.
+
+    *) Feature: the "server" directive in the "upstream" context supports 
+       the "max_fails", "fail_timeout", and "down" parameters.
+
+    *) Feature: the "ip_hash" directive inside the "upstream" block.
+
+    *) Feature: the WAIT status in the "Auth-Status" header line of the 
+       IMAP/POP3 proxy authentication server response.
+
+    *) Bugfix: nginx could not be built on 64-bit platforms; bug appeared 
+       in 0.4.14.
+
+
 Changes with nginx 0.4.14                                        27 Nov 2006
 
     *) Feature: the "proxy_pass_error_message" directive in IMAP/POP3 proxy.
 
-    *) Bugfix: ngx_http_perl_module did nto work with perl built with the 
+    *) Feature: now configure detects system PCRE library on FreeBSD, 
+       Linux, and NetBSD.
+
+    *) Bugfix: ngx_http_perl_module did not work with perl built with the 
        threads support; bug appeared in 0.3.38.
 
-    *) Bugfix: !!!!!!!!!! segfault perl.
-
-    *) Bugfix: !!!!!!!!!! recursive perl.
+    *) Bugfix: ngx_http_perl_module did not work if perl was called 
+       recursively.
 
     *) Bugfix: nginx ignored a host name in an request line.
 
-    *) Bugfix: !!!!!!!!!! endless loop when too many FastCGI sent too many 
-       to stderr
+    *) Bugfix: a worker process may got caught in an endless loop, if a 
+       FastCGI server sent too many data to the stderr.
 
-    *) Bugfix: !!!!!!!! negative upstream response time
+    *) Bugfix: the $upstream_response_time variable may be negative if the 
+       system time was changed backward.
 
     *) Bugfix: the "Auth-Login-Attempt" parameter was not sent to IMAP/POP3 
        proxy authentication server when POP3 was used.
@@ -353,7 +379,7 @@ Changes with nginx 0.3.53                                        07 Jul 2006
     *) Change: the "add_header" directive adds the string to 204, 301, and 
        302 responses.
 
-    *) Feature: the "server" directive if the "upstream" context supports 
+    *) Feature: the "server" directive in the "upstream" context supports 
        the "weight" parameter.
 
     *) Feature: the "server_name" directive supports the "*" wildcard.

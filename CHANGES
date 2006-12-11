@@ -1,4 +1,31 @@
 
+Changes with nginx 0.5.1                                         11 Dec 2006
+
+    *) Bugfix: the "post_action" directive might not run after a 
+       unsuccessful completion of a request.
+
+    *) Workaround: for Eudora for Mac; bug appeared in 0.4.11.
+       Thanks to Bron Gondwana.
+
+    *) Bugfix: if the "upstream" name was used in the "fastcgi_pass", then 
+       the message "no port in upstream" was issued; bug appeared in 0.5.0.
+
+    *) Bugfix: if the "proxy_pass" and "fastcgi_pass" directives used the 
+       same servers but different ports, then these directives uses the 
+       first described port; bug appeared in 0.5.0.
+
+    *) Bugfix: if the "proxy_pass" and "fastcgi_pass" directives used the 
+       unix domain sockets, then these directives used first described 
+       socket; bug appeared in 0.5.0.
+
+    *) Bugfix: ngx_http_auth_basic_module ignored the user if it was in the 
+       last line in the password file and there was no the carriage return, 
+       the line feed, or the ":" symbol after the password.
+
+    *) Bugfix: the $upstream_response_time variable might be equal to 
+       "0.000", although response time was more than 1 millisecond.
+
+
 Changes with nginx 0.5.0                                         04 Dec 2006
 
     *) Change: the parameters in the "%name" form in the "log_format" 

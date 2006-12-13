@@ -94,6 +94,22 @@ MODULE = nginx    PACKAGE = nginx
 
 
 void
+status(r, code)
+    CODE:
+
+    ngx_http_request_t  *r;
+
+    ngx_http_perl_set_request(r);
+
+    r->headers_out.status = SvIV(ST(1));
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "perl status: %d", r->headers_out.status);
+
+    XSRETURN_UNDEF;
+
+
+void
 send_http_header(r, ...)
     CODE:
 
@@ -334,7 +350,6 @@ has_request_body(r, next)
 
     dXSTARG;
     ngx_http_request_t   *r;
-    SV                   *next;
     ngx_http_perl_ctx_t  *ctx;
 
     ngx_http_perl_set_request(r);
@@ -343,10 +358,8 @@ has_request_body(r, next)
         XSRETURN_UNDEF;
     }
 
-    next = ST(1);
-
     ctx = ngx_http_get_module_ctx(r, ngx_http_perl_module);
-    ctx->next = next;
+    ctx->next = SvRV(ST(1));
 
     r->request_body_in_single_buf = 1;
     r->request_body_in_persistent_file = 1;
@@ -776,6 +789,8 @@ variable(r, name, value = NULL)
     STRLEN                      len;
     ngx_str_t                   var, val;
     ngx_uint_t                  i, hash;
+    ngx_http_perl_var_t        *v;
+    ngx_http_perl_ctx_t        *ctx;
     ngx_http_variable_value_t  *vv;
 
     ngx_http_perl_set_request(r);
@@ -817,13 +832,69 @@ variable(r, name, value = NULL)
     var.len = len;
     var.data = lowcase;
 
+    #if (NGX_LOG_DEBUG)
+
+    if (value) {
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "perl variable: \"%V\"=\"%V\"", &var, &val);
+    } else {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "perl variable: \"%V\"", &var);
+    }
+
+    #endif
+
     vv = ngx_http_get_variable(r, &var, hash, 1);
     if (vv == NULL) {
         XSRETURN_UNDEF;
     }
 
     if (vv->not_found) {
-        if (value == NULL) {
+
+        ctx = ngx_http_get_module_ctx(r, ngx_http_perl_module);
+
+        if (ctx->variables) {
+
+            v = ctx->variables->elts;
+            for (i = 0; i < ctx->variables->nelts; i++) {
+
+                if (hash != v[i].hash
+                    || len != v[i].name.len
+                    || ngx_strncmp(lowcase, v[i].name.data, len) != 0)
+                {
+                    continue;
+                }
+
+                if (value) {
+                    v[i].value = val;
+                    XSRETURN_UNDEF;
+                }
+
+                ngx_http_perl_set_targ(v[i].value.data, v[i].value.len, 0);
+
+                goto done;
+            }
+        }
+
+        if (value) {
+            if (ctx->variables == NULL) {
+                ctx->variables = ngx_array_create(r->pool, 1,
+                                                  sizeof(ngx_http_perl_var_t));
+                if (ctx->variables == NULL) {
+                    XSRETURN_UNDEF;
+                }
+            }
+
+            v = ngx_array_push(ctx->variables);
+            if (v == NULL) {
+                XSRETURN_UNDEF;
+            }
+
+            v->hash = hash;
+            v->name.len = len;
+            v->name.data = lowcase;
+            v->value = val;
+
             XSRETURN_UNDEF;
         }
 
@@ -845,4 +916,60 @@ variable(r, name, value = NULL)
 
     ngx_http_perl_set_targ(vv->data, vv->len, 0);
 
+    done:
+
     ST(0) = TARG;
+
+
+void
+sleep(r, sleep, next)
+    CODE:
+
+    dXSTARG;
+    ngx_http_request_t   *r;
+    ngx_http_perl_ctx_t  *ctx;
+
+    ngx_http_perl_set_request(r);
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_perl_module);
+
+    ctx->sleep = SvIV(ST(1));
+    ctx->next = SvRV(ST(2));
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "perl sleep: %d", ctx->sleep);
+
+    XSRETURN_EMPTY;
+
+
+void
+log_error(r, err, msg)
+    CODE:
+
+    ngx_http_request_t  *r;
+    SV                  *err, *msg;
+    u_char              *p;
+    STRLEN               len;
+    ngx_err_t            e;
+
+    ngx_http_perl_set_request(r);
+
+    err = ST(1);
+
+    if (SvROK(err) && SvTYPE(SvRV(err)) == SVt_PV) {
+        err = SvRV(err);
+    }
+
+    e = SvIV(err);
+
+    msg = ST(2);
+
+    if (SvROK(msg) && SvTYPE(SvRV(msg)) == SVt_PV) {
+        msg = SvRV(msg);
+    }
+
+    p = (u_char *) SvPV(msg, len);
+
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, e, "perl: %s", p);
+
+    XSRETURN_EMPTY;

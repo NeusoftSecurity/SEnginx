@@ -109,7 +109,7 @@ static ngx_command_t  ngx_core_commands[] = {
 
     { ngx_string("worker_rlimit_core"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_num_slot,
+      ngx_conf_set_size_slot,
       0,
       offsetof(ngx_core_conf_t, rlimit_core),
       NULL },
@@ -176,6 +176,7 @@ ngx_module_t  ngx_core_module = {
 ngx_uint_t  ngx_max_module;
 
 static ngx_uint_t  ngx_show_version;
+static ngx_uint_t  ngx_show_configure;
 
 static char  *ngx_null_environ = NULL;
 
@@ -235,10 +236,22 @@ main(int argc, char *const *argv)
         ngx_write_fd(ngx_stderr_fileno, "nginx version: " NGINX_VER CRLF,
                      sizeof("nginx version: " NGINX_VER CRLF) - 1);
 
+        if (ngx_show_configure) {
 #ifdef NGX_COMPILER
-        ngx_write_fd(ngx_stderr_fileno, "built by " NGX_COMPILER CRLF,
-                     sizeof("built by " NGX_COMPILER CRLF) - 1);
+            ngx_write_fd(ngx_stderr_fileno, "built by " NGX_COMPILER CRLF,
+                         sizeof("built by " NGX_COMPILER CRLF) - 1);
 #endif
+
+#ifndef __WATCOMC__
+
+            /* OpenWatcomC could not build the long NGX_CONFIGURE string */
+
+            ngx_write_fd(ngx_stderr_fileno,
+                        "configure arguments: " NGX_CONFIGURE CRLF,
+                        sizeof("configure arguments :" NGX_CONFIGURE CRLF) - 1);
+#endif
+        }
+
         if (!ngx_test_config) {
             return 0;
         }
@@ -249,6 +262,12 @@ main(int argc, char *const *argv)
     }
 
     if (ngx_os_init(log) != NGX_OK) {
+        return 1;
+    }
+
+    /* ngx_crc32_init() requires ngx_cacheline_size set in ngx_os_init() */
+
+    if (ngx_crc32_init() != NGX_OK) {
         return 1;
     }
 
@@ -282,10 +301,6 @@ main(int argc, char *const *argv)
     }
 
     ngx_os_status(cycle->log);
-
-    if (ngx_crc32_init(cycle->pool) != NGX_OK) {
-        return 1;
-    }
 
     ngx_cycle = cycle;
 
@@ -496,6 +511,11 @@ ngx_getopt(ngx_cycle_t *cycle, int argc, char *const *argv)
             ngx_show_version = 1;
             break;
 
+        case 'V':
+            ngx_show_version = 1;
+            ngx_show_configure = 1;
+            break;
+
         case 't':
             ngx_test_config = 1;
             break;
@@ -600,7 +620,7 @@ ngx_core_module_create_conf(ngx_cycle_t *cycle)
     ccf->debug_points = NGX_CONF_UNSET;
 
     ccf->rlimit_nofile = NGX_CONF_UNSET;
-    ccf->rlimit_core = NGX_CONF_UNSET;
+    ccf->rlimit_core = NGX_CONF_UNSET_SIZE;
     ccf->rlimit_sigpending = NGX_CONF_UNSET;
 
     ccf->user = (ngx_uid_t) NGX_CONF_UNSET_UINT;

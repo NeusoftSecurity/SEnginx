@@ -28,6 +28,9 @@ static void *ngx_http_ssl_create_srv_conf(ngx_conf_t *cf);
 static char *ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf,
     void *parent, void *child);
 
+static char *ngx_http_ssl_session_cache(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+
 #if !defined (SSL_OP_CIPHER_SERVER_PREFERENCE)
 
 static char *ngx_http_ssl_nosupported(ngx_conf_t *cf, ngx_command_t *cmd,
@@ -115,6 +118,13 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
       ngx_http_ssl_nosupported, 0, 0, ngx_http_ssl_openssl097 },
 #endif
 
+    { ngx_string("ssl_session_cache"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE12,
+      ngx_http_ssl_session_cache,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      0,
+      NULL },
+
     { ngx_string("ssl_session_timeout"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_sec_slot,
@@ -178,7 +188,7 @@ static ngx_http_variable_t  ngx_http_ssl_vars[] = {
 };
 
 
-static u_char ngx_http_session_id_ctx[] = "HTTP";
+static ngx_str_t ngx_http_ssl_sess_id_ctx = ngx_string("HTTP");
 
 
 static ngx_int_t
@@ -257,35 +267,36 @@ ngx_http_ssl_add_variables(ngx_conf_t *cf)
 static void *
 ngx_http_ssl_create_srv_conf(ngx_conf_t *cf)
 {
-    ngx_http_ssl_srv_conf_t  *scf;
+    ngx_http_ssl_srv_conf_t  *sscf;
 
-    scf = ngx_pcalloc(cf->pool, sizeof(ngx_http_ssl_srv_conf_t));
-    if (scf == NULL) {
+    sscf = ngx_pcalloc(cf->pool, sizeof(ngx_http_ssl_srv_conf_t));
+    if (sscf == NULL) {
         return NGX_CONF_ERROR;
     }
 
     /*
      * set by ngx_pcalloc():
      *
-     *     scf->protocols = 0;
-
-     *     scf->certificate.len = 0;
-     *     scf->certificate.data = NULL;
-     *     scf->certificate_key.len = 0;
-     *     scf->certificate_key.data = NULL;
-     *     scf->client_certificate.len = 0;
-     *     scf->client_certificate.data = NULL;
-     *     scf->ciphers.len = 0;
-     *     scf->ciphers.data = NULL;
+     *     sscf->protocols = 0;
+     *     sscf->certificate.len = 0;
+     *     sscf->certificate.data = NULL;
+     *     sscf->certificate_key.len = 0;
+     *     sscf->certificate_key.data = NULL;
+     *     sscf->client_certificate.len = 0;
+     *     sscf->client_certificate.data = NULL;
+     *     sscf->ciphers.len = 0;
+     *     sscf->ciphers.data = NULL;
+     *     sscf->shm_zone = NULL;
      */
 
-    scf->enable = NGX_CONF_UNSET;
-    scf->session_timeout = NGX_CONF_UNSET;
-    scf->verify = NGX_CONF_UNSET;
-    scf->verify_depth = NGX_CONF_UNSET;
-    scf->prefer_server_ciphers = NGX_CONF_UNSET;
+    sscf->enable = NGX_CONF_UNSET;
+    sscf->verify = NGX_CONF_UNSET;
+    sscf->verify_depth = NGX_CONF_UNSET;
+    sscf->prefer_server_ciphers = NGX_CONF_UNSET;
+    sscf->builtin_session_cache = NGX_CONF_UNSET;
+    sscf->session_timeout = NGX_CONF_UNSET;
 
-    return scf;
+    return sscf;
 }
 
 
@@ -330,7 +341,7 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     conf->ssl.log = cf->log;
 
-    if (ngx_ssl_create(&conf->ssl, conf->protocols) != NGX_OK) {
+    if (ngx_ssl_create(&conf->ssl, conf->protocols, conf) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -343,7 +354,8 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     cln->data = &conf->ssl;
 
     if (ngx_ssl_certificate(cf, &conf->ssl, &conf->certificate,
-                            &conf->certificate_key) != NGX_OK)
+                            &conf->certificate_key)
+        != NGX_OK)
     {
         return NGX_CONF_ERROR;
     }
@@ -359,7 +371,8 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     if (conf->verify) {
         if (ngx_ssl_client_certificate(cf, &conf->ssl,
-                                 &conf->client_certificate, conf->verify_depth)
+                                       &conf->client_certificate,
+                                       conf->verify_depth)
             != NGX_OK)
         {
             return NGX_CONF_ERROR;
@@ -379,14 +392,123 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
         return NGX_CONF_ERROR;
     }
 
-    SSL_CTX_set_session_cache_mode(conf->ssl.ctx, SSL_SESS_CACHE_SERVER);
+    ngx_conf_merge_value(conf->builtin_session_cache,
+                         prev->builtin_session_cache,
+                         NGX_SSL_DFLT_BUILTIN_SCACHE);
 
-    SSL_CTX_set_session_id_context(conf->ssl.ctx, ngx_http_session_id_ctx,
-                                   sizeof(ngx_http_session_id_ctx) - 1);
+    if (conf->shm_zone == NULL) {
+        conf->shm_zone = prev->shm_zone;
+    }
 
-    SSL_CTX_set_timeout(conf->ssl.ctx, conf->session_timeout);
+    if (ngx_ssl_session_cache(&conf->ssl, &ngx_http_ssl_sess_id_ctx,
+                              conf->builtin_session_cache,
+                              conf->shm_zone, conf->session_timeout)
+        != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
 
     return NGX_CONF_OK;
+}
+
+
+static char *
+ngx_http_ssl_session_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_ssl_srv_conf_t *sscf = conf;
+
+    size_t       len;
+    ngx_str_t   *value, name, size;
+    ngx_int_t    n;
+    ngx_uint_t   i, j;
+
+    value = cf->args->elts;
+
+    for (i = 1; i < cf->args->nelts; i++) {
+
+        if (ngx_strcmp(value[i].data, "builtin") == 0) {
+            sscf->builtin_session_cache = NGX_SSL_DFLT_BUILTIN_SCACHE;
+            continue;
+        }
+
+        if (value[i].len > sizeof("builtin:") - 1
+            && ngx_strncmp(value[i].data, "builtin:", sizeof("builtin:") - 1)
+               == 0)
+        {
+            n = ngx_atoi(value[i].data + sizeof("builtin:") - 1,
+                         value[i].len - (sizeof("builtin:") - 1));
+
+            if (n == NGX_ERROR) {
+                goto invalid;
+            }
+
+            sscf->builtin_session_cache = n;
+
+            continue;
+        }
+
+        if (value[i].len > sizeof("shared:") - 1
+            && ngx_strncmp(value[i].data, "shared:", sizeof("shared:") - 1)
+               == 0)
+        {
+            len = 0;
+
+            for (j = sizeof("shared:") - 1; j < value[i].len; j++) {
+                if (value[i].data[j] == ':') {
+                    break;
+                }
+
+                len++;
+            }
+
+            if (len == 0) {
+                goto invalid;
+            }
+
+            name.len = len;
+            name.data = value[i].data + sizeof("shared:") - 1;
+
+            size.len = value[i].len - j - 1;
+            size.data = name.data + len + 1;
+
+            n = ngx_parse_size(&size);
+
+            if (n == NGX_ERROR) {
+                goto invalid;
+            }
+
+            if (n < (ngx_int_t) (8 * ngx_pagesize)) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   "session cache \"%V\" is too small",
+                                   &value[i]);
+
+                return NGX_CONF_ERROR;
+            }
+
+            sscf->shm_zone = ngx_shared_memory_add(cf, &name, n,
+                                                   &ngx_http_ssl_module);
+            if (sscf->shm_zone == NULL) {
+                return NGX_CONF_ERROR;
+            }
+
+            continue;
+        }
+
+        goto invalid;
+    }
+
+    if (sscf->shm_zone && sscf->builtin_session_cache == NGX_CONF_UNSET) {
+        sscf->builtin_session_cache = NGX_SSL_NO_BUILTIN_SCACHE;
+    }
+
+    return NGX_CONF_OK;
+
+invalid:
+
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                       "invalid session cache \"%V\"", &value[i]);
+
+    return NGX_CONF_ERROR;
 }
 
 

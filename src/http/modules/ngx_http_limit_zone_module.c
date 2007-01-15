@@ -104,6 +104,7 @@ ngx_http_limit_zone_handler(ngx_http_request_t *r)
 {
     size_t                          len, n;
     uint32_t                        hash;
+    ngx_int_t                       rc;
     ngx_slab_pool_t                *shpool;
     ngx_rbtree_node_t              *node, *sentinel;
     ngx_pool_cleanup_t             *cln;
@@ -131,9 +132,21 @@ ngx_http_limit_zone_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    r->limit_zone_set = 1;
-
     len = vv->len;
+
+    if (len == 0) {
+        return NGX_DECLINED;
+    }
+
+    if (len > 255) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "the value of the \"%V\" variable "
+                      "is more than 255 bytes: \"%V\"",
+                      &ctx->var, vv);
+        return NGX_DECLINED;
+    }
+
+    r->main->limit_zone_set = 1;
 
     hash = ngx_crc32_short(vv->data, len);
 
@@ -161,12 +174,14 @@ ngx_http_limit_zone_handler(ngx_http_request_t *r)
             continue;
         }
 
-        if (hash == node->key ){
+        /* hash == node->key */
+
+        do {
             lz = (ngx_http_limit_zone_node_t *) &node->color;
 
-            if (len == (size_t) lz->len
-                && ngx_strncmp(lz->data, vv->data, len) == 0)
-            {
+            rc = ngx_memn2cmp(lz->data, vv->data, (size_t) lz->len, len);
+
+            if (rc == 0) {
                 if ((ngx_uint_t) lz->conn < lzcf->conn) {
                     lz->conn++;
                     goto done;
@@ -176,7 +191,12 @@ ngx_http_limit_zone_handler(ngx_http_request_t *r)
 
                 return NGX_HTTP_SERVICE_UNAVAILABLE;
             }
-        }
+
+            node = (rc < 0) ? node->left : node->right;
+
+        } while (node != sentinel && hash == node->key);
+
+        break;
     }
 
     n = offsetof(ngx_rbtree_node_t, color)
@@ -212,6 +232,65 @@ done:
     lzcln->node = node;
 
     return NGX_DECLINED;
+}
+
+
+static void
+ngx_http_limit_zone_rbtree_insert_value(ngx_rbtree_node_t *temp,
+    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel)
+{
+    ngx_http_limit_zone_node_t  *lzn, *lznt;
+
+    for ( ;; ) {
+
+        if (node->key < temp->key) {
+
+            if (temp->left == sentinel) {
+                temp->left = node;
+                break;
+            }
+
+            temp = temp->left;
+
+        } else if (node->key > temp->key) {
+
+            if (temp->right == sentinel) {
+                temp->right = node;
+                break;
+            }
+
+            temp = temp->right;
+
+        } else { /* node->key == temp->key */
+
+            lzn = (ngx_http_limit_zone_node_t *) &node->color;
+            lznt = (ngx_http_limit_zone_node_t *) &temp->color;
+
+            if (ngx_memn2cmp(lzn->data, lznt->data, lzn->len, lznt->len) < 0) {
+
+                if (temp->left == sentinel) {
+                    temp->left = node;
+                    break;
+                }
+
+                temp = temp->left;
+
+            } else {
+
+                if (temp->right == sentinel) {
+                    temp->right = node;
+                    break;
+                }
+
+                temp = temp->right;
+            }
+        }
+    }
+
+    node->parent = temp;
+    node->left = sentinel;
+    node->right = sentinel;
+    ngx_rbt_red(node);
 }
 
 
@@ -260,7 +339,7 @@ ngx_http_limit_zone_init_zone(ngx_shm_zone_t *shm_zone, void *data)
     if (octx) {
         if (ngx_strcmp(ctx->var.data, octx->var.data) != 0) {
             ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
-                          "limit_zone \"%V\" use the \"%V\" variable "
+                          "limit_zone \"%V\" uses the \"%V\" variable "
                           "while previously it used the \"%V\" variable",
                           &shm_zone->name, &ctx->var, &octx->var);
             return NGX_ERROR;
@@ -287,7 +366,7 @@ ngx_http_limit_zone_init_zone(ngx_shm_zone_t *shm_zone, void *data)
 
     ctx->rbtree->root = sentinel;
     ctx->rbtree->sentinel = sentinel;
-    ctx->rbtree->insert = ngx_rbtree_insert_value;
+    ctx->rbtree->insert = ngx_http_limit_zone_rbtree_insert_value;
 
     return NGX_OK;
 }
@@ -416,6 +495,12 @@ ngx_http_limit_conn(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (n <= 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "invalid number of connections \"%V\"", &value[2]);
+        return NGX_CONF_ERROR;
+    }
+
+    if (n > 65535) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "connection limit must be less 65536");
         return NGX_CONF_ERROR;
     }
 

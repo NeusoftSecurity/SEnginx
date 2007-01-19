@@ -1,4 +1,28 @@
 
+Changes with nginx 0.5.8                                         19 Jan 2007
+
+    *) Bugfix: a segmentation fault might occur if 
+       "client_body_in_file_only on" was used and a request body was small.
+
+    *) Bugfix: a segmentation fault occurred if 
+       "client_body_in_file_only on" and "proxy_pass_request_body off" or 
+       "fastcgi_pass_request_body off" directives were used, and nginx 
+       switched to a next upstream.
+
+    *) Bugfix: if the "proxy_buffering off" directive was used and a client 
+       connection was non-active, then the connection was closed after send 
+       timeout; bug appeared in 0.4.7.
+
+    *) Bugfix: if the "epoll" method was used and a client closed a 
+       connection prematurely, then nginx closed the connection after a 
+       send timeout only.
+
+    *) Bugfix: the "[alert] zero size buf" error when FastCGI server was 
+       used.
+
+    *) Bugfixes in the "limit_zone" directive.
+
+
 Changes with nginx 0.5.7                                         15 Jan 2007
 
     *) Feature: the ssl_session_cache storage optimization.
@@ -79,7 +103,7 @@ Changes with nginx 0.5.3                                         13 Dec 2006
     *) Feature: the $r->variable method supports variables that do not 
        exist in nginx configuration.
 
-    *) Bugfix: the $r->has_request_body method did work.
+    *) Bugfix: the $r->has_request_body method did not work.
 
 
 Changes with nginx 0.5.2                                         11 Dec 2006
@@ -463,8 +487,8 @@ Changes with nginx 0.3.55                                        28 Jul 2006
        returns all "Cookie" header lines.
 
     *) Bugfix: a segmentation fault occurred if 
-       "client_body_in_file_only on" was used and nginx was switches to a 
-       next upstream.
+       "client_body_in_file_only on" was used and nginx switched to a next 
+       upstream.
 
     *) Bugfix: on some condition while reconfiguration character codes 
        inside the "charset_map" may be treated invalid; bug appeared in 

@@ -17,16 +17,19 @@
 
 
 
-#define ngx_open_file(name, access, create)                                 \
-    open((const char *) name, access|create, 0644)
+#define ngx_open_file(name, mode, create, access)                            \
+    open((const char *) name, mode|create, access)
 #define ngx_open_file_n          "open()"
 
 #define NGX_FILE_RDONLY          O_RDONLY
+#define NGX_FILE_WRONLY          O_WRONLY
 #define NGX_FILE_RDWR            O_RDWR
 #define NGX_FILE_CREATE_OR_OPEN  O_CREAT
 #define NGX_FILE_OPEN            0
 #define NGX_FILE_TRUNCATE        O_TRUNC
 #define NGX_FILE_APPEND          O_APPEND
+
+#define NGX_FILE_DEFAULT_ACCESS  0644
 
 
 #define ngx_close_file           close
@@ -38,7 +41,7 @@
 
 
 ngx_fd_t ngx_open_tempfile(u_char *name, ngx_uint_t persistent,
-    ngx_uint_t mode);
+    ngx_uint_t access);
 #define ngx_open_tempfile_n      "open()"
 
 
@@ -52,7 +55,12 @@ ssize_t ngx_write_chain_to_file(ngx_file_t *file, ngx_chain_t *ce,
     off_t offset, ngx_pool_t *pool);
 
 
+#define ngx_read_fd              read
+#define ngx_read_fd_n            "read()"
+
 #define ngx_write_fd             write
+#define ngx_write_fd_n           "write()"
+
 #define ngx_linefeed(p)          *p++ = LF;
 #define NGX_LINEFEED_SIZE        1
 
@@ -79,6 +87,7 @@ ngx_int_t ngx_set_file_time(u_char *name, ngx_fd_t fd, time_t s);
 #define ngx_is_file(sb)          (S_ISREG((sb)->st_mode))
 #define ngx_is_link(sb)          (S_ISLNK((sb)->st_mode))
 #define ngx_is_exec(sb)          ((sb)->st_mode & S_IXUSR)
+#define ngx_file_access(sb)      ((sb)->st_mode & 0777)
 #define ngx_file_size(sb)        (sb)->st_size
 #define ngx_file_mtime(sb)       (sb)->st_mtime
 #define ngx_file_uniq(sb)        (sb)->st_ino
@@ -126,6 +135,7 @@ ngx_int_t ngx_open_dir(ngx_str_t *name, ngx_dir_t *dir);
 #define ngx_de_is_dir(dir)       (S_ISDIR((dir)->info.st_mode))
 #define ngx_de_is_file(dir)      (S_ISREG((dir)->info.st_mode))
 #define ngx_de_is_link(dir)      (S_ISLNK((dir)->info.st_mode))
+#define ngx_de_access(dir)       (((dir)->info.st_mode) & 0777)
 #define ngx_de_size(dir)         (dir)->info.st_size
 #define ngx_de_mtime(dir)        (dir)->info.st_mtime
 

@@ -77,6 +77,7 @@
 #define NGX_HTTP_REQUEST_TIME_OUT          408
 #define NGX_HTTP_CONFLICT                  409
 #define NGX_HTTP_LENGTH_REQUIRED           411
+#define NGX_HTTP_PRECONDITION_FAILED       412
 #define NGX_HTTP_REQUEST_ENTITY_TOO_LARGE  413
 #define NGX_HTTP_REQUEST_URI_TOO_LARGE     414
 #define NGX_HTTP_UNSUPPORTED_MEDIA_TYPE    415
@@ -193,6 +194,7 @@ typedef struct {
 #if (NGX_HTTP_DAV)
     ngx_table_elt_t                  *depth;
     ngx_table_elt_t                  *destination;
+    ngx_table_elt_t                  *overwrite;
     ngx_table_elt_t                  *date;
 #endif
 

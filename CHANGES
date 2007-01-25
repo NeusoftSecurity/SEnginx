@@ -1,4 +1,25 @@
 
+Changes with nginx 0.5.9                                         25 Jan 2007
+
+    *) Change: now the ngx_http_memcached_module uses the $memcached_key 
+       variable value as a key.
+
+    *) Feature: the $memcached_key variable.
+
+    *) Feature: the "clean" parameter in the "client_body_in_file_only" 
+       directive.
+
+    *) Feature: the "env" directive.
+
+    *) Feature: the "sendfile" directive is available inside the "if" block.
+
+    *) Feature: now on failure of the writing to access nginx logs a 
+       message to error_log, but not more often than once a minute.
+
+    *) Bugfix: the "access_log off" directive did not always turn off the 
+       logging.
+
+
 Changes with nginx 0.5.8                                         19 Jan 2007
 
     *) Bugfix: a segmentation fault might occur if 
@@ -737,7 +758,7 @@ Changes with nginx 0.3.38                                        14 Apr 2006
 
     *) Feature: the "client_body_in_file_only" directive.
 
-    *) Workaround: no on disk overflow nginx tries to write access logs 
+    *) Workaround: now on disk overflow nginx tries to write access logs 
        once a second only.
        Thanks to Anton Yuzhaninov and Maxim Dounin.
 
@@ -834,7 +855,7 @@ Changes with nginx 0.3.31                                        10 Mar 2006
 
     *) Workaround: for MacOSX 64-bit kernel kqueue millisecond timeout 
        bug.
-       Thanks Andrei Nigmatulin.
+       Thanks to Andrei Nigmatulin.
 
     *) Bugfix: if there were several "listen" directives listening one 
        various addresses inside one server, then server names like 

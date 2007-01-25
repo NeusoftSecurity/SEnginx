@@ -42,6 +42,7 @@ typedef struct {
 typedef struct {
     ngx_open_file_t            *file;
     time_t                      disk_full_time;
+    time_t                      error_log_time;
     ngx_array_t                *ops;        /* array of ngx_http_log_op_t */
 } ngx_http_log_t;
 
@@ -58,6 +59,9 @@ typedef struct {
     ngx_http_log_op_run_pt      run;
 } ngx_http_log_var_t;
 
+
+static void ngx_http_log_write(ngx_http_request_t *r, ngx_http_log_t *log,
+    u_char *buf, size_t len);
 
 static u_char *ngx_http_log_connection(ngx_http_request_t *r, u_char *buf,
     ngx_http_log_op_t *op);
@@ -151,7 +155,7 @@ ngx_module_t  ngx_http_log_module = {
 };
 
 
-static ngx_str_t  http_access_log = ngx_string(NGX_HTTP_LOG_PATH);
+static ngx_str_t  ngx_http_access_log = ngx_string(NGX_HTTP_LOG_PATH);
 
 
 static ngx_str_t  ngx_http_combined_fmt =
@@ -183,9 +187,9 @@ static ngx_http_log_var_t  ngx_http_log_vars[] = {
 ngx_int_t
 ngx_http_log_handler(ngx_http_request_t *r)
 {
-    ngx_uint_t                i, l;
     u_char                   *line, *p;
     size_t                    len;
+    ngx_uint_t                i, l;
     ngx_http_log_t           *log;
     ngx_open_file_t          *file;
     ngx_http_log_op_t        *op;
@@ -206,9 +210,9 @@ ngx_http_log_handler(ngx_http_request_t *r)
         if (ngx_time() == log[l].disk_full_time) {
 
             /*
-             * On FreeBSD writing to a full filesystem with enabled softupdates
+             * on FreeBSD writing to a full filesystem with enabled softupdates
              * may block process for much longer time than writing to non-full
-             * filesystem, so we skip writing the log for one second.
+             * filesystem, so we skip writing to a log for one second
              */
 
             continue;
@@ -233,13 +237,8 @@ ngx_http_log_handler(ngx_http_request_t *r)
 
             if (len > (size_t) (file->last - file->pos)) {
 
-                if (ngx_write_fd(file->fd, file->buffer,
-                                 file->pos - file->buffer)
-                    == -1
-                    && ngx_errno == NGX_ENOSPC)
-                {
-                    log[l].disk_full_time = ngx_time();
-                }
+                ngx_http_log_write(r, &log[l], file->buffer,
+                                   file->pos - file->buffer);
 
                 file->pos = file->buffer;
             }
@@ -273,14 +272,54 @@ ngx_http_log_handler(ngx_http_request_t *r)
 
         ngx_linefeed(p);
 
-        if (ngx_write_fd(file->fd, line, p - line) == -1
-            && ngx_errno == NGX_ENOSPC)
-        {
-            log[l].disk_full_time = ngx_time();
-        }
+        ngx_http_log_write(r, &log[l], line, p - line);
     }
 
     return NGX_OK;
+}
+
+
+static void
+ngx_http_log_write(ngx_http_request_t *r, ngx_http_log_t *log, u_char *buf,
+    size_t len)
+{
+    time_t     now;
+    ssize_t    n;
+    ngx_err_t  err;
+
+    n = ngx_write_fd(log->file->fd, buf, len);
+
+    if (n == (ssize_t) len) {
+        return;
+    }
+
+    now = ngx_time();
+
+    if (n == -1) {
+        err = ngx_errno;
+
+        if (err == NGX_ENOSPC) {
+            log->disk_full_time = now;
+        }
+
+        if (now - log->error_log_time > 60) {
+            ngx_log_error(NGX_LOG_ALERT, r->connection->log, err,
+                          ngx_write_fd_n " to \"%V\" failed",
+                          &log->file->name);
+
+            log->error_log_time = now;
+        }
+
+        return;
+    }
+
+    if (now - log->error_log_time > 60) {
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                      ngx_write_fd_n " to \"%V\" was incomplete: %z of %uz",
+                      &log->file->name, n, len);
+
+        log->error_log_time = now;
+    }
 }
 
 
@@ -515,47 +554,40 @@ ngx_http_log_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_log_fmt_t        *fmt;
     ngx_http_log_main_conf_t  *lmcf;
 
-    if (conf->logs == NULL) {
-
-        if (conf->off) {
-            return NGX_CONF_OK;
-        }
-
-        if (prev->logs) {
-            conf->logs = prev->logs;
-
-        } else {
-
-            if (prev->off) {
-                conf->off = prev->off;
-                return NGX_CONF_OK;
-            }
-
-            conf->logs = ngx_array_create(cf->pool, 2, sizeof(ngx_http_log_t));
-            if (conf->logs == NULL) {
-                return NGX_CONF_ERROR;
-            }
-
-            log = ngx_array_push(conf->logs);
-            if (log == NULL) {
-                return NGX_CONF_ERROR;
-            }
-
-            log->file = ngx_conf_open_file(cf->cycle, &http_access_log);
-            if (log->file == NULL) {
-                return NGX_CONF_ERROR;
-            }
-
-            log->disk_full_time = 0;
-
-            lmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_module);
-            fmt = lmcf->formats.elts;
-
-            /* the default "combined" format */
-            log->ops = fmt[0].ops;
-            lmcf->combined_used = 1;
-        }
+    if (conf->logs || conf->off) {
+        return NGX_CONF_OK;
     }
+
+    *conf = *prev;
+
+    if (conf->logs || conf->off) {
+        return NGX_CONF_OK;
+    }
+
+    conf->logs = ngx_array_create(cf->pool, 2, sizeof(ngx_http_log_t));
+    if (conf->logs == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    log = ngx_array_push(conf->logs);
+    if (log == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    log->file = ngx_conf_open_file(cf->cycle, &ngx_http_access_log);
+    if (log->file == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    log->disk_full_time = 0;
+    log->error_log_time = 0;
+
+    lmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_module);
+    fmt = lmcf->formats.elts;
+
+    /* the default "combined" format */
+    log->ops = fmt[0].ops;
+    lmcf->combined_used = 1;
 
     return NGX_CONF_OK;
 }
@@ -600,6 +632,7 @@ ngx_http_log_set_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     log->disk_full_time = 0;
+    log->error_log_time = 0;
 
     if (cf->args->nelts >= 3) {
         name = value[2];

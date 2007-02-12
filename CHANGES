@@ -1,4 +1,19 @@
 
+Changes with nginx 0.5.12                                        12 Feb 2007
+
+    *) Bugfix: nginx could not be built on platforms different from i386, 
+       amd64, sparc É ppc; bug appeared in 0.5.8.
+
+    *) Bugfix: a segmentation fault might occur in worker process if the 
+       temporarily files were used while working with FastCGI server; bug 
+       appeared in 0.5.8.
+
+    *) Bugfix: a segmentation fault might occur in worker process if the 
+       $fastcgi_script_name variable was logged.
+
+    *) Bugfix: ngx_http_perl_module could not be built on Solaris.
+
+
 Changes with nginx 0.5.11                                        05 Feb 2007
 
     *) Feature: now configure detects system PCRE library in MacPorts.

@@ -433,6 +433,9 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
 
     err = ngx_socket_errno;
 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ev->log, err,
+                   "http upstream recv(): %d", n);
+
     /*
      * we do not need to disable the write event because
      * that event has NGX_USE_CLEAR_EVENT type
@@ -2313,7 +2316,7 @@ ngx_http_upstream_copy_content_type(ngx_http_request_t *r, ngx_table_elt_t *h,
 
         while (*++p == ' ') { /* void */ }
 
-        if (ngx_strncasecmp(p, "charset=", 8) != 0) {
+        if (ngx_strncasecmp(p, (u_char *) "charset=", 8) != 0) {
             continue;
         }
 

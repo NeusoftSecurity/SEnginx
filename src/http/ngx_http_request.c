@@ -1285,14 +1285,16 @@ ngx_http_process_request_header(ngx_http_request_t *r)
 
     if (r->headers_in.connection) {
         if (r->headers_in.connection->value.len == 5
-            && ngx_strcasecmp(r->headers_in.connection->value.data, "close")
+            && ngx_strcasecmp(r->headers_in.connection->value.data,
+                              (u_char *) "close")
                == 0)
         {
             r->headers_in.connection_type = NGX_HTTP_CONNECTION_CLOSE;
 
         } else if (r->headers_in.connection->value.len == 10
                    && ngx_strcasecmp(r->headers_in.connection->value.data,
-                                     "keep-alive") == 0)
+                                     (u_char *) "keep-alive")
+                      == 0)
         {
             r->headers_in.connection_type = NGX_HTTP_CONNECTION_KEEP_ALIVE;
 
@@ -1651,6 +1653,7 @@ ngx_http_set_write_handler(ngx_http_request_t *r)
 
     r->http_state = NGX_HTTP_WRITING_REQUEST_STATE;
 
+    r->read_event_handler = ngx_http_block_read;
     r->write_event_handler = ngx_http_writer;
 
     wev = r->connection->write;
@@ -1831,9 +1834,7 @@ closed:
     ngx_log_error(NGX_LOG_INFO, c->log, err,
                   "client closed prematurely connection");
 
-    ngx_http_close_request(r, 0);
-
-    return;
+    ngx_http_finalize_request(r, 0);
 }
 
 

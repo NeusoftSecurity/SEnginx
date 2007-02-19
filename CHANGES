@@ -1,4 +1,25 @@
 
+Changes with nginx 0.5.13                                        19 Feb 2007
+
+    *) Feature: the COPY and MOVE methods.
+
+    *) Bugfix: the ngx_http_realip_module set garbage for requests passed 
+       via keep-alive connection.
+
+    *) Bugfix: nginx did not work on big-endian 64-bit Linux.
+       Thanks to Andrei Nigmatulin.
+
+    *) Bugfix: now when IMAP/POP3 proxy receives too long command it closes 
+       the connection right away, but not after timeout.
+
+    *) Bugfix: if the "epoll" method was used and a client closed a 
+       connection prematurely, then nginx closed the connection after a 
+       send timeout only.
+
+    *) Bugfix: nginx could not be built on platforms different from i386, 
+       amd64, sparc É ppc; bug appeared in 0.5.8.
+
+
 Changes with nginx 0.5.12                                        12 Feb 2007
 
     *) Bugfix: nginx could not be built on platforms different from i386, 

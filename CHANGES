@@ -1,4 +1,10 @@
 
+Changes with nginx 0.5.14                                        23 Feb 2007
+
+    *) Bugfix: nginx ignored superfluous closing "}" in the end of 
+       configuration file.
+
+
 Changes with nginx 0.5.13                                        19 Feb 2007
 
     *) Feature: the COPY and MOVE methods.

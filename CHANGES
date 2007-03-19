@@ -1,4 +1,30 @@
 
+Changes with nginx 0.5.15                                        19 Mar 2007
+
+    *) Feature: the mail proxy supports authenticated SMTP proxying and the 
+       "smtp_auth", "smtp_capablities", and "xclient" directives.
+       Thanks to Anton Yuzhaninov and Maxim Dounin.
+
+    *) Change: the "imap" and "auth" directives were renamed to the "mail" 
+       and "pop3_auth" directives.
+
+    *) Bugfix: a segmentation fault occurred in worker process if the 
+       CRAM-MD5 authentication method was used and the APOP method was 
+       disabled.
+
+    *) Bugfix: if the "starttls only" directive was used in POP3 protocol, 
+       then nginx allowed authentication without switching to the SSL mode.
+
+    *) Bugfix: worker processes did not exit after reconfiguration and did 
+       not rotate logs if the eventport method was used.
+
+    *) Bugfix: a worker process may got caught in an endless loop, if the 
+       "ip_hash" directive was used.
+
+    *) Bugfix: now nginx does not log some alerts if eventport or /dev/poll 
+       methods are used.
+
+
 Changes with nginx 0.5.14                                        23 Feb 2007
 
     *) Bugfix: nginx ignored superfluous closing "}" in the end of 

@@ -1,9 +1,30 @@
 
+Changes with nginx 0.5.16                                        26 Mar 2007
+
+    *) Bugfix: the C-class network was not used as hash key in the 
+       "ip_hash" directive.
+       Thanks to Pavel Yarkovoy.
+
+    *) Bugfix: a segmentation fault might occur in worker process if a 
+       charset was set in the "Content-Type" header line and the line has 
+       trailing ";"; bug appeared in 0.3.50.
+
+    *) Bugfix: the "[alert] zero size buf" error when FastCGI server was 
+       used and an request body written in a temporary file was multiple of 
+       32K.
+
+    *) Bugfix: nginx could not be built on Solaris without the --with-debug 
+       option; bug appeared in 0.5.15.
+
+
 Changes with nginx 0.5.15                                        19 Mar 2007
 
     *) Feature: the mail proxy supports authenticated SMTP proxying and the 
        "smtp_auth", "smtp_capablities", and "xclient" directives.
        Thanks to Anton Yuzhaninov and Maxim Dounin.
+
+    *) Feature: now the keep-alive connections are closed just after 
+       receiving the reconfiguration signal.
 
     *) Change: the "imap" and "auth" directives were renamed to the "mail" 
        and "pop3_auth" directives.

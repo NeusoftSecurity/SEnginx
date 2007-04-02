@@ -1,4 +1,20 @@
 
+Changes with nginx 0.5.17                                        02 Apr 2007
+
+    *) Change: now nginx always returns the 405 status for the TRACE method.
+
+    *) Feature: now nginx supports the "include" directive inside the 
+       "types" block.
+
+    *) Bugfix: the $document_root variable usage in the "root" and "alias" 
+       directives is disabled: this caused recursive stack overflow.
+
+    *) Bugfix: in the HTTPS protocol in the "proxy_pass" directive.
+
+    *) Bugfix: in some cases non-cachable variables (such as $uri variable) 
+       returned old cached value.
+
+
 Changes with nginx 0.5.16                                        26 Mar 2007
 
     *) Bugfix: the C-class network was not used as hash key in the 
@@ -978,7 +994,7 @@ Changes with nginx 0.3.31                                        10 Mar 2006
        various addresses inside one server, then server names like 
        "*.domain.tld" worked for first address only; bug appeared in 0.3.18.
 
-    *) Bugfix: if the HTTP protocol was used in the "proxy_pass" directive 
+    *) Bugfix: if the HTTPS protocol was used in the "proxy_pass" directive 
        and the request body was in temporarily file then the request was 
        not transferred.
 
@@ -1053,7 +1069,7 @@ Changes with nginx 0.3.27                                        08 Feb 2006
     *) Feature: the "lock_file" directive and the --with-lock-path=PATH 
        autoconfiguration directive.
 
-    *) Bugfix: if the HTTP protocol was used in the "proxy_pass" directive 
+    *) Bugfix: if the HTTPS protocol was used in the "proxy_pass" directive 
        then the requests with the body was not transferred.
 
 
@@ -1180,9 +1196,9 @@ Changes with nginx 0.3.17                                        18 Dec 2005
     *) Bugfix: the timeouts were not used in SSL handshake; bug appeared in 
        0.2.4.
 
-    *) Bugfix: in the HTTP protocol in the "proxy_pass" directive.
+    *) Bugfix: in the HTTPS protocol in the "proxy_pass" directive.
 
-    *) Bugfix: when the HTTP protocol was used in the "proxy_pass" 
+    *) Bugfix: when the HTTPS protocol was used in the "proxy_pass" 
        directive the port 80 was used by default.
 
 

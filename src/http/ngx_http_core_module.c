@@ -874,7 +874,8 @@ ngx_http_update_location_config(ngx_http_request_t *r)
     }
 
     if (r == r->main) {
-            r->connection->log->file = clcf->err_log->file;
+        r->connection->log->file = clcf->err_log->file;
+
         if (!(r->connection->log->log_level & NGX_LOG_DEBUG_CONNECTION)) {
             r->connection->log->log_level = clcf->err_log->log_level;
         }
@@ -1897,16 +1898,29 @@ ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 {
     ngx_http_core_loc_conf_t *lcf = conf;
 
-    ngx_str_t       *value, *content_type, *old;
+    ngx_str_t       *value, *content_type, *old, file;
     ngx_uint_t       i, n;
     ngx_hash_key_t  *type;
+
+    value = cf->args->elts;
+
+    if (ngx_strcmp(value[0].data, "include") == 0) {
+        file = value[1];
+
+        if (ngx_conf_full_name(cf->cycle, &file) == NGX_ERROR){
+            return NGX_CONF_ERROR;
+        }
+
+        ngx_log_debug1(NGX_LOG_DEBUG_CORE, cf->log, 0, "include %s", file.data);
+
+        return ngx_conf_parse(cf, &file);
+    }
 
     content_type = ngx_palloc(cf->pool, sizeof(ngx_str_t));
     if (content_type == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    value = cf->args->elts;
     *content_type = value[0];
 
     for (i = 1; i < cf->args->nelts; i++) {
@@ -2600,6 +2614,12 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             return NGX_CONF_ERROR;
         }
 
+        if (ngx_strchr(value[i].data, '/')) {
+            ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
+                               "server name \"%V\" has strange symbols",
+                               &value[i]);
+        }
+
         sn = ngx_array_push(&cscf->server_names);
         if (sn == NULL) {
             return NGX_CONF_ERROR;
@@ -2644,6 +2664,17 @@ ngx_http_core_root(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     value = cf->args->elts;
+
+    if (ngx_strstr(value[1].data, "$document_root")
+        || ngx_strstr(value[1].data, "${document_root}"))
+    {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "the $document_root variable may not be used "
+                           "in the \"%V\" directive",
+                           &cmd->name);
+
+        return NGX_CONF_ERROR;
+    }
 
     lcf->alias = alias;
     lcf->root = value[1];

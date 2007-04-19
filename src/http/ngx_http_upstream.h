@@ -232,7 +232,6 @@ struct ngx_http_upstream_s {
     ngx_str_t                       method;
 
     ngx_http_upstream_state_t      *state;
-    ngx_array_t                     states;  /* of ngx_http_upstream_state_t */
 
     ngx_str_t                       uri;
 
@@ -247,6 +246,9 @@ struct ngx_http_upstream_s {
     unsigned                        header_sent:1;
 };
 
+
+ngx_int_t ngx_http_upstream_header_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 
 void ngx_http_upstream_init(ngx_http_request_t *r);
 ngx_http_upstream_srv_conf_t *ngx_http_upstream_add(ngx_conf_t *cf,

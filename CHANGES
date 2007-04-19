@@ -1,4 +1,22 @@
 
+Changes with nginx 0.5.18                                        19 Apr 2007
+
+    *) Feature: the ngx_http_sub_filter_module.
+
+    *) Feature: the "$upstream_http_..." variables.
+
+    *) Feature: now the $upstream_status and $upstream_response_time 
+       variables keep data about all upstreams before X-Accel-Redirect.
+
+    *) Bugfix: a segmentation fault occurred in master process after first 
+       reconfiguration and receiving any signal if nginx was built with 
+       ngx_http_perl_module and perl did not support multiplicity; bug 
+       appeared in 0.5.9.
+
+    *) Bugfix: if perl did not support multiplicity, then after 
+       reconfiguration perl code did not work; bug appeared in 0.3.38.
+
+
 Changes with nginx 0.5.17                                        02 Apr 2007
 
     *) Change: now nginx always returns the 405 status for the TRACE method.

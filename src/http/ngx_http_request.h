@@ -124,7 +124,8 @@
 #define NGX_HTTP_WRITE_BUFFERED            0x10
 #define NGX_HTTP_GZIP_BUFFERED             0x20
 #define NGX_HTTP_SSI_BUFFERED              0x01
-#define NGX_HTTP_COPY_BUFFERED             0x02
+#define NGX_HTTP_SUB_BUFFERED              0x02
+#define NGX_HTTP_COPY_BUFFERED             0x04
 
 
 typedef enum {
@@ -329,6 +330,8 @@ struct ngx_http_request_s {
     ngx_http_cache_t                 *cache;
 
     ngx_http_upstream_t              *upstream;
+    ngx_array_t                      *upstream_states;
+                                         /* of ngx_http_upstream_state_t */
 
     ngx_pool_t                       *pool;
     ngx_buf_t                        *header_in;

@@ -47,7 +47,7 @@ our @EXPORT = qw(
     HTTP_INSUFFICIENT_STORAGE
 );
 
-our $VERSION = '0.5.18';
+our $VERSION = '0.5.19';
 
 require XSLoader;
 XSLoader::load('nginx', $VERSION);
@@ -90,6 +90,13 @@ use constant HTTP_BAD_GATEWAY               => 502;
 use constant HTTP_SERVICE_UNAVAILABLE       => 503;
 use constant HTTP_GATEWAY_TIME_OUT          => 504;
 use constant HTTP_INSUFFICIENT_STORAGE      => 507;
+
+
+sub rflush {
+    my $r = shift;
+
+    $r->flush;
+}
 
 
 1;

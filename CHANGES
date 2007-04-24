@@ -1,4 +1,24 @@
 
+Changes with nginx 0.5.19                                        24 Apr 2007
+
+    *) Change: now the $request_time variable has millisecond precision.
+
+    *) Change: the method $r->rflush of ngx_http_perl_module was renamed to 
+       the $r->flush.
+
+    *) Feature: the $upstream_addr variable.
+
+    *) Feature: the "proxy_headers_hash_max_size" and 
+       "proxy_headers_hash_bucket_size" directives.
+       Thanks to Volodymyr Kostyrko.
+
+    *) Bugfix: the files more than 2G could not be transferred using 
+       sendfile and limit_rate on 64-bit platforms.
+
+    *) Bugfix: the files more than 2G could not be transferred using 
+       sendfile on 64-bit Linux.
+
+
 Changes with nginx 0.5.18                                        19 Apr 2007
 
     *) Feature: the ngx_http_sub_filter_module.

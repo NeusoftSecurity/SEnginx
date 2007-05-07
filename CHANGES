@@ -1,4 +1,26 @@
 
+Changes with nginx 0.5.20                                        07 May 2007
+
+    *) Feature: the "sendfile_max_chunk" directive.
+
+    *) Feature: the "$http_...", "$sent_http_...", and "$upstream_http_..." 
+       variables may be changed using the "set" directive.
+
+    *) Bugfix: a segmentation fault might occur in worker process if the 
+       SSI command 'if expr="$var = /"' was used.
+
+    *) Bugfix: trailing boundary of multipart range response was 
+       transferred incorrectly.
+       Thanks to Evan Miller.
+
+    *) Bugfix: nginx did not work on Solaris/sparc64 if it was built by Sun 
+       Studio.
+       Thanks to Andrei Nigmatulin.
+
+    *) Bugfix: the ngx_http_perl_module could not built by Solaris make.
+       Thanks to Andrei Nigmatulin.
+
+
 Changes with nginx 0.5.19                                        24 Apr 2007
 
     *) Change: now the $request_time variable has millisecond precision.

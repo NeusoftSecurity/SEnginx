@@ -1,7 +1,25 @@
 
+Changes with nginx 0.5.23                                        04 Jun 2007
+
+    *) Feature: the ngx_http_ssl_module supports Server Name Indication TLS 
+       extension.
+
+    *) Feature: the "fastcgi_catch_stderr" directive.
+       Thanks to Nick S. Grechukh, OWOX project.
+
+    *) Bugfix: a segmentation fault occurred in master process if two 
+       virtual servers should bind() to the overlapping ports.
+
+    *) Bugfix: if nginx was built with ngx_http_perl_module and perl 
+       supported threads, then during second reconfiguration the error 
+       messages "panic: MUTEX_LOCK" and "perl_parse() failed" were issued.
+
+    *) Bugfix: in the HTTPS protocol in the "proxy_pass" directive.
+
+
 Changes with nginx 0.5.22                                        29 May 2007
 
-    *) Bugfix: the big request body might not be passed to backend; bug 
+    *) Bugfix: a big request body might not be passed to backend; bug 
        appeared in 0.5.21.
 
 

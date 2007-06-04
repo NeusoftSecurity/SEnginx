@@ -270,10 +270,11 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                               "setsockopt(SO_REUSEADDR) %V failed",
                               &ls[i].addr_text);
 
-                if (ngx_close_socket(s) == -1)
+                if (ngx_close_socket(s) == -1) {
                     ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
                                   ngx_close_socket_n " %V failed",
                                   &ls[i].addr_text);
+                }
 
                 return NGX_ERROR;
             }
@@ -286,10 +287,11 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                                   ngx_nonblocking_n " %V failed",
                                   &ls[i].addr_text);
 
-                    if (ngx_close_socket(s) == -1)
+                    if (ngx_close_socket(s) == -1) {
                         ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
                                       ngx_close_socket_n " %V failed",
                                       &ls[i].addr_text);
+                    }
 
                     return NGX_ERROR;
                 }
@@ -308,10 +310,11 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 ngx_log_error(NGX_LOG_EMERG, log, err,
                               "bind() to %V failed", &ls[i].addr_text);
 
-                if (ngx_close_socket(s) == -1)
+                if (ngx_close_socket(s) == -1) {
                     ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
                                   ngx_close_socket_n " %V failed",
                                   &ls[i].addr_text);
+                }
 
                 if (err != NGX_EADDRINUSE) {
                     return NGX_ERROR;
@@ -320,6 +323,20 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 failed = 1;
 
                 continue;
+            }
+
+            if (listen(s, ls[i].backlog) == -1) {
+                ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
+                              "listen() to %V, backlog %d failed",
+                              &ls[i].addr_text, ls[i].backlog);
+
+                if (ngx_close_socket(s) == -1) {
+                    ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
+                                  ngx_close_socket_n " %V failed",
+                                  &ls[i].addr_text);
+                }
+
+                return NGX_ERROR;
             }
 
             ls[i].listen = 1;
@@ -402,10 +419,12 @@ ngx_configure_listening_socket(ngx_cycle_t *cycle)
 #endif
 
         if (ls[i].listen) {
+
+            /* change backlog via listen() */
+
             if (listen(ls[i].fd, ls[i].backlog) == -1) {
                 ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
-                              "changing the listen() backlog to %d "
-                              "for %V failed, ignored",
+                              "listen() to %V, backlog %d failed, ignored",
                               &ls[i].addr_text, ls[i].backlog);
             }
         }

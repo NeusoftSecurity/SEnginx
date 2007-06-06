@@ -117,6 +117,9 @@ typedef struct {
      */
     ngx_array_t                locations;
 
+    unsigned                   regex_start:16;
+    unsigned                   wildcard:1;
+
     /* array of the ngx_http_listen_t, "listen" directive */
     ngx_array_t                listen;
 
@@ -138,8 +141,6 @@ typedef struct {
 
     ngx_flag_t                 optimize_server_names;
     ngx_flag_t                 ignore_invalid_headers;
-
-    ngx_uint_t                 wildcard;  /* unsigned  wildcard:1 */
 } ngx_http_core_srv_conf_t;
 
 
@@ -172,7 +173,7 @@ typedef struct {
     in_addr_t                  addr;
 
     ngx_hash_t                 hash;
-    ngx_hash_wildcard_t        *dns_wildcards;
+    ngx_hash_wildcard_t       *dns_wildcards;
 
     ngx_array_t                names;      /* array of ngx_http_server_name_t */
 
@@ -210,6 +211,8 @@ struct ngx_http_core_loc_conf_s {
     ngx_regex_t  *regex;
 #endif
 
+    unsigned      regex_start:16;
+
     unsigned      noname:1;   /* "if () {}" block */
 
     unsigned      exact_match:1;
@@ -219,7 +222,7 @@ struct ngx_http_core_loc_conf_s {
     unsigned      alias:1;
 
     /* array of inclusive ngx_http_core_loc_conf_t */
-    ngx_array_t   locations;
+    ngx_array_t  *locations;
 
     /* pointer to the modules' loc_conf */
     void        **loc_conf ;

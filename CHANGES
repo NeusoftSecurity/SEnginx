@@ -1,4 +1,13 @@
 
+Changes with nginx 0.5.24                                        06 Jun 2007
+
+    *) Security: the "ssl_verify_client" directive did not work if request 
+       was made using HTTP/0.9.
+
+    *) Bugfix: a part of response body may be passed uncompressed if gzip 
+       was used; bug appeared in 0.5.23.
+
+
 Changes with nginx 0.5.23                                        04 Jun 2007
 
     *) Feature: the ngx_http_ssl_module supports Server Name Indication TLS 

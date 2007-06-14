@@ -1,4 +1,10 @@
 
+Changes with nginx 0.6.0                                         14 Jun 2007
+
+    *) Feature: the "server_name", "map", and "valid_referers" directives 
+       supports the "www.example.*" wildcards.
+
+
 Changes with nginx 0.5.25                                        11 Jun 2007
 
     *) Bugfix: nginx could not be built with the 

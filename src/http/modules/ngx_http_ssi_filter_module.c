@@ -800,8 +800,14 @@ ngx_http_ssi_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                     }
                 }
 
-                if (cmd->flush && ctx->out) {
-                    rc = ngx_http_ssi_output(r, ctx);
+                if (cmd->flush) {
+
+                    if (ctx->out) {
+                        rc = ngx_http_ssi_output(r, ctx);
+
+                    } else {
+                        rc = ngx_http_next_body_filter(r, NULL);
+                    }
 
                     if (rc == NGX_ERROR) {
                         return NGX_ERROR;
@@ -1020,6 +1026,7 @@ ngx_http_ssi_parse(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx)
                 ch = *p;
             }
 
+            ctx->state = state;
             ctx->pos = p;
             ctx->looked = looked;
             ctx->copy_end = p;

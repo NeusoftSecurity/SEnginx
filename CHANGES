@@ -1,4 +1,18 @@
 
+Changes with nginx 0.6.1                                         17 Jun 2007
+
+    *) Bugfix: in SSI parsing.
+
+    *) Bugfix: if remote SSI subrequest was used, then posterior local file 
+       subrequest might transferred to client in wrong order.
+
+    *) Bugfix: large SSI inclusions buffered in temporary files were 
+       truncated.
+
+    *) Bugfix: the perl $$ variable value in ngx_http_perl_module was equal 
+       to the master process identification number.
+
+
 Changes with nginx 0.6.0                                         14 Jun 2007
 
     *) Feature: the "server_name", "map", and "valid_referers" directives 

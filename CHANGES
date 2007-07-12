@@ -1,4 +1,25 @@
 
+Changes with nginx 0.6.3                                         12 Jul 2007
+
+    *) Feature: the "proxy_store" and "fastcgi_store" directives.
+
+    *) Bugfix: a segmentation fault might occur in worker process if the 
+       "auth_http_header" directive was used.
+
+    *) Bugfix: a segmentation fault occurred in worker process if the 
+       CRAM-MD5 authentication method was used, but it was not enabled.
+
+    *) Bugfix: a segmentation fault might occur in worker process when the 
+       HTTPS protocol was used in the "proxy_pass" directive.
+
+    *) Bugfix: a segmentation fault might occur in worker process if the 
+       eventport method was used.
+
+    *) Bugfix: the "proxy_ignore_client_abort" and 
+       "fastcgi_ignore_client_abort" directives did not work; bug appeared 
+       in 0.5.13.
+
+
 Changes with nginx 0.6.2                                         09 Jul 2007
 
     *) Bugfix: if the FastCGI header was split in records, then nginx 
@@ -227,7 +248,7 @@ Changes with nginx 0.5.13                                        19 Feb 2007
        send timeout only.
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
-       amd64, sparc É ppc; bug appeared in 0.5.8.
+       amd64, sparc and ppc; bug appeared in 0.5.8.
 
 
 Changes with nginx 0.5.12                                        12 Feb 2007

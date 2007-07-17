@@ -13,15 +13,26 @@
 
 
 typedef struct {
-    size_t     len;
-    u_char    *data;
+    size_t      len;
+    u_char     *data;
 } ngx_str_t;
 
 
 typedef struct {
-    ngx_str_t  key;
-    ngx_str_t  value;
+    ngx_str_t   key;
+    ngx_str_t   value;
 } ngx_keyval_t;
+
+
+typedef struct {
+    unsigned    len:29;
+
+    unsigned    valid:1;
+    unsigned    no_cachable:1;
+    unsigned    not_found:1;
+
+    u_char     *data;
+} ngx_variable_value_t;
 
 
 #define ngx_string(str)     { sizeof(str) - 1, (u_char *) str }
@@ -142,6 +153,7 @@ u_char *ngx_utf_cpystrn(u_char *dst, u_char *src, size_t n);
 #define NGX_ESCAPE_URI       0
 #define NGX_ESCAPE_ARGS      1
 #define NGX_ESCAPE_HTML      2
+#define NGX_ESCAPE_REFRESH   3
 
 #define NGX_UNESCAPE_URI     1
 

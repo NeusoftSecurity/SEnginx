@@ -105,21 +105,21 @@ ngx_snprintf(u_char *buf, size_t max, const char *fmt, ...)
 u_char *
 ngx_vsnprintf(u_char *buf, size_t max, const char *fmt, va_list args)
 {
-    u_char         *p, zero, *last, temp[NGX_INT64_LEN + 1];
+    u_char                *p, zero, *last, temp[NGX_INT64_LEN + 1];
                                     /*
                                      * really we need temp[NGX_INT64_LEN] only,
                                      * but icc issues the warning
                                      */
-    int             d;
-    size_t          len;
-    uint32_t        ui32;
-    int64_t         i64;
-    uint64_t        ui64;
-    ngx_msec_t      ms;
-    ngx_str_t      *s;
-    ngx_uint_t      width, sign, hexadecimal, max_width;
-    static u_char   hex[] = "0123456789abcdef";
-    static u_char   HEX[] = "0123456789ABCDEF";
+    int                    d;
+    size_t                 len;
+    uint32_t               ui32;
+    int64_t                i64;
+    uint64_t               ui64;
+    ngx_msec_t             ms;
+    ngx_uint_t             width, sign, hexadecimal, max_width;
+    ngx_variable_value_t  *v;
+    static u_char          hex[] = "0123456789abcdef";
+    static u_char          HEX[] = "0123456789ABCDEF";
 
     if (max == 0) {
         return buf;
@@ -188,12 +188,12 @@ ngx_vsnprintf(u_char *buf, size_t max, const char *fmt, va_list args)
             switch (*fmt) {
 
             case 'V':
-                s = va_arg(args, ngx_str_t *);
+                v = va_arg(args, ngx_variable_value_t *);
 
-                len = s->len & 0xffff;
+                len = v->len;
                 len = (buf + len < last) ? len : (size_t) (last - buf);
 
-                buf = ngx_cpymem(buf, s->data, len);
+                buf = ngx_cpymem(buf, v->data, len);
                 fmt++;
 
                 continue;
@@ -1025,7 +1025,7 @@ ngx_escape_uri(u_char *dst, u_char *src, size_t size, ngx_uint_t type)
         0xffffffff, /* 1111 1111 1111 1111  1111 1111 1111 1111 */
 
                     /* ?>=< ;:98 7654 3210  /.-, +*)( '&%$ #"!  */
-        0x800000ad, /* 0000 0000 0000 0000  0000 0000 1010 1101 */
+        0x000000ad, /* 0000 0000 0000 0000  0000 0000 1010 1101 */
 
                     /* _^]\ [ZYX WVUT SRQP  ONML KJIH GFED CBA@ */
         0x00000000, /* 0000 0000 0000 0000  0000 0000 0000 0000 */
@@ -1039,18 +1039,30 @@ ngx_escape_uri(u_char *dst, u_char *src, size_t size, ngx_uint_t type)
         0xffffffff  /* 1111 1111 1111 1111  1111 1111 1111 1111 */
     };
 
+                    /* " ", """, "'", %00-%1F, %7F-%FF */
 
-    switch (type) {
-    case NGX_ESCAPE_HTML:
-        escape = html;
-        break;
-    case NGX_ESCAPE_ARGS:
-        escape = args;
-        break;
-    default:
-        escape = uri;
-        break;
-    }
+    static uint32_t   refresh[] = {
+        0xffffffff, /* 1111 1111 1111 1111  1111 1111 1111 1111 */
+
+                    /* ?>=< ;:98 7654 3210  /.-, +*)( '&%$ #"!  */
+        0x00000085, /* 0000 0000 0000 0000  0000 0000 1000 0101 */
+
+                    /* _^]\ [ZYX WVUT SRQP  ONML KJIH GFED CBA@ */
+        0x00000000, /* 0000 0000 0000 0000  0000 0000 0000 0000 */
+
+                    /*  ~}| {zyx wvut srqp  onml kjih gfed cba` */
+        0x80000000, /* 1000 0000 0000 0000  0000 0000 0000 0000 */
+
+        0xffffffff, /* 1111 1111 1111 1111  1111 1111 1111 1111 */
+        0xffffffff, /* 1111 1111 1111 1111  1111 1111 1111 1111 */
+        0xffffffff, /* 1111 1111 1111 1111  1111 1111 1111 1111 */
+        0xffffffff  /* 1111 1111 1111 1111  1111 1111 1111 1111 */
+    };
+
+    static uint32_t  *map[] = { uri, args, html, refresh };
+
+
+    escape = map[type];
 
     if (dst == NULL) {
 

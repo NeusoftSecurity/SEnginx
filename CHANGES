@@ -1,7 +1,29 @@
 
+Changes with nginx 0.6.5                                         23 Jul 2007
+
+    *) Feature: $nginx_version variable.
+       Thanks to Nick S. Grechukh.
+
+    *) Feature: the mail proxy supports AUTHENTICATE in IMAP mode.
+       Thanks to Maxim Dounin.
+
+    *) Feature: the mail proxy supports STARTTLS in SMTP mode.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: now nginx escapes space in $memcached_key variable.
+
+    *) Bugfix: nginx was incorrectly built by Sun Studio on 
+       Solaris/amd64.
+       Thanks to Jiang Hong.
+
+    *) Bugfix: of minor potential bugs.
+       Thanks to Coverity's Scan.
+
+
 Changes with nginx 0.6.4                                         17 Jul 2007
 
     *) Security: the "msie_refresh" directive allowed XSS.
+       Thanks to Maxim Boguk.
 
     *) Change: the "proxy_store" and "fastcgi_store" directives were 
        changed.

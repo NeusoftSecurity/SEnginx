@@ -198,7 +198,7 @@ ngx_int_t
 ngx_ssl_certificate(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *cert,
     ngx_str_t *key)
 {
-    if (ngx_conf_full_name(cf->cycle, cert) == NGX_ERROR) {
+    if (ngx_conf_full_name(cf->cycle, cert, 1) == NGX_ERROR) {
         return NGX_ERROR;
     }
 
@@ -211,7 +211,7 @@ ngx_ssl_certificate(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *cert,
         return NGX_ERROR;
     }
 
-    if (ngx_conf_full_name(cf->cycle, key) == NGX_ERROR) {
+    if (ngx_conf_full_name(cf->cycle, key, 1) == NGX_ERROR) {
         return NGX_ERROR;
     }
 
@@ -242,7 +242,7 @@ ngx_ssl_client_certificate(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *cert,
         return NGX_OK;
     }
 
-    if (ngx_conf_full_name(cf->cycle, cert) == NGX_ERROR) {
+    if (ngx_conf_full_name(cf->cycle, cert, 1) == NGX_ERROR) {
         return NGX_ERROR;
     }
 
@@ -784,7 +784,7 @@ ngx_ssl_send_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 
     /* the maximum limit size is the maximum uint32_t value - the page size */
 
-    if (limit == 0 || limit > NGX_MAX_UINT32_VALUE - ngx_pagesize) {
+    if (limit == 0 || limit > (off_t) (NGX_MAX_UINT32_VALUE - ngx_pagesize)) {
         limit = NGX_MAX_UINT32_VALUE - ngx_pagesize;
     }
 

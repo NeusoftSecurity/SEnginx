@@ -1,4 +1,26 @@
 
+Changes with nginx 0.6.6                                         30 Jul 2007
+
+    *) Feature: the --sysconfdir=PATH option in configure.
+
+    *) Feature: named locations.
+
+    *) Feature: the $args variable can be set with the "set" directive.
+
+    *) Feature: the $is_args variable.
+
+    *) Bugfix: fair big weight upstream balancer.
+
+    *) Bugfix: if a client has closed connection to mail proxy then nginx 
+       might not close connection to backend.
+
+    *) Bugfix: if the same host without specified port was used as backend 
+       for HTTP and HTTPS, then nginx used only one port - 80 or 443.
+
+    *) Bugfix: fix building on Solaris/amd64 by Sun Studio 11 and early 
+       versions; bug appeared in 0.6.4.
+
+
 Changes with nginx 0.6.5                                         23 Jul 2007
 
     *) Feature: $nginx_version variable.

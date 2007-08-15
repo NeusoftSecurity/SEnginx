@@ -565,9 +565,11 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     if (rc == NGX_BUSY) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "no live upstreams");
+        ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_NOLIVE);
+        return;
     }
 
-    if (rc == NGX_BUSY || rc == NGX_DECLINED) {
+    if (rc == NGX_DECLINED) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
         return;
     }
@@ -581,7 +583,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     c->write->handler = ngx_http_upstream_send_request_handler;
     c->read->handler = ngx_http_upstream_process_header;
 
-    c->sendfile = r->connection->sendfile;
+    c->sendfile &= r->connection->sendfile;
 
     c->pool = r->pool;
     c->read->log = c->write->log = c->log = r->connection->log;
@@ -2153,7 +2155,9 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
         state = NGX_PEER_FAILED;
     }
 
-    u->peer.free(&u->peer, u->peer.data, state);
+    if (ft_type != NGX_HTTP_UPSTREAM_FT_NOLIVE) {
+        u->peer.free(&u->peer, u->peer.data, state);
+    }
 
     if (ft_type == NGX_HTTP_UPSTREAM_FT_TIMEOUT) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, NGX_ETIMEDOUT,
@@ -3114,6 +3118,17 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             if (fail_timeout < 0) {
                 goto invalid;
             }
+
+            continue;
+        }
+
+        if (ngx_strncmp(value[i].data, "backup", 6) == 0) {
+
+            if (!(uscf->flags & NGX_HTTP_UPSTREAM_BACKUP)) {
+                goto invalid;
+            }
+
+            us->backup = 1;
 
             continue;
         }

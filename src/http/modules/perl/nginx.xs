@@ -425,6 +425,17 @@ request_body_file(r)
 
 
 void
+discard_request_body(r)
+    CODE:
+
+    ngx_http_request_t  *r;
+
+    ngx_http_perl_set_request(r);
+
+    ngx_http_discard_request_body(r);
+
+
+void
 header_out(r, key, value)
     CODE:
 
@@ -460,8 +471,6 @@ header_out(r, key, value)
         r->headers_out.content_length_n = (off_t) SvIV(value);
         r->headers_out.content_length = header;
     }
-
-    XSRETURN_EMPTY;
 
 
 void
@@ -589,8 +598,6 @@ print(r, ...)
 
     (void) ngx_http_perl_output(r, b);
 
-    XSRETURN_EMPTY;
-
 
 void
 sendfile(r, filename, offset = -1, bytes = 0)
@@ -677,8 +684,6 @@ sendfile(r, filename, offset = -1, bytes = 0)
 
     (void) ngx_http_perl_output(r, b);
 
-    XSRETURN_EMPTY;
-
 
 void
 flush(r)
@@ -743,8 +748,6 @@ allow_ranges(r)
     ngx_http_perl_set_request(r);
 
     r->allow_ranges = 1;
-
-    XSRETURN_EMPTY;
 
 
 void
@@ -942,8 +945,6 @@ sleep(r, sleep, next)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "perl sleep: %d", ctx->sleep);
 
-    XSRETURN_EMPTY;
-
 
 void
 log_error(r, err, msg)
@@ -974,5 +975,3 @@ log_error(r, err, msg)
     p = (u_char *) SvPV(msg, len);
 
     ngx_log_error(NGX_LOG_ERR, r->connection->log, e, "perl: %s", p);
-
-    XSRETURN_EMPTY;

@@ -33,8 +33,7 @@ static void ngx_http_request_handler(ngx_event_t *ev);
 static ngx_int_t ngx_http_set_write_handler(ngx_http_request_t *r);
 static void ngx_http_writer(ngx_http_request_t *r);
 
-static void ngx_http_block_read(ngx_http_request_t *r);
-static void ngx_http_test_read(ngx_http_request_t *r);
+static void ngx_http_test_reading(ngx_http_request_t *r);
 static void ngx_http_set_keepalive(ngx_http_request_t *r);
 static void ngx_http_keepalive_handler(ngx_event_t *ev);
 static void ngx_http_set_lingering_close(ngx_http_request_t *r);
@@ -1442,7 +1441,7 @@ ngx_http_process_request(ngx_http_request_t *r)
 
     c->read->handler = ngx_http_request_handler;
     c->write->handler = ngx_http_request_handler;
-    r->read_event_handler = ngx_http_block_read;
+    r->read_event_handler = ngx_http_block_reading;
 
     ngx_http_handler(r);
 
@@ -1454,17 +1453,55 @@ static void
 ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len,
     ngx_uint_t hash)
 {
-    ngx_http_virtual_names_t  *vn;
     ngx_http_core_loc_conf_t  *clcf;
     ngx_http_core_srv_conf_t  *cscf;
+#if (NGX_PCRE)
+    ngx_int_t                  n;
+    ngx_uint_t                 i;
+    ngx_str_t                  name;
+    ngx_http_server_name_t    *sn;
+#endif
 
-    vn = r->virtual_names;
-
-    cscf = ngx_hash_find_combined(vn, hash, host, len);
+    cscf = ngx_hash_find_combined(&r->virtual_names->names, hash, host, len);
 
     if (cscf) {
         goto found;
     }
+
+#if (NGX_PCRE)
+
+    if (r->virtual_names->nregex) {
+
+        name.len = len;
+        name.data = host;
+
+        sn = r->virtual_names->regex;
+
+        for (i = 0; i < r->virtual_names->nregex; i++) {
+
+            n = ngx_regex_exec(sn[i].regex, &name, NULL, 0);
+
+            if (n == NGX_REGEX_NO_MATCHED) {
+                continue;
+            }
+
+            if (n < 0) {
+                ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                              ngx_regex_exec_n
+                              " failed: %d on \"%V\" using \"%V\"",
+                              n, &name, &sn[i].name);
+                return;
+            }
+
+            /* match */
+
+            cscf = sn[i].core_srv_conf;
+
+            goto found;
+        }
+    }
+
+#endif
 
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
@@ -1702,7 +1739,7 @@ ngx_http_set_write_handler(ngx_http_request_t *r)
 
     r->http_state = NGX_HTTP_WRITING_REQUEST_STATE;
 
-    r->read_event_handler = ngx_http_test_read;
+    r->read_event_handler = ngx_http_test_reading;
     r->write_event_handler = ngx_http_writer;
 
     wev = r->connection->write;
@@ -1812,11 +1849,11 @@ ngx_http_writer(ngx_http_request_t *r)
 }
 
 
-static void
-ngx_http_block_read(ngx_http_request_t *r)
+void
+ngx_http_block_reading(ngx_http_request_t *r)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http read blocked");
+                   "http reading blocked");
 
     /* aio does not call this handler */
 
@@ -1833,7 +1870,7 @@ ngx_http_block_read(ngx_http_request_t *r)
 
 
 static void
-ngx_http_test_read(ngx_http_request_t *r)
+ngx_http_test_reading(ngx_http_request_t *r)
 {
     int                n;
     char               buf[1];
@@ -1844,7 +1881,7 @@ ngx_http_test_read(ngx_http_request_t *r)
     c = r->connection;
     rev = c->read;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http test read");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http test reading");
 
 #if (NGX_HAVE_KQUEUE)
 
@@ -1922,7 +1959,15 @@ ngx_http_set_keepalive(ngx_http_request_t *r)
     c = r->connection;
     rev = c->read;
 
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "set http keepalive handler");
+
+    if (r->discard_body) {
+        r->lingering_time = ngx_time() + (time_t) (clcf->lingering_time / 1000);
+        ngx_add_timer(rev, clcf->lingering_timeout);
+        return;
+    }
 
     c->log->action = "closing request";
 
@@ -1966,8 +2011,6 @@ ngx_http_set_keepalive(ngx_http_request_t *r)
             hc->nbusy = 1;
         }
     }
-
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     ngx_http_request_done(r, 0);
 
@@ -2381,7 +2424,7 @@ ngx_http_post_action(ngx_http_request_t *r)
     r->header_only = 1;
     r->post_action = 1;
 
-    r->read_event_handler = ngx_http_block_read;
+    r->read_event_handler = ngx_http_block_reading;
 
     ngx_http_internal_redirect(r, &clcf->post_action, NULL);
 

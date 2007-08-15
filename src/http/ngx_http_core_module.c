@@ -933,14 +933,19 @@ ngx_http_core_find_location(ngx_http_request_t *r,
     ngx_array_t *locations, ngx_uint_t regex_start, size_t len)
 {
     ngx_int_t                  n, rc;
-    ngx_uint_t                 i, found, noregex;
+    ngx_uint_t                 i, found;
     ngx_http_core_loc_conf_t  *clcf, **clcfp;
+#if (NGX_PCRE)
+    ngx_uint_t                 noregex;
+#endif
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "find location for \"%V\"", &r->uri);
 
     found = 0;
+#if (NGX_PCRE)
     noregex = 0;
+#endif
 
     clcfp = locations->elts;
     for (i = 0; i < locations->nelts; i++) {
@@ -998,9 +1003,12 @@ ngx_http_core_find_location(ngx_http_request_t *r,
                 break;
             }
 
-            r->loc_conf = clcfp[i]->loc_conf;
-            noregex = clcfp[i]->noregex;
             found = 1;
+
+            r->loc_conf = clcfp[i]->loc_conf;
+#if (NGX_PCRE)
+            noregex = clcfp[i]->noregex;
+#endif
         }
     }
 
@@ -2219,7 +2227,7 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 #endif
         ls->family = AF_INET;
 
-        ls->conf.backlog = -1;
+        ls->conf.backlog = NGX_LISTEN_BACKLOG;
         ls->conf.rcvbuf = -1;
         ls->conf.sndbuf = -1;
     }
@@ -2570,7 +2578,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ls->port = u.port;
     ls->file_name = cf->conf_file->file.name;
     ls->line = cf->conf_file->line;
-    ls->conf.backlog = -1;
+    ls->conf.backlog = NGX_LISTEN_BACKLOG;
     ls->conf.rcvbuf = -1;
     ls->conf.sndbuf = -1;
 
@@ -2692,6 +2700,10 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t               *value, name;
     ngx_uint_t               i;
     ngx_http_server_name_t  *sn;
+#if (NGX_PCRE)
+    ngx_str_t                err;
+    u_char                   errstr[NGX_MAX_CONF_ERRSTR];
+#endif
 
     value = cf->args->elts;
 
@@ -2702,6 +2714,13 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "first server name \"%V\" must not be wildcard",
                                &value[1]);
+            return NGX_CONF_ERROR;
+        }
+
+        if (value[1].data[0] == '~') {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "first server name \"%V\" "
+                               "must not be regular expression", &value[1]);
             return NGX_CONF_ERROR;
         }
 
@@ -2748,9 +2767,42 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             return NGX_CONF_ERROR;
         }
 
+#if (NGX_PCRE)
+        sn->regex = NULL;
+#endif
+        sn->core_srv_conf = cscf;
         sn->name.len = value[i].len;
         sn->name.data = value[i].data;
-        sn->core_srv_conf = cscf;
+
+        if (value[i].data[0] != '~') {
+            continue;
+        }
+
+#if (NGX_PCRE)
+        err.len = NGX_MAX_CONF_ERRSTR;
+        err.data = errstr;
+
+        value[i].len--;
+        value[i].data++;
+
+        sn->regex = ngx_regex_compile(&value[i], NGX_REGEX_CASELESS, cf->pool,
+                                      &err);
+
+        if (sn->regex == NULL) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s", err.data);
+            return NGX_CONF_ERROR;
+        }
+
+        sn->name.len = value[i].len;
+        sn->name.data = value[i].data;
+
+#else
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "the using of the regex \"%V\" "
+                           "requires PCRE library", &value[i]);
+
+        return NGX_CONF_ERROR;
+#endif
     }
 
     return NGX_CONF_OK;

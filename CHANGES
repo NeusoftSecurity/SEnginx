@@ -1,4 +1,48 @@
 
+Changes with nginx 0.6.7                                         15 Aug 2007
+
+    *) Change: now the paths specified in the "include", 
+       "auth_basic_user_file", "perl_modules", "ssl_certificate", 
+       "ssl_certificate_key", and "ssl_client_certificate" directives are 
+       relative to directory of nginx configuration file nginx.conf, but no 
+       to nginx prefix directory.
+
+    *) Change: the --sysconfdir=PATH option in configure was canceled.
+
+    *) Change: the special make target "upgrade1" was defined for online 
+       upgrade of 0.1.x versions.
+
+    *) Feature: the "server_name" and "valid_referers" directives support 
+       regular expressions.
+
+    *) Feature: the "server" directive in the "upstream" context supports 
+       the "backup" parameter.
+
+    *) Feature: the ngx_http_perl_module supports the 
+       $r->discard_request_body.
+
+    *) Feature: the "add_header Last-Modified ..." directive changes the 
+       "Last-Modified" response header line.
+
+    *) Bugfix: if an response different than 200 was returned to an request 
+       with body and connection went to the keep-alive state after the 
+       request, then nginx returned 400 for the next request.
+
+    *) Bugfix: a segmentation fault occurred in worker process if invalid 
+       address was set in the "auth_http" directive.
+
+    *) Bugfix: now nginx uses default listen backlog value 511 on all 
+       platforms except FreeBSD.
+       Thanks to Jiang Hong.
+
+    *) Bugfix: a worker process may got caught in an endless loop, if an 
+       "server" inside "upstream" block was marked as "down"; bug appeared 
+       in 0.6.6.
+
+    *) Bugfix: now Solaris sendfilev() is not used to transfer the client 
+       request body to FastCGI-server via the unix domain socket.
+
+
 Changes with nginx 0.6.6                                         30 Jul 2007
 
     *) Feature: the --sysconfdir=PATH option in configure.

@@ -1,11 +1,29 @@
 
+Changes with nginx 0.6.8                                         20 Aug 2007
+
+    *) Change: now nginx tries to set the "worker_priority", 
+       "worker_rlimit_nofile", "worker_rlimit_core", and 
+       "worker_rlimit_sigpending" without super-user privileges.
+
+    *) Change: now nginx escapes space and "%" in request to a mail proxy 
+       authentication server.
+
+    *) Change: now nginx escapes "%" in $memcached_key variable.
+
+    *) Bugfix: nginx used path relative to configuration prefix for 
+       non-absolute configuration file path specified in the "-c" key; bug 
+       appeared in 0.6.6.
+
+    *) Bugfix: nginx did not work on FreeBSD/sparc64.
+
+
 Changes with nginx 0.6.7                                         15 Aug 2007
 
     *) Change: now the paths specified in the "include", 
        "auth_basic_user_file", "perl_modules", "ssl_certificate", 
        "ssl_certificate_key", and "ssl_client_certificate" directives are 
-       relative to directory of nginx configuration file nginx.conf, but no 
-       to nginx prefix directory.
+       relative to directory of nginx configuration file nginx.conf, but 
+       not to nginx prefix directory.
 
     *) Change: the --sysconfdir=PATH option in configure was canceled.
 
@@ -150,7 +168,7 @@ Changes with nginx 0.6.1                                         17 Jun 2007
 Changes with nginx 0.6.0                                         14 Jun 2007
 
     *) Feature: the "server_name", "map", and "valid_referers" directives 
-       supports the "www.example.*" wildcards.
+       support the "www.example.*" wildcards.
 
 
 Changes with nginx 0.5.25                                        11 Jun 2007

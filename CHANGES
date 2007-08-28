@@ -1,4 +1,18 @@
 
+Changes with nginx 0.6.9                                         28 Aug 2007
+
+    *) Bugfix: a worker process may got caught in an endless loop, if the 
+       HTTPS protocol was used; bug appeared in 0.6.7.
+
+    *) Bugfix: if server listened on two addresses or ports and trailing 
+       wildcard was used, then nginx did not run.
+
+    *) Bugfix: the "ip_hash" directive might incorrectly mark servers as 
+       down.
+
+    *) Bugfix: nginx could not be built on amd64; bug appeared in 0.6.8.
+
+
 Changes with nginx 0.6.8                                         20 Aug 2007
 
     *) Change: now nginx tries to set the "worker_priority", 

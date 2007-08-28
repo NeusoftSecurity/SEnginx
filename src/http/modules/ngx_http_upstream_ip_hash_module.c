@@ -140,7 +140,7 @@ ngx_http_upstream_get_ip_hash_peer(ngx_peer_connection_t *pc, void *data)
 
     /* TODO: cached */
 
-    if (iphp->tries > 20 || iphp->rrp.peers->number == 1) {
+    if (iphp->tries > 20 || iphp->rrp.peers->single) {
         return iphp->get_rr_peer(pc, &iphp->rrp);
     }
 
@@ -160,7 +160,7 @@ ngx_http_upstream_get_ip_hash_peer(ngx_peer_connection_t *pc, void *data)
         p = hash % iphp->rrp.peers->number;
 
         n = p / (8 * sizeof(uintptr_t));
-        m = 1 << p % (8 * sizeof(uintptr_t));
+        m = (uintptr_t) 1 << p % (8 * sizeof(uintptr_t));
 
         if (!(iphp->rrp.tried[n] & m)) {
 
@@ -194,6 +194,8 @@ ngx_http_upstream_get_ip_hash_peer(ngx_peer_connection_t *pc, void *data)
             return iphp->get_rr_peer(pc, &iphp->rrp);
         }
     }
+
+    iphp->rrp.current = p;
 
     pc->sockaddr = peer->sockaddr;
     pc->socklen = peer->socklen;

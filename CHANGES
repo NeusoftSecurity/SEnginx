@@ -1,4 +1,18 @@
 
+Changes with nginx 0.6.10                                        03 Sep 2007
+
+    *) Feature: the "open_file_cache", "open_file_cache_retest", and 
+       "open_file_cache_errors" directives.
+
+    *) Bugfix: socket leak; bug appeared in 0.6.7.
+
+    *) Bugfix: a charset set by the "charset" directive was not appended to 
+       the "Content-Type" header set by $r->send_http_header().
+
+    *) Bugfix: a segmentation fault might occur in worker process if 
+       /dev/poll method was used.
+
+
 Changes with nginx 0.6.9                                         28 Aug 2007
 
     *) Bugfix: a worker process may got caught in an endless loop, if the 

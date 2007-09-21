@@ -1,4 +1,40 @@
 
+Changes with nginx 0.6.12                                        21 Sep 2007
+
+    *) Change: mail proxy was split on three modules: pop3, imap and smtp.
+
+    *) Feature: the --without-mail_pop3_module, --without-mail_imap_module, 
+       and --without-mail_smtp_module configuration parameters.
+
+    *) Feature: the "smtp_greeting_delay" and "smtp_client_buffer" 
+       directives of the ngx_mail_smtp_module.
+
+    *) Bugfix: the trailing wildcards did not work; bug appeared in 0.6.9.
+
+    *) Bugfix: nginx could not start on Solaris if the shared PCRE library 
+       located in non-standard place was used.
+
+    *) Bugfix: the "proxy_hide_header" and "fastcgi_hide_header" directives 
+       did not hide response header lines whose name was longer than 32 
+       characters.
+       Thanks to Manlio Perillo.
+
+
+Changes with nginx 0.6.11                                        11 Sep 2007
+
+    *) Bugfix: active connection counter always increased if mail proxy was 
+       used.
+
+    *) Bugfix: if backend returned response header only using non-buffered 
+       proxy, then nginx closed backend connection on timeout.
+
+    *) Bugfix: nginx did not support several "Connection" request header 
+       lines.
+
+    *) Bugfix: if the "max_fails" was set for upstream server, then after 
+       first failure server weight was always one; bug appeared in 0.6.6.
+
+
 Changes with nginx 0.6.10                                        03 Sep 2007
 
     *) Feature: the "open_file_cache", "open_file_cache_retest", and 

@@ -1,4 +1,11 @@
 
+Changes with nginx 0.6.13                                        24 Sep 2007
+
+    *) Bugfix: nginx did not close directory file on HEAD request if 
+       autoindex was used.
+       Thanks to Arkadiusz Patyk.
+
+
 Changes with nginx 0.6.12                                        21 Sep 2007
 
     *) Change: mail proxy was split on three modules: pop3, imap and smtp.

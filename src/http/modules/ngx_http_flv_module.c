@@ -110,7 +110,7 @@ ngx_http_flv_handler(ngx_http_request_t *r)
     of.retest = clcf->open_file_cache_retest;
     of.errors = clcf->open_file_cache_errors;
     of.events = clcf->open_file_cache_events;
-    
+
     rc = ngx_open_cached_file(clcf->open_file_cache, &path, &of, r->pool);
 
     if (rc == NGX_ERROR) {
@@ -166,7 +166,7 @@ ngx_http_flv_handler(ngx_http_request_t *r)
     i = 1;
 
     if (r->args.len) {
-        p = (u_char *) ngx_strstr(r->args.data, "start=");
+        p = (u_char *) ngx_strnstr(r->args.data, "start=", r->args.len);
 
         if (p) {
             p += 6;

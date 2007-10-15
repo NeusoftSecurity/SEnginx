@@ -1,4 +1,41 @@
 
+Changes with nginx 0.6.14                                        15 Oct 2007
+
+    *) Change: now by default the "echo" SSI command uses entity encoding.
+
+    *) Feature: the "encoding" parameter in the "echo" SSI command.
+
+    *) Feature: the "access_log" directive may be used inside the 
+       "limit_except" block.
+
+    *) Bugfix: if all upstream servers were failed, then all servers had 
+       got weight the was equal one until servers became alive; bug 
+       appeared in 0.6.6.
+
+    *) Bugfix: a segmentation fault occurred in worker process if 
+       $date_local and $date_gmt were used outside the 
+       ngx_http_ssi_filter_module.
+
+    *) Bugfix: a segmentation fault might occur in worker process if debug 
+       log was enabled.
+       Thanks to Andrei Nigmatulin.
+
+    *) Bugfix: ngx_http_memcached_module did not set 
+       $upstream_response_time.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: a worker process may got caught in an endless loop, if the 
+       memcached was used.
+
+    *) Bugfix: nginx supported low case only "close" and "keep-alive" 
+       values in the "Connection" request header line; bug appeared in 
+       0.6.11.
+
+    *) Bugfix: sub_filter did not work with empty substitution.
+
+    *) Bugfix: in sub_filter parsing.
+
+
 Changes with nginx 0.6.13                                        24 Sep 2007
 
     *) Bugfix: nginx did not close directory file on HEAD request if 

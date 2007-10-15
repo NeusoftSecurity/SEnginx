@@ -896,7 +896,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r,
 
         if (ngx_http_map_uri_to_path(r, &path, &root, 0) != NULL) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "directory index of \"%V\" is forbidden", &path);
+                          "directory index of \"%s\" is forbidden", path.data);
         }
 
         ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
@@ -2607,7 +2607,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     u.listen = 1;
     u.default_port = 80;
 
-    if (ngx_parse_url(cf, &u) != NGX_OK) {
+    if (ngx_parse_url(cf->pool, &u) != NGX_OK) {
         if (u.err) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "%s in \"%V\" of the \"listen\" directive",

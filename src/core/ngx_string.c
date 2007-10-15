@@ -442,7 +442,7 @@ ngx_vsnprintf(u_char *buf, size_t max, const char *fmt, va_list args)
 
 
 /*
- * We use ngx_strcasecmp()/ngx_strncasecmp() for 7-bit ASCII string only,
+ * We use ngx_strcasecmp()/ngx_strncasecmp() for 7-bit ASCII strings only,
  * and implement our own ngx_strcasecmp()/ngx_strncasecmp()
  * to avoid libc locale overhead.  Besides, we use the ngx_uint_t's
  * instead of the u_char's, because they are slightly faster.
@@ -500,6 +500,95 @@ ngx_strncasecmp(u_char *s1, u_char *s2, size_t n)
     }
 
     return 0;
+}
+
+
+u_char *
+ngx_strnstr(u_char *s1, char *s2, size_t len)
+{
+    u_char  c1, c2;
+    size_t  n;
+
+    c2 = *(u_char *) s2++;
+
+    n = ngx_strlen(s2);
+
+    do {
+        do {
+            if (len-- == 0) {
+                return NULL;
+            }
+
+            c1 = *s1++;
+
+            if (c1 == 0) {
+                return NULL;
+            }
+
+        } while (c1 != c2);
+
+        if (n > len) {
+            return NULL;
+        }
+
+    } while (ngx_strncmp(s1, (u_char *) s2, n) != 0);
+
+    return --s1;
+}
+
+
+/*
+ * ngx_strstrn() and ngx_strcasestrn() are intended to search for static
+ * substring with known length in null-terminated string. The argument n
+ * must be length of the second substring - 1.
+ */
+
+u_char *
+ngx_strstrn(u_char *s1, char *s2, size_t n)
+{
+    u_char  c1, c2;
+
+    c2 = *(u_char *) s2++;
+
+    do {
+        do {
+            c1 = *s1++;
+
+            if (c1 == 0) {
+                return NULL;
+            }
+
+        } while (c1 != c2);
+
+    } while (ngx_strncmp(s1, (u_char *) s2, n) != 0);
+
+    return --s1;
+}
+
+
+u_char *
+ngx_strcasestrn(u_char *s1, char *s2, size_t n)
+{
+    ngx_uint_t  c1, c2;
+
+    c2 = (ngx_uint_t) *s2++;
+    c2  = (c2 >= 'A' && c2 <= 'Z') ? (c2 | 0x20) : c2;
+
+    do {
+        do {
+            c1 = (ngx_uint_t) *s1++;
+
+            if (c1 == 0) {
+                return NULL;
+            }
+
+            c1  = (c1 >= 'A' && c1 <= 'Z') ? (c1 | 0x20) : c1;
+
+        } while (c1 != c2);
+
+    } while (ngx_strncasecmp(s1, (u_char *) s2, n) != 0);
+
+    return --s1;
 }
 
 
@@ -1247,6 +1336,67 @@ done:
 
     *dst = d;
     *src = s;
+}
+
+
+uintptr_t
+ngx_escape_html(u_char *dst, u_char *src, size_t size)
+{
+    u_char      ch;
+    ngx_uint_t  i, len;
+
+    if (dst == NULL) {
+
+        len = 0;
+
+        for (i = 0; i < size; i++) {
+            switch (*src++) {
+
+            case '<':
+                len += sizeof("&lt;") - 2;
+                break;
+
+            case '>':
+                len += sizeof("&gt;") - 2;
+                break;
+
+            case '&':
+                len += sizeof("&amp;") - 2;
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        return (uintptr_t) len;
+    }
+
+    for (i = 0; i < size; i++) {
+        ch = *src++;
+
+        switch (ch) {
+
+        case '<':
+            *dst++ = '&'; *dst++ = 'l'; *dst++ = 't'; *dst++ = ';';
+            break;
+
+        case '>':
+            *dst++ = '&'; *dst++ = 'g'; *dst++ = 't'; *dst++ = ';';
+            break;
+
+        case '&':
+            *dst++ = '&'; *dst++ = 'a'; *dst++ = 'm'; *dst++ = 'p';
+            *dst++ = ';';
+            break;
+
+        default:
+            *dst++ = ch;
+            break;
+        }
+    }
+
+    return (uintptr_t) dst;
 }
 
 

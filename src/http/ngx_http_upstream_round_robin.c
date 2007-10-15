@@ -145,7 +145,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     u.host = us->host;
     u.port = (in_port_t) (us->port ? us->port : us->default_port);
 
-    if (ngx_inet_resolve_host(cf, &u) != NGX_OK) {
+    if (ngx_inet_resolve_host(cf->pool, &u) != NGX_OK) {
         if (u.err) {
             ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
                           "%s in upstream \"%V\" in %s:%ui",
@@ -167,17 +167,14 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     peers->number = n;
     peers->name = &us->host;
 
-    n = 0;
-
     for (i = 0; i < u.naddrs; i++) {
-        peers->peer[n].sockaddr = u.addrs[i].sockaddr;
-        peers->peer[n].socklen = u.addrs[i].socklen;
-        peers->peer[n].name = u.addrs[i].name;
-        peers->peer[n].weight = 1;
-        peers->peer[n].current_weight = 1;
-        peers->peer[n].max_fails = 1;
-        peers->peer[n].fail_timeout = 10;
-        n++;
+        peers->peer[i].sockaddr = u.addrs[i].sockaddr;
+        peers->peer[i].socklen = u.addrs[i].socklen;
+        peers->peer[i].name = u.addrs[i].name;
+        peers->peer[i].weight = 1;
+        peers->peer[i].current_weight = 1;
+        peers->peer[i].max_fails = 1;
+        peers->peer[i].fail_timeout = 10;
     }
 
     us->peer.data = peers;
@@ -514,13 +511,7 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers)
         }
 
         for (i = 0; i < peers->number; i++) {
-            if (peer->max_fails == 0 || peer->fails < peer->max_fails) {
-                peer[i].current_weight += peer[i].weight;
-
-            } else {
-                /* 1 allows to go to quick recovery when all peers failed */
-                peer[i].current_weight = 1;
-            }
+            peer[i].current_weight += peer[i].weight;
         }
     }
 }

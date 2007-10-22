@@ -409,6 +409,12 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
     ngx_err_t      err;
     ngx_channel_t  ch;
 
+#if (NGX_BROKEN_SCM_RIGHTS)
+
+    ch.command = 0;
+
+#else
+
     switch (signo) {
 
     case ngx_signal_value(NGX_SHUTDOWN_SIGNAL):
@@ -426,6 +432,8 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
     default:
         ch.command = 0;
     }
+
+#endif
 
     ch.fd = -1;
 
@@ -1035,7 +1043,6 @@ static void
 ngx_channel_handler(ngx_event_t *ev)
 {
     ngx_int_t          n;
-    ngx_socket_t       fd;
     ngx_channel_t      ch;
     ngx_connection_t  *c;
 
@@ -1053,17 +1060,7 @@ ngx_channel_handler(ngx_event_t *ev)
     ngx_log_debug1(NGX_LOG_DEBUG_CORE, ev->log, 0, "channel: %i", n);
 
     if (n == NGX_ERROR) {
-
-        ngx_free_connection(c);
-
-        fd = c->fd;
-        c->fd = (ngx_socket_t) -1;
-
-        if (close(fd) == -1) {
-            ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_errno,
-                          "close() channel failed");
-        }
-
+        ngx_close_connection(c);
         return;
     }
 

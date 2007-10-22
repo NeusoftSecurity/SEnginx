@@ -143,6 +143,7 @@ typedef struct {
 
     ngx_flag_t                 optimize_server_names;
     ngx_flag_t                 ignore_invalid_headers;
+    ngx_flag_t                 merge_slashes;
 } ngx_http_core_srv_conf_t;
 
 
@@ -185,7 +186,6 @@ typedef struct {
 #if (NGX_PCRE)
     ngx_uint_t                 nregex;
     ngx_http_server_name_t    *regex;
-
 #endif
 
     /* the default server configuration for this address:port */
@@ -285,6 +285,7 @@ struct ngx_http_core_loc_conf_s {
     ngx_flag_t    msie_refresh;            /* msie_refresh */
     ngx_flag_t    log_not_found;           /* log_not_found */
     ngx_flag_t    recursive_error_pages;   /* recursive_error_pages */
+    ngx_flag_t    server_tokens;           /* server_tokens */
 
     ngx_array_t  *error_pages;             /* error_page */
 

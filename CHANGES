@@ -1,4 +1,34 @@
 
+Changes with nginx 0.6.15                                        22 Oct 2007
+
+    *) Feature: cygwin compatibility.
+       Thanks to Vladimir Kutakov.
+
+    *) Feature: the "merge_slashes" directive.
+
+    *) Feature: the "gzip_vary" directive.
+
+    *) Feature: the "server_tokens" directive.
+
+    *) Bugfix: nginx did not unescape URI in the "include" SSI command.
+
+    *) Bugfix: the segmentation fault was occurred on start or while 
+       reconfiguration if variable was used in the "charset" or 
+       "source_charset" directives.
+
+    *) Bugfix: nginx returned the 400 response on requests like 
+       "GET http://www.domain.com HTTP/1.0".
+       Thanks to James Oakley.
+
+    *) Bugfix: if request with request body was redirected using the 
+       "error_page" directive, then nginx tried to read the request body 
+       again; bug appeared in 0.6.7.
+
+    *) Bugfix: a segmentation fault occurred in worker process if no 
+       server_name was explicitly defined for server processing request; 
+       bug appeared in 0.6.7.
+
+
 Changes with nginx 0.6.14                                        15 Oct 2007
 
     *) Change: now by default the "echo" SSI command uses entity encoding.

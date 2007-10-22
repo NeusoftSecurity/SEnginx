@@ -366,8 +366,8 @@ ngx_http_charset_header_filter(ngx_http_request_t *r)
 no_charset_map:
 
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                  "no \"charset_map\" between the charsets "
-                  "\"%V\" and \"%V\"", from, to);
+                  "no \"charset_map\" between the charsets \"%V\" and \"%V\"",
+                  from, to);
 
     return ngx_http_next_header_filter(r);
 }
@@ -1462,6 +1462,12 @@ ngx_http_charset_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         return NGX_CONF_OK;
     }
 
+    if (conf->source_charset >= NGX_HTTP_CHARSET_VAR
+        || conf->charset >= NGX_HTTP_CHARSET_VAR)
+    {
+        return NGX_CONF_OK;
+    }
+
     mcf = ngx_http_conf_get_module_main_conf(cf,
                                              ngx_http_charset_filter_module);
     recode = mcf->recodes.elts;
@@ -1519,9 +1525,8 @@ ngx_http_charset_postconfiguration(ngx_conf_t *cf)
         }
 
         ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
-                      " no \"charset_map\" between the charsets "
-                      "\"%V\" and \"%V\"",
-                      &charset[c].name, &charset[recode[i].dst].name);
+                   "no \"charset_map\" between the charsets \"%V\" and \"%V\"",
+                   &charset[c].name, &charset[recode[i].dst].name);
         return NGX_ERROR;
 
     next:

@@ -185,6 +185,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_srv_conf_t, ignore_invalid_headers),
       NULL },
 
+    { ngx_string("merge_slashes"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      offsetof(ngx_http_core_srv_conf_t, merge_slashes),
+      NULL },
+
     { ngx_string("location"),
       NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_TAKE12,
       ngx_http_core_location,
@@ -425,6 +432,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, recursive_error_pages),
+      NULL },
+
+    { ngx_string("server_tokens"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, server_tokens),
       NULL },
 
     { ngx_string("error_page"),
@@ -681,7 +695,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
         && clcf->client_max_body_size < r->headers_in.content_length_n)
     {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "client intented to send too large body: %O bytes",
+                      "client intended to send too large body: %O bytes",
                       r->headers_in.content_length_n);
 
         ngx_http_finalize_request(r, NGX_HTTP_REQUEST_ENTITY_TOO_LARGE);
@@ -1598,7 +1612,7 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
     }
 
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                  "could not find name location \"%V\"", name);
+                  "could not find named location \"%V\"", name);
 
     ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
     return NGX_DONE;
@@ -2233,6 +2247,7 @@ ngx_http_core_create_srv_conf(ngx_conf_t *cf)
     cscf->client_header_buffer_size = NGX_CONF_UNSET_SIZE;
     cscf->optimize_server_names = NGX_CONF_UNSET;
     cscf->ignore_invalid_headers = NGX_CONF_UNSET;
+    cscf->merge_slashes = NGX_CONF_UNSET;
 
     return cscf;
 }
@@ -2292,9 +2307,12 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
             return NGX_CONF_ERROR;
         }
 
+#if (NGX_PCRE)
+        sn->regex = NULL;
+#endif
+        sn->core_srv_conf = conf;
         sn->name.len = conf->server_name.len;
         sn->name.data = conf->server_name.data;
-        sn->core_srv_conf = conf;
     }
 
     ngx_conf_merge_size_value(conf->connection_pool_size,
@@ -2321,6 +2339,8 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->ignore_invalid_headers,
                               prev->ignore_invalid_headers, 1);
+
+    ngx_conf_merge_value(conf->merge_slashes, prev->merge_slashes, 1);
 
     return NGX_CONF_OK;
 }
@@ -2377,6 +2397,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     lcf->msie_refresh = NGX_CONF_UNSET;
     lcf->log_not_found = NGX_CONF_UNSET;
     lcf->recursive_error_pages = NGX_CONF_UNSET;
+    lcf->server_tokens = NGX_CONF_UNSET;
     lcf->types_hash_max_size = NGX_CONF_UNSET_UINT;
     lcf->types_hash_bucket_size = NGX_CONF_UNSET_UINT;
     lcf->open_file_cache = NGX_CONF_UNSET_PTR;
@@ -2565,6 +2586,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->log_not_found, prev->log_not_found, 1);
     ngx_conf_merge_value(conf->recursive_error_pages,
                               prev->recursive_error_pages, 0);
+    ngx_conf_merge_value(conf->server_tokens, prev->server_tokens, 1);
 
     ngx_conf_merge_ptr_value(conf->open_file_cache,
                              prev->open_file_cache, NULL);

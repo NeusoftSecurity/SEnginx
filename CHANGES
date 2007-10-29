@@ -1,7 +1,18 @@
 
+Changes with nginx 0.6.16                                        29 Oct 2007
+
+    *) Change: now the uname(2) is used on Linux instead of procfs.
+       Thanks to Ilya Novikov.
+
+    *) Bugfix: if the "?" character was in a "error_page" directive, then 
+       it was escaped in a proxied request; bug appeared in 0.6.11.
+
+    *) Bugfix: compatibility with mget.
+
+
 Changes with nginx 0.6.15                                        22 Oct 2007
 
-    *) Feature: cygwin compatibility.
+    *) Feature: Cygwin compatibility.
        Thanks to Vladimir Kutakov.
 
     *) Feature: the "merge_slashes" directive.
@@ -180,7 +191,7 @@ Changes with nginx 0.6.7                                         15 Aug 2007
     *) Feature: the "add_header Last-Modified ..." directive changes the 
        "Last-Modified" response header line.
 
-    *) Bugfix: if an response different than 200 was returned to an request 
+    *) Bugfix: if a response different than 200 was returned to a request 
        with body and connection went to the keep-alive state after the 
        request, then nginx returned 400 for the next request.
 
@@ -191,7 +202,7 @@ Changes with nginx 0.6.7                                         15 Aug 2007
        platforms except FreeBSD.
        Thanks to Jiang Hong.
 
-    *) Bugfix: a worker process may got caught in an endless loop, if an 
+    *) Bugfix: a worker process may got caught in an endless loop, if a 
        "server" inside "upstream" block was marked as "down"; bug appeared 
        in 0.6.6.
 
@@ -451,7 +462,7 @@ Changes with nginx 0.5.16                                        26 Mar 2007
        trailing ";"; bug appeared in 0.3.50.
 
     *) Bugfix: the "[alert] zero size buf" error when FastCGI server was 
-       used and an request body written in a temporary file was multiple of 
+       used and a request body written in a temporary file was multiple of 
        32K.
 
     *) Bugfix: nginx could not be built on Solaris without the --with-debug 
@@ -755,7 +766,7 @@ Changes with nginx 0.4.14                                        27 Nov 2006
     *) Bugfix: ngx_http_perl_module did not work if perl was called 
        recursively.
 
-    *) Bugfix: nginx ignored a host name in an request line.
+    *) Bugfix: nginx ignored a host name in a request line.
 
     *) Bugfix: a worker process may got caught in an endless loop, if a 
        FastCGI server sent too many data to the stderr.
@@ -778,7 +789,7 @@ Changes with nginx 0.4.13                                        15 Nov 2006
     *) Feature: the "limit_except" directive supports all WebDAV methods.
 
     *) Bugfix: if the "add_before_body" directive was used without the 
-       "add_after_body" directive, then an response did not transferred 
+       "add_after_body" directive, then a response did not transferred 
        complete.
 
     *) Bugfix: a large request body did not receive if the epoll method and 
@@ -847,8 +858,8 @@ Changes with nginx 0.4.9                                         13 Oct 2006
 Changes with nginx 0.4.8                                         11 Oct 2006
 
     *) Bugfix: if an "include" SSI command were before another "include" 
-       SSI command with an "wait" parameter, then the "wait" parameter 
-       might not work.
+       SSI command with a "wait" parameter, then the "wait" parameter might 
+       not work.
 
     *) Bugfix: the ngx_http_flv_module added the FLV header to the full 
        responses.
@@ -865,8 +876,8 @@ Changes with nginx 0.4.7                                         10 Oct 2006
        variables.
 
     *) Bugfix: if an "include" SSI command were before another "include" 
-       SSI command with an "wait" parameter, then the "wait" parameter 
-       might not work.
+       SSI command with a "wait" parameter, then the "wait" parameter might 
+       not work.
 
     *) Bugfix: if the "proxy_buffering off" directive was used or while 
        working with memcached the connections might not be closed on 
@@ -925,10 +936,10 @@ Changes with nginx 0.4.3                                         26 Sep 2006
     *) Feature: the ngx_http_browser_module.
 
     *) Bugfix: a segmentation fault may occur while redirecting the 400 
-       error to the proxied server using an "proxy_pass" directive.
+       error to the proxied server using a "proxy_pass" directive.
 
     *) Bugfix: a segmentation fault occurred if an unix domain socket was 
-       used in an "proxy_pass" directive; bug appeared in 0.3.47.
+       used in a "proxy_pass" directive; bug appeared in 0.3.47.
 
     *) Bugfix: SSI did work with memcached and nonbuffered responses.
 
@@ -1043,7 +1054,7 @@ Changes with nginx 0.3.56                                        04 Aug 2006
     *) Feature: the "if" directive supports the "-d", "!-d", "-e", "!-e", 
        "-x", and "!-x" operators.
 
-    *) Bugfix: a segmentation fault occurred if an request returned an 
+    *) Bugfix: a segmentation fault occurred if a request returned a 
        redirect and some sent to client header lines were logged in the 
        access log.
 

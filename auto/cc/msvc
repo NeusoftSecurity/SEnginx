@@ -2,7 +2,7 @@
 # Copyright (C) Igor Sysoev
 
 
-# MSVC 6.0 SP2, MSVC Toolkit 2003 (7.1)
+# MSVC 6.0 SP2, MSVC Toolkit 2003 (7.1), MSVC 2005 Express Edition SP1 (8.0)
 
 # optimizations
 
@@ -91,17 +91,17 @@ CORE_LIBS="$CORE_LIBS kernel32.lib user32.lib"
 CORE_LINK="$CORE_LINK -subsystem:windows -entry:mainCRTStartup"
 
 # debug
-CFLAGS="$CFLAGS -Yd"
-CORE_LINK="$CORE_LINK -debug -debugtype:coff"
+if [ $NGX_CC_NAME != msvc8 ]; then
+   CFLAGS="$CFLAGS -Zi"
+   CORE_LINK="$CORE_LINK -debug"
+fi
 
 
 # precompiled headers
-if [ $NGX_CC_NAME != msvc7 ]; then
-    CORE_DEPS="$CORE_DEPS $NGX_OBJS/ngx_config.pch"
-    NGX_PCH="$NGX_OBJS/ngx_config.pch"
-    NGX_BUILD_PCH="-Ycngx_config.h -Fp$NGX_OBJS/ngx_config.pch"
-    NGX_USE_PCH="-Yungx_config.h -Fp$NGX_OBJS/ngx_config.pch"
-fi
+CORE_DEPS="$CORE_DEPS $NGX_OBJS/ngx_config.pch"
+NGX_PCH="$NGX_OBJS/ngx_config.pch"
+NGX_BUILD_PCH="-Ycngx_config.h -Fp$NGX_OBJS/ngx_config.pch"
+NGX_USE_PCH="-Yungx_config.h -Fp$NGX_OBJS/ngx_config.pch"
 
 
 # the resource file

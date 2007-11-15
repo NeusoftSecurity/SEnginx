@@ -96,6 +96,10 @@ ngx_http_header_t  ngx_http_headers_in[] = {
     { ngx_string("Range"), offsetof(ngx_http_headers_in_t, range),
                  ngx_http_process_header_line },
 
+    { ngx_string("If-Range"),
+                 offsetof(ngx_http_headers_in_t, if_range),
+                 ngx_http_process_unique_header_line },
+
     { ngx_string("Transfer-Encoding"),
                  offsetof(ngx_http_headers_in_t, transfer_encoding),
                  ngx_http_process_header_line },
@@ -2337,7 +2341,7 @@ ngx_http_lingering_close_handler(ngx_event_t *rev)
         return;
     }
 
-    timer = r->lingering_time - ngx_time();
+    timer = (ngx_msec_t) (r->lingering_time - ngx_time());
     if (timer <= 0) {
         ngx_http_close_request(r, 0);
         return;

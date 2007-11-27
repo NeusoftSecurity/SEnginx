@@ -1,4 +1,9 @@
 
+Changes with nginx 0.6.19                                        27 Nov 2007
+
+    *) Bugfix: the 0.6.18 version could not be built.
+
+
 Changes with nginx 0.6.18                                        27 Nov 2007
 
     *) Change: now the ngx_http_userid_module adds start time microseconds 

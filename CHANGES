@@ -1,4 +1,11 @@
 
+Changes with nginx 0.6.20                                        28 Nov 2007
+
+    *) Bugfix: a segmentation fault might occur in worker process if a 
+       "proxy_pass" directive with URI-part was used; bug appeared in 
+       0.6.19.
+
+
 Changes with nginx 0.6.19                                        27 Nov 2007
 
     *) Bugfix: the 0.6.18 version could not be built.
@@ -363,6 +370,185 @@ Changes with nginx 0.6.0                                         14 Jun 2007
 
     *) Feature: the "server_name", "map", and "valid_referers" directives 
        support the "www.example.*" wildcards.
+
+
+Changes with nginx 0.5.33                                        07 Nov 2007
+
+    *) Change: now by default the "echo" SSI command uses entity encoding.
+
+    *) Feature: the "encoding" parameter in the "echo" SSI command.
+
+    *) Change: mail proxy was split on three modules: pop3, imap and smtp.
+
+    *) Feature: the --without-mail_pop3_module, --without-mail_imap_module, 
+       and --without-mail_smtp_module configuration parameters.
+
+    *) Feature: the "smtp_greeting_delay" and "smtp_client_buffer" 
+       directives of the ngx_mail_smtp_module.
+
+    *) Feature: the "server_name" and "valid_referers" directives support 
+       regular expressions.
+
+    *) Feature: the "server_name", "map", and "valid_referers" directives 
+       support the "www.example.*" wildcards.
+
+    *) Bugfix: sub_filter did not work with empty substitution.
+
+    *) Bugfix: in sub_filter parsing.
+
+    *) Bugfix: a worker process may got caught in an endless loop, if the 
+       memcached was used.
+
+    *) Bugfix: nginx supported low case only "close" and "keep-alive" 
+       values in the "Connection" request header line; bug appeared in 
+       0.5.32.
+
+    *) Bugfix: nginx could not start on Solaris if the shared PCRE library 
+       located in non-standard place was used.
+
+
+Changes with nginx 0.5.32                                        24 Sep 2007
+
+    *) Change: now nginx tries to set the "worker_priority", 
+       "worker_rlimit_nofile", "worker_rlimit_core", and 
+       "worker_rlimit_sigpending" without super-user privileges.
+
+    *) Change: now nginx escapes space and "%" in request to a mail proxy 
+       authentication server.
+
+    *) Change: now nginx escapes "%" in $memcached_key variable.
+
+    *) Change: the special make target "upgrade1" was defined for online 
+       upgrade of 0.1.x versions.
+
+    *) Feature: the "add_header Last-Modified ..." directive changes the 
+       "Last-Modified" response header line.
+
+    *) Feature: the mail proxy supports AUTHENTICATE in IMAP mode.
+       Thanks to Maxim Dounin.
+
+    *) Feature: the mail proxy supports STARTTLS in SMTP mode.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: nginx did not close directory file on HEAD request if 
+       autoindex was used.
+       Thanks to Arkadiusz Patyk.
+
+    *) Bugfix: the "proxy_hide_header" and "fastcgi_hide_header" directives 
+       did not hide response header lines whose name was longer than 32 
+       characters.
+       Thanks to Manlio Perillo.
+
+    *) Bugfix: active connection counter always increased if mail proxy was 
+       used.
+
+    *) Bugfix: if backend returned response header only using non-buffered 
+       proxy, then nginx closed backend connection on timeout.
+
+    *) Bugfix: nginx did not support several "Connection" request header 
+       lines.
+
+    *) Bugfix: a charset set by the "charset" directive was not appended to 
+       the "Content-Type" header set by $r->send_http_header().
+
+    *) Bugfix: a segmentation fault might occur in worker process if 
+       /dev/poll method was used.
+
+    *) Bugfix: nginx did not work on FreeBSD/sparc64.
+
+    *) Bugfix: a segmentation fault occurred in worker process if invalid 
+       address was set in the "auth_http" directive.
+
+    *) Bugfix: now nginx uses default listen backlog value 511 on all 
+       platforms except FreeBSD.
+       Thanks to Jiang Hong.
+
+    *) Bugfix: now Solaris sendfilev() is not used to transfer the client 
+       request body to FastCGI-server via the unix domain socket.
+
+    *) Bugfix: if the same host without specified port was used as backend 
+       for HTTP and HTTPS, then nginx used only one port - 80 or 443.
+
+    *) Bugfix: the "proxy_ignore_client_abort" and 
+       "fastcgi_ignore_client_abort" directives did not work; bug appeared 
+       in 0.5.13.
+
+
+Changes with nginx 0.5.31                                        15 Aug 2007
+
+    *) Feature: named locations.
+
+    *) Feature: the "proxy_store" and "fastcgi_store" directives.
+
+    *) Feature: the "proxy_store_access" and "fastcgi_store_access" 
+       directives.
+
+
+Changes with nginx 0.5.30                                        30 Jul 2007
+
+    *) Feature: the $args variable can be set with the "set" directive.
+
+    *) Feature: the $is_args variable.
+
+    *) Bugfix: if a client has closed connection to mail proxy then nginx 
+       might not close connection to backend.
+
+    *) Bugfix: now nginx escapes space in $memcached_key variable.
+
+    *) Bugfix: a segmentation fault might occur in worker process when the 
+       HTTPS protocol was used in the "proxy_pass" directive.
+
+    *) Bugfix: the perl $$ variable value in ngx_http_perl_module was equal 
+       to the master process identification number.
+
+    *) Bugfix: fix building on Solaris/amd64 by Sun Studio 11 and early 
+       versions; bug appeared in 0.5.29.
+
+
+Changes with nginx 0.5.29                                        23 Jul 2007
+
+    *) Feature: $nginx_version variable.
+       Thanks to Nick S. Grechukh.
+
+    *) Bugfix: if the FastCGI header was split in records, then nginx 
+       passed garbage in the header to a client.
+
+    *) Bugfix: Sun Studio compatibility on Solaris/amd64 and 
+       Solaris/sparc64.
+       Thanks to Jiang Hong and Andrei Nigmatulin.
+
+    *) Bugfix: of minor potential bugs.
+       Thanks to Coverity's Scan.
+
+
+Changes with nginx 0.5.28                                        17 Jul 2007
+
+    *) Security: the "msie_refresh" directive allowed XSS.
+       Thanks to Maxim Boguk.
+
+    *) Bugfix: a segmentation fault might occur in worker process if the 
+       "auth_http_header" directive was used.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: a segmentation fault occurred in worker process if the 
+       CRAM-MD5 authentication method was used, but it was not enabled.
+
+    *) Bugfix: a segmentation fault might occur in worker process if the 
+       eventport method was used.
+
+
+Changes with nginx 0.5.27                                        09 Jul 2007
+
+    *) Bugfix: if remote SSI subrequest was used, then posterior local file 
+       subrequest might transferred to client in wrong order.
+
+    *) Bugfix: large SSI inclusions buffered in temporary files were 
+       truncated.
+
+
+Changes with nginx 0.5.26                                        17 Jun 2007
+
+    *) Bugfix: in SSI parsing.
 
 
 Changes with nginx 0.5.25                                        11 Jun 2007

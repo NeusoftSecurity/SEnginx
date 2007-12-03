@@ -99,46 +99,27 @@ ngx_resolver_create(ngx_peer_addr_t *addr, ngx_log_t *log)
         return NULL;
     }
 
-    uc = ngx_calloc(sizeof(ngx_udp_connection_t), log);
-    if (uc == NULL) {
-        return NULL;
-    }
-
     r->event = ngx_calloc(sizeof(ngx_event_t), log);
     if (r->event == NULL) {
         return NULL;
     }
 
-    ngx_rbtree_sentinel_init(&r->name_sentinel);
+    ngx_rbtree_init(&r->name_rbtree, &r->name_sentinel,
+                    ngx_resolver_rbtree_insert_value);
 
-    r->name_rbtree.root = &r->name_sentinel;
-    r->name_rbtree.sentinel = &r->name_sentinel;
-    r->name_rbtree.insert = ngx_resolver_rbtree_insert_value;
+    ngx_rbtree_init(&r->addr_rbtree, &r->addr_sentinel,
+                    ngx_rbtree_insert_value);
 
-    ngx_rbtree_sentinel_init(&r->addr_sentinel);
+    ngx_queue_init(&r->name_resend_queue);
+    ngx_queue_init(&r->addr_resend_queue);
 
-    r->addr_rbtree.root = &r->addr_sentinel;
-    r->addr_rbtree.sentinel = &r->addr_sentinel;
-    r->addr_rbtree.insert = ngx_rbtree_insert_value;
-
-    r->name_resend_queue.prev = &r->name_resend_queue;
-    r->name_resend_queue.next = &r->name_resend_queue;
-
-    r->addr_resend_queue.prev = &r->addr_resend_queue;
-    r->addr_resend_queue.next = &r->addr_resend_queue;
-
-    r->name_expire_queue.prev = &r->name_expire_queue;
-    r->name_expire_queue.next = &r->name_expire_queue;
-
-    r->addr_expire_queue.prev = &r->addr_expire_queue;
-    r->addr_expire_queue.next = &r->addr_expire_queue;
+    ngx_queue_init(&r->name_expire_queue);
+    ngx_queue_init(&r->addr_expire_queue);
 
     r->event->handler = ngx_resolver_resend_handler;
     r->event->data = r;
     r->event->log = log;
     r->ident = -1;
-
-    r->udp_connection = uc;
 
     r->resend_timeout = 5;
     r->expire = 30;
@@ -147,10 +128,19 @@ ngx_resolver_create(ngx_peer_addr_t *addr, ngx_log_t *log)
     r->log = log;
     r->log_level = NGX_LOG_ALERT;
 
-    uc->sockaddr = addr->sockaddr;
-    uc->socklen = addr->socklen;
-    uc->server = addr->name;
-    uc->log = log;
+    if (addr) {
+        uc = ngx_calloc(sizeof(ngx_udp_connection_t), log);
+        if (uc == NULL) {
+            return NULL;
+        }
+
+        r->udp_connection = uc;
+
+        uc->sockaddr = addr->sockaddr;
+        uc->socklen = addr->socklen;
+        uc->server = addr->name;
+        uc->log = log;
+    }
 
     return r;
 }
@@ -175,6 +165,10 @@ ngx_resolve_start(ngx_resolver_t *r, ngx_resolver_ctx_t *temp)
 
             return temp;
         }
+    }
+
+    if (r->udp_connection == NULL) {
+        return NGX_NO_RESOLVER;
     }
 
     ctx = ngx_resolver_calloc(r, sizeof(ngx_resolver_ctx_t));
@@ -748,7 +742,7 @@ ngx_resolver_resend_handler(ngx_event_t *ev)
     /* lock addr mutex */
 
     atimer = ngx_resolver_resend(r, &r->addr_rbtree, &r->addr_resend_queue);
-       
+
     /* unlock addr mutex */
 
     if (ntimer == 0) {
@@ -832,9 +826,9 @@ ngx_resolver_read_response(ngx_event_t *rev)
     c = rev->data;
 
     do {
-        n = ngx_recv(c, buf, NGX_RESOLVER_UDP_SIZE);
+        n = ngx_udp_recv(c, buf, NGX_RESOLVER_UDP_SIZE);
 
-        if (n == -1) {
+        if (n < 0) {
             return;
         }
 

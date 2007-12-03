@@ -69,7 +69,7 @@ static char *ngx_http_core_keepalive(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_http_core_internal(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
-static char * ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd,
+static char *ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 
 static char *ngx_http_core_lowat_check(ngx_conf_t *cf, void *post, void *data);
@@ -2594,6 +2594,13 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     if (conf->resolver == NULL) {
         conf->resolver = prev->resolver;
+
+        if (conf->resolver == NULL) {
+            conf->resolver = ngx_resolver_create(NULL, cf->cycle->new_log);
+            if (conf->resolver == NULL) {
+                return NGX_OK;
+            }
+        }
     }
 
     ngx_conf_merge_path_value(conf->client_body_temp_path,
@@ -3392,6 +3399,8 @@ ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t  *value;
 
     value = cf->args->elts;
+
+    ngx_memzero(&u, sizeof(ngx_url_t));
 
     u.host = value[1];
     u.port = 53;

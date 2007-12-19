@@ -295,7 +295,7 @@ ngx_http_dav_put_handler(ngx_http_request_t *r)
 #if (NGX_WIN32)
 
     if (err == NGX_EEXIST) {
-        if (ngx_win32_rename_file(temp, &path, r->pool) != NGX_ERROR) {
+        if (ngx_win32_rename_file(temp, &path, r->connection->log) == NGX_OK) {
 
             if (ngx_rename_file(temp->data, path.data) != NGX_FILE_ERROR) {
                 goto ok;
@@ -969,7 +969,7 @@ ngx_http_dav_delete_path(ngx_http_request_t *r, ngx_str_t *path, ngx_uint_t dir)
         tree.alloc = 0;
         tree.log = r->connection->log;
 
-        /* todo: 207 */
+        /* TODO: 207 */
 
         if (ngx_walk_tree(&tree, path) != NGX_OK) {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;

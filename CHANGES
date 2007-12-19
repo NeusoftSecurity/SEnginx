@@ -1,4 +1,39 @@
 
+Changes with nginx 0.6.22                                        19 Dec 2007
+
+    *) Change: now all ngx_http_perl_module methods return values copied to 
+       perl's allocated memory.
+
+    *) Bugfix: if nginx was built with ngx_http_perl_module, the perl 
+       before 5.8.6 was used, and perl supported threads, then during 
+       reconfiguration the master process aborted; bug appeared in 
+       0.5.9.
+       Thanks to Boris Zhmurov.
+
+    *) Bugfix: the ngx_http_perl_module methods may get invalid values of 
+       the regex captures.
+
+    *) Bugfix: a segmentation fault occurred in worker process, if the 
+       $r->has_request_body() method was called for a request whose small 
+       request body was already received.
+
+    *) Bugfix: large_client_header_buffers did not freed before going to 
+       keep-alive state.
+       Thanks to Olexander Shtepa.
+
+    *) Bugfix: the last address was missed in the $upstream_addr variable; 
+       bug appeared in 0.6.18.
+
+    *) Bugfix: the "fastcgi_catch_stderr" directive did return error code; 
+       now it returns 502 code, that can be rerouted to a next server using 
+       the "fastcgi_next_upstream invalid_header" directive.
+
+    *) Bugfix: a segmentation fault occurred in master process if the 
+       "fastcgi_catch_stderr" directive was used; bug appeared in 
+       0.6.10.
+       Thanks to Manlio Perillo.
+
+
 Changes with nginx 0.6.21                                        03 Dec 2007
 
     *) Change: if variable values used in a "proxy_pass" directive contain 

@@ -381,7 +381,7 @@ ngx_http_upstream_init(ngx_http_request_t *r)
 
     } else {
 
-        host = &r->upstream->resolved->host;
+        host = &u->resolved->host;
 
         umcf = ngx_http_get_module_main_conf(r, ngx_http_upstream_module);
 
@@ -665,7 +665,6 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     tp = ngx_timeofday();
     u->state->response_sec = tp->sec;
     u->state->response_msec = tp->msec;
-    u->state->peer = u->peer.name;
 
     rc = ngx_event_connect_peer(&u->peer);
 
@@ -677,6 +676,8 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
                                            NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
+
+    u->state->peer = u->peer.name;
 
     if (rc == NGX_BUSY) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "no live upstreams");
@@ -840,10 +841,9 @@ ngx_http_upstream_reinit(ngx_http_request_t *r, ngx_http_upstream_t *u)
         return NGX_ERROR;
     }
 
-    ngx_memzero(&r->upstream->headers_in,
-                sizeof(ngx_http_upstream_headers_in_t));
+    ngx_memzero(&u->headers_in, sizeof(ngx_http_upstream_headers_in_t));
 
-    if (ngx_list_init(&r->upstream->headers_in.headers, r->pool, 8,
+    if (ngx_list_init(&u->headers_in.headers, r->pool, 8,
                       sizeof(ngx_table_elt_t))
         != NGX_OK)
     {
@@ -1078,7 +1078,7 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
 
         u->buffer.tag = u->output.tag;
 
-        if (ngx_list_init(&r->upstream->headers_in.headers, r->pool, 8,
+        if (ngx_list_init(&u->headers_in.headers, r->pool, 8,
                           sizeof(ngx_table_elt_t))
             != NGX_OK)
         {
@@ -1158,7 +1158,7 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
         return;
     }
 
-    if (rc == NGX_ERROR || rc == NGX_HTTP_INTERNAL_SERVER_ERROR) {
+    if (rc == NGX_ERROR) {
         ngx_http_upstream_finalize_request(r, u,
                                            NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
@@ -1247,11 +1247,11 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
 
     umcf = ngx_http_get_module_main_conf(r, ngx_http_upstream_module);
 
-    if (r->upstream->headers_in.x_accel_redirect) {
+    if (u->headers_in.x_accel_redirect) {
 
         ngx_http_upstream_finalize_request(r, u, NGX_DECLINED);
 
-        part = &r->upstream->headers_in.headers.part;
+        part = &u->headers_in.headers.part;
         h = part->elts;
 
         for (i = 0; /* void */; i++) {
@@ -1278,7 +1278,7 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
             }
         }
 
-        uri = &r->upstream->headers_in.x_accel_redirect->value;
+        uri = &u->headers_in.x_accel_redirect->value;
         args.len = 0;
         args.data = NULL;
         flags = 0;
@@ -1300,7 +1300,7 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
         return;
     }
 
-    part = &r->upstream->headers_in.headers.part;
+    part = &u->headers_in.headers.part;
     h = part->elts;
 
     for (i = 0; /* void */; i++) {
@@ -2164,9 +2164,9 @@ ngx_http_upstream_store(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
 #endif
 
-    if (r->upstream->headers_in.last_modified) {
+    if (u->headers_in.last_modified) {
 
-        last_modified = &r->upstream->headers_in.last_modified->value;
+        last_modified = &u->headers_in.last_modified->value;
 
         lm = ngx_http_parse_time(last_modified->data, last_modified->len);
 
@@ -2224,7 +2224,7 @@ ngx_http_upstream_store(ngx_http_request_t *r, ngx_http_upstream_t *u)
 #if (NGX_WIN32)
 
     if (err == NGX_EEXIST) {
-        if (ngx_win32_rename_file(temp, &path, r->pool) != NGX_ERROR) {
+        if (ngx_win32_rename_file(temp, &path, r->connection->log) == NGX_OK) {
 
             if (ngx_rename_file(temp->data, path.data) != NGX_FILE_ERROR) {
                 return;
@@ -2372,14 +2372,18 @@ ngx_http_upstream_cleanup(void *data)
 {
     ngx_http_request_t *r = data;
 
+    ngx_http_upstream_t  *u;
+
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "cleanup http upstream request: \"%V\"", &r->uri);
 
-    if (r->upstream->resolved && r->upstream->resolved->ctx) {
-        ngx_resolve_name_done(r->upstream->resolved->ctx);
+    u = r->upstream;
+
+    if (u->resolved && u->resolved->ctx) {
+        ngx_resolve_name_done(u->resolved->ctx);
     }
 
-    ngx_http_upstream_finalize_request(r, r->upstream, NGX_DONE);
+    ngx_http_upstream_finalize_request(r, u, NGX_DONE);
 }
 
 
@@ -3405,6 +3409,113 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
     *uscfp = uscf;
 
     return uscf;
+}
+
+
+ngx_int_t
+ngx_http_upstream_hide_headers_hash(ngx_conf_t *cf,
+    ngx_http_upstream_conf_t *conf, ngx_http_upstream_conf_t *prev,
+    ngx_str_t *default_hide_headers, ngx_hash_init_t *hash)
+{
+    ngx_str_t       *h;
+    ngx_uint_t       i, j;
+    ngx_array_t      hide_headers;
+    ngx_hash_key_t  *hk;
+
+    if (conf->hide_headers == NGX_CONF_UNSET_PTR
+        && conf->pass_headers == NGX_CONF_UNSET_PTR)
+    {
+        conf->hide_headers_hash = prev->hide_headers_hash;
+
+        if (conf->hide_headers_hash.buckets) {
+            return NGX_OK;
+        }
+
+        conf->hide_headers = prev->hide_headers;
+        conf->pass_headers = prev->pass_headers;
+
+    } else {
+        if (conf->hide_headers == NGX_CONF_UNSET_PTR) {
+            conf->hide_headers = prev->hide_headers;
+        }
+
+        if (conf->pass_headers == NGX_CONF_UNSET_PTR) {
+            conf->pass_headers = prev->pass_headers;
+        }
+    }
+
+    if (ngx_array_init(&hide_headers, cf->temp_pool, 4, sizeof(ngx_hash_key_t))
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+
+    for (h = default_hide_headers; h->len; h++) {
+        hk = ngx_array_push(&hide_headers);
+        if (hk == NULL) {
+            return NGX_ERROR;
+        }
+
+        hk->key = *h;
+        hk->key_hash = ngx_hash_key_lc(h->data, h->len);
+        hk->value = (void *) 1;
+    }
+
+    if (conf->hide_headers != NGX_CONF_UNSET_PTR) {
+
+        h = conf->hide_headers->elts;
+
+        for (i = 0; i < conf->hide_headers->nelts; i++) {
+
+            hk = hide_headers.elts;
+
+            for (j = 0; j < hide_headers.nelts; j++) {
+                if (ngx_strcasecmp(h[i].data, hk[j].key.data) == 0) {
+                    goto exist;
+                }
+            }
+
+            hk = ngx_array_push(&hide_headers);
+            if (hk == NULL) {
+                return NGX_ERROR;
+            }
+
+            hk->key = h[i];
+            hk->key_hash = ngx_hash_key_lc(h[i].data, h[i].len);
+            hk->value = (void *) 1;
+
+        exist:
+
+            continue;
+        }
+    }
+
+    if (conf->pass_headers != NGX_CONF_UNSET_PTR) {
+
+        h = conf->pass_headers->elts;
+        hk = hide_headers.elts;
+
+        for (i = 0; i < conf->pass_headers->nelts; i++) {
+            for (j = 0; j < hide_headers.nelts; j++) {
+
+                if (hk[j].key.data == NULL) {
+                    continue;
+                }
+
+                if (ngx_strcasecmp(h[i].data, hk[j].key.data) == 0) {
+                    hk[j].key.data = NULL;
+                    break;
+                }
+            }
+        }
+    }
+
+    hash->hash = &conf->hide_headers_hash;
+    hash->key = ngx_hash_key_lc;
+    hash->pool = cf->pool;
+    hash->temp_pool = NULL;
+
+    return ngx_hash_init(hash, hide_headers.elts, hide_headers.nelts);
 }
 
 

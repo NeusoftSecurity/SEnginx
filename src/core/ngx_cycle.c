@@ -42,20 +42,21 @@ static ngx_str_t  error_log = ngx_null_string;
 ngx_cycle_t *
 ngx_init_cycle(ngx_cycle_t *old_cycle)
 {
-    void               *rv;
-    u_char             *lock_file;
-    ngx_uint_t          i, n;
-    ngx_log_t          *log;
-    ngx_conf_t          conf;
-    ngx_pool_t         *pool;
-    ngx_cycle_t        *cycle, **old;
-    ngx_shm_zone_t     *shm_zone, *oshm_zone;
-    ngx_slab_pool_t    *shpool;
-    ngx_list_part_t    *part, *opart;
-    ngx_open_file_t    *file;
-    ngx_listening_t    *ls, *nls;
-    ngx_core_conf_t    *ccf, *old_ccf;
-    ngx_core_module_t  *module;
+    void                *rv;
+    char               **senv, **env;
+    u_char              *lock_file;
+    ngx_uint_t           i, n;
+    ngx_log_t           *log;
+    ngx_conf_t           conf;
+    ngx_pool_t          *pool;
+    ngx_cycle_t         *cycle, **old;
+    ngx_shm_zone_t      *shm_zone, *oshm_zone;
+    ngx_slab_pool_t     *shpool;
+    ngx_list_part_t     *part, *opart;
+    ngx_open_file_t     *file;
+    ngx_listening_t     *ls, *nls;
+    ngx_core_conf_t     *ccf, *old_ccf;
+    ngx_core_module_t   *module;
 
     log = old_cycle->log;
 
@@ -185,6 +186,9 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
             cycle->conf_ctx[ngx_modules[i]->index] = rv;
         }
     }
+
+
+    senv = environ;
 
 
     ngx_memzero(&conf, sizeof(ngx_conf_t));
@@ -694,8 +698,19 @@ old_shm_zone_done:
 
     if (ngx_process == NGX_PROCESS_MASTER || ngx_is_init_cycle(old_cycle)) {
 
+        /*
+         * perl_destruct() frees environ if it is not the same as it was at
+         * perl_construct() time.  So we have saved an previous cycle
+         * environment before ngx_conf_parse() where it will be changed.
+         */
+
+        env = environ;
+        environ = senv;
+
         ngx_destroy_pool(old_cycle->pool);
         cycle->old_cycle = NULL;
+
+        environ = env;
 
         return cycle;
     }
@@ -938,9 +953,6 @@ ngx_reopen_files(ngx_cycle_t *cycle, ngx_uid_t user)
     ngx_uint_t        i;
     ngx_list_part_t  *part;
     ngx_open_file_t  *file;
-#if !(NGX_WIN32)
-    ngx_file_info_t   fi;
-#endif
 
     part = &cycle->open_files.part;
     file = part->elts;
@@ -996,6 +1008,7 @@ ngx_reopen_files(ngx_cycle_t *cycle, ngx_uid_t user)
         }
 #else
         if (user != (ngx_uid_t) NGX_CONF_UNSET_UINT) {
+            ngx_file_info_t  fi;
 
             if (ngx_file_info((const char *) file[i].name.data, &fi) == -1) {
                 ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,

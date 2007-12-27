@@ -1,4 +1,10 @@
 
+Changes with nginx 0.6.24                                        27 Dec 2007
+
+    *) Bugfix: a segmentation fault might occur in worker process if HTTPS 
+       was used; bug appeared in 0.6.23.
+
+
 Changes with nginx 0.6.23                                        27 Dec 2007
 
     *) Change: the "off" parameter in the "ssl_session_cache" directive; 

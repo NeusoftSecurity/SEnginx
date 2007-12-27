@@ -1,4 +1,44 @@
 
+Changes with nginx 0.6.23                                        27 Dec 2007
+
+    *) Change: the "off" parameter in the "ssl_session_cache" directive; 
+       now this is default parameter.
+
+    *) Change: the "open_file_cache_retest" directive was renamed to the 
+       "open_file_cache_valid".
+
+    *) Feature: the "open_file_cache_min_uses" directive.
+
+    *) Feature: the ngx_http_gzip_static_module.
+
+    *) Feature: the "gzip_disable" directive.
+
+    *) Feature: the "memcached_pass" directive may be used inside the "if" 
+       block.
+
+    *) Bugfix: a segmentation fault occurred in worker process, if the 
+       "memcached_pass" and "if" directives were used in the same location.
+
+    *) Bugfix: if a "satisfy_any on" directive was used and not all access 
+       and auth modules directives were set, then other given access and 
+       auth directives were not tested;
+
+    *) Bugfix: regex parameters in a "valid_referers" directive were not 
+       inherited from previous level.
+
+    *) Bugfix: a "post_action" directive did run if a request was completed 
+       with 499 status code.
+
+    *) Bugfix: optimization of 16K buffer usage in a SSL connection.
+       Thanks to Ben Maurer.
+
+    *) Bugfix: the STARTTLS in SMTP mode did not work.
+       Thanks to Oleg Motienko.
+
+    *) Bugfix: in HTTPS mode requests might fail with the "bad write retry" 
+       error; bug appeared in 0.5.13.
+
+
 Changes with nginx 0.6.22                                        19 Dec 2007
 
     *) Change: now all ngx_http_perl_module methods return values copied to 

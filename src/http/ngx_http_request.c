@@ -1595,7 +1595,11 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
         rc = r->post_subrequest->handler(r, r->post_subrequest->data, rc);
     }
 
-    if (rc == NGX_ERROR || rc == NGX_HTTP_REQUEST_TIME_OUT || c->error) {
+    if (rc == NGX_ERROR
+        || rc == NGX_HTTP_REQUEST_TIME_OUT
+        || rc == NGX_HTTP_CLIENT_CLOSED_REQUEST
+        || c->error)
+    {
         if (rc > 0 && r->headers_out.status == 0) {
             r->headers_out.status = rc;
         }
@@ -1677,8 +1681,8 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
                 }
 
                 ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                           "http fast subrequest: \"%V?%V\" done",
-                           &r->uri, &r->args);
+                               "http fast subrequest: \"%V?%V\" done",
+                               &r->uri, &r->args);
                 return;
             }
 
@@ -2111,6 +2115,12 @@ ngx_http_set_keepalive(ngx_http_request_t *r)
 
         hc->nbusy = 0;
     }
+
+#if (NGX_HTTP_SSL)
+    if (c->ssl) {
+        ngx_ssl_free_buffer(c);
+    }
+#endif
 
     rev->handler = ngx_http_keepalive_handler;
 

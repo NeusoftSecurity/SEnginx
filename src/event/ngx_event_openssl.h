@@ -53,9 +53,10 @@ typedef struct {
 
 #define NGX_SSL_DFLT_BUILTIN_SCACHE  -2
 #define NGX_SSL_NO_BUILTIN_SCACHE    -3
+#define NGX_SSL_NO_SCACHE            -4
 
 
-#define NGX_SSL_MAX_SESSION_SIZE (4096)
+#define NGX_SSL_MAX_SESSION_SIZE  4096
 
 typedef struct ngx_ssl_sess_id_s  ngx_ssl_sess_id_t;
 
@@ -64,8 +65,7 @@ struct ngx_ssl_sess_id_s {
     u_char                     *id;
     size_t                      len;
     u_char                     *session;
-    ngx_ssl_sess_id_t          *prev;
-    ngx_ssl_sess_id_t          *next;
+    ngx_queue_t                 queue;
     time_t                      expire;
 #if (NGX_PTR_SIZE == 8)
     void                       *stub;
@@ -75,9 +75,9 @@ struct ngx_ssl_sess_id_s {
 
 
 typedef struct {
-    ngx_rbtree_t               *session_rbtree;
-    ngx_ssl_sess_id_t           session_cache_head;
-    ngx_ssl_sess_id_t           session_cache_tail;
+    ngx_rbtree_t                session_rbtree;
+    ngx_rbtree_node_t           sentinel;
+    ngx_queue_t                 expire_queue;
 } ngx_ssl_session_cache_t;
 
 
@@ -132,6 +132,7 @@ ssize_t ngx_ssl_write(ngx_connection_t *c, u_char *data, size_t size);
 ssize_t ngx_ssl_recv_chain(ngx_connection_t *c, ngx_chain_t *cl);
 ngx_chain_t *ngx_ssl_send_chain(ngx_connection_t *c, ngx_chain_t *in,
     off_t limit);
+void ngx_ssl_free_buffer(ngx_connection_t *c);
 ngx_int_t ngx_ssl_shutdown(ngx_connection_t *c);
 void ngx_cdecl ngx_ssl_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     char *fmt, ...);

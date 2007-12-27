@@ -19,7 +19,9 @@ typedef struct {
     off_t                    size;
     ngx_err_t                err;
 
-    time_t                   retest;
+    time_t                   valid;
+
+    ngx_uint_t               min_uses;
 
     unsigned                 test_dir:1;
     unsigned                 errors:1;
@@ -36,8 +38,7 @@ typedef struct ngx_cached_open_file_s  ngx_cached_open_file_t;
 
 struct ngx_cached_open_file_s {
     ngx_rbtree_node_t        node;
-    ngx_cached_open_file_t  *prev;
-    ngx_cached_open_file_t  *next;
+    ngx_queue_t              queue;
 
     u_char                  *name;
     time_t                   created;
@@ -49,8 +50,11 @@ struct ngx_cached_open_file_s {
     off_t                    size;
     ngx_err_t                err;
 
+    uint32_t                 uses;
+
     unsigned                 count:24;
     unsigned                 close:1;
+    unsigned                 use_event:1;
 
     unsigned                 is_dir:1;
     unsigned                 is_file:1;
@@ -63,8 +67,8 @@ struct ngx_cached_open_file_s {
 
 typedef struct {
     ngx_rbtree_t             rbtree;
-    ngx_cached_open_file_t   list_head;
-    ngx_cached_open_file_t   list_tail;
+    ngx_rbtree_node_t        sentinel;
+    ngx_queue_t              expire_queue;
 
     ngx_uint_t               current;
     ngx_uint_t               max;
@@ -75,6 +79,7 @@ typedef struct {
 typedef struct {
     ngx_open_file_cache_t   *cache;
     ngx_cached_open_file_t  *file;
+    ngx_uint_t               min_uses;
     ngx_log_t               *log;
 } ngx_open_file_cache_cleanup_t;
 

@@ -1,4 +1,32 @@
 
+Changes with nginx 0.6.25                                        08 Jan 2008
+
+    *) Change: now the "server_name_in_redirect" directive is used instead 
+       of the "server_name" directive's special "*" parameter.
+
+    *) Change: now wildcard and regex names can be used as main name in a 
+       "server_name" directive.
+
+    *) Change: the "satisfy_any" directive was replaced by the "satisfy" 
+       directive.
+
+    *) Workaround: old worker processes might hog CPU after reconfiguration 
+       if they was run under Linux OpenVZ.
+
+    *) Feature: the "min_delete_depth" directive.
+
+    *) Bugfix: the COPY and MOVE methods did not work with single files.
+
+    *) Bugfix: the ngx_http_gzip_static_module did not allow the 
+       ngx_http_dav_module to work; bug appeared in 0.6.23.
+
+    *) Bugfix: socket leak in HTTPS mode if deferred accept was used.
+       Thanks to Ben Maurer.
+
+    *) Bugfix: nginx could not be built without PCRE library; bug appeared 
+       in 0.6.23.
+
+
 Changes with nginx 0.6.24                                        27 Dec 2007
 
     *) Bugfix: a segmentation fault might occur in worker process if HTTPS 

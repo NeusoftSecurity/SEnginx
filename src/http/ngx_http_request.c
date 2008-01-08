@@ -173,7 +173,7 @@ ngx_http_init_connection(ngx_connection_t *c)
         return;
     }
 
-    ctx->client = &c->addr_text;
+    ctx->connection = c;
     ctx->request = NULL;
     ctx->current_request = NULL;
 
@@ -220,9 +220,7 @@ static void
 ngx_http_init_request(ngx_event_t *rev)
 {
     ngx_time_t                 *tp;
-    socklen_t                   len;
     ngx_uint_t                  i;
-    struct sockaddr_in          sin;
     ngx_connection_t           *c;
     ngx_http_request_t         *r;
     ngx_http_in_port_t         *hip;
@@ -295,6 +293,8 @@ ngx_http_init_request(ngx_event_t *rev)
 
     i = 0;
 
+    r->connection = c;
+
     if (hip->naddrs > 1) {
 
         /*
@@ -302,7 +302,7 @@ ngx_http_init_request(ngx_event_t *rev)
          * is the "*:port" wildcard so getsockname() is needed to determine
          * the server address.
          *
-         * AcceptEx() already gave this address.
+         * AcceptEx() already has given this address.
          */
 
 #if (NGX_WIN32)
@@ -313,15 +313,10 @@ ngx_http_init_request(ngx_event_t *rev)
         } else
 #endif
         {
-            len = sizeof(struct sockaddr_in);
-            if (getsockname(c->fd, (struct sockaddr *) &sin, &len) == -1) {
-                ngx_connection_error(c, ngx_socket_errno,
-                                     "getsockname() failed");
+            if (ngx_http_server_addr(r, NULL) != NGX_OK) {
                 ngx_http_close_connection(c);
                 return;
             }
-
-            r->in_addr = sin.sin_addr.s_addr;
         }
 
         /* the last address is "*" */
@@ -344,8 +339,6 @@ ngx_http_init_request(ngx_event_t *rev)
     r->main_conf = cscf->ctx->main_conf;
     r->srv_conf = cscf->ctx->srv_conf;
     r->loc_conf = cscf->ctx->loc_conf;
-
-    r->server_name = cscf->server_name;
 
     rev->handler = ngx_http_process_request_line;
 
@@ -426,8 +419,6 @@ ngx_http_init_request(ngx_event_t *rev)
     c->single_connection = 1;
     c->destroyed = 0;
 
-    r->connection = c;
-
     r->main = r;
 
     tp = ngx_timeofday();
@@ -499,6 +490,11 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
             rc = ngx_ssl_handshake(c);
 
             if (rc == NGX_AGAIN) {
+
+                if (!rev->timer_set) {
+                    ngx_add_timer(rev, c->listening->post_accept_timeout);
+                }
+
                 c->ssl->handler = ngx_http_ssl_handshake_handler;
                 return;
             }
@@ -1318,7 +1314,8 @@ ngx_http_process_request_header(ngx_http_request_t *r)
         && r->headers_in.content_length_n == -1)
     {
         ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                  "client sent POST method without \"Content-Length\" header");
+                  "client sent %V method without \"Content-Length\" header",
+                  &r->method_name);
         ngx_http_finalize_request(r, NGX_HTTP_LENGTH_REQUIRED);
         return NGX_ERROR;
     }
@@ -1515,19 +1512,9 @@ ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len,
 
 #endif
 
-    cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
-
-    if (cscf->wildcard) {
-        r->server_name.len = len;
-        r->server_name.data = host;
-    }
-
     return;
 
 found:
-
-    r->server_name.len = len;
-    r->server_name.data = host;
 
     r->srv_conf = cscf->ctx->srv_conf;
     r->loc_conf = cscf->ctx->loc_conf;
@@ -2598,13 +2585,17 @@ ngx_http_log_error(ngx_log_t *log, u_char *buf, size_t len)
 
     ctx = log->data;
 
-    p = ngx_snprintf(buf, len, ", client: %V", ctx->client);
+    p = ngx_snprintf(buf, len, ", client: %V", &ctx->connection->addr_text);
     len -= p - buf;
 
     r = ctx->request;
 
     if (r) {
         return r->log_handler(r, ctx->current_request, p, len);
+
+    } else {
+        p = ngx_snprintf(p, len, ", server: %V",
+                         &ctx->connection->listening->addr_text);
     }
 
     return p;
@@ -2615,15 +2606,16 @@ static u_char *
 ngx_http_log_error_handler(ngx_http_request_t *r, ngx_http_request_t *sr,
     u_char *buf, size_t len)
 {
-    char                 *uri_separator;
-    u_char               *p;
-    ngx_http_upstream_t  *u;
+    char                      *uri_separator;
+    u_char                    *p;
+    ngx_http_upstream_t       *u;
+    ngx_http_core_srv_conf_t  *cscf;
 
-    if (r->server_name.data) {
-        p = ngx_snprintf(buf, len, ", server: %V", &r->server_name);
-        len -= p - buf;
-        buf = p;
-    }
+    cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+
+    p = ngx_snprintf(buf, len, ", server: %V", &cscf->server_name);
+    len -= p - buf;
+    buf = p;
 
     if (r->request_line.data == NULL && r->request_start) {
         for (p = r->request_start; p < r->header_in->last; p++) {

@@ -93,11 +93,22 @@ static ngx_conf_deprecated_t  ngx_conf_deprecated_open_file_cache_retest = {
     ngx_conf_deprecated, "open_file_cache_retest", "open_file_cache_valid"
 };
 
+static ngx_conf_deprecated_t  ngx_conf_deprecated_satisfy_any = {
+    ngx_conf_deprecated, "satisfy_any", "satisfy"
+};
+
 
 static ngx_conf_enum_t  ngx_http_core_request_body_in_file[] = {
     { ngx_string("off"), NGX_HTTP_REQUEST_BODY_FILE_OFF },
     { ngx_string("on"), NGX_HTTP_REQUEST_BODY_FILE_ON },
     { ngx_string("clean"), NGX_HTTP_REQUEST_BODY_FILE_CLEAN },
+    { ngx_null_string, 0 }
+};
+
+
+static ngx_conf_enum_t  ngx_http_core_satisfy[] = {
+    { ngx_string("all"), NGX_HTTP_SATISFY_ALL },
+    { ngx_string("any"), NGX_HTTP_SATISFY_ANY },
     { ngx_null_string, 0 }
 };
 
@@ -404,12 +415,19 @@ static ngx_command_t  ngx_http_core_commands[] = {
       0,
       NULL },
 
+    { ngx_string("satisfy"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_enum_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, satisfy),
+      &ngx_http_core_satisfy },
+
     { ngx_string("satisfy_any"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_core_loc_conf_t, satisfy_any),
-      NULL },
+      offsetof(ngx_http_core_loc_conf_t, satisfy),
+      &ngx_conf_deprecated_satisfy_any },
 
     { ngx_string("internal"),
       NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
@@ -437,6 +455,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, reset_timedout_connection),
+      NULL },
+
+    { ngx_string("server_name_in_redirect"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, server_name_in_redirect),
       NULL },
 
     { ngx_string("port_in_redirect"),
@@ -911,7 +936,7 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-    if (clcf->satisfy_any == 0) {
+    if (clcf->satisfy == NGX_HTTP_SATISFY_ALL) {
 
         if (rc == NGX_OK) {
             r->phase_handler++;
@@ -1471,6 +1496,38 @@ ngx_http_auth_basic_user(ngx_http_request_t *r)
 }
 
 
+ngx_int_t
+ngx_http_server_addr(ngx_http_request_t *r, ngx_str_t *s)
+{
+    socklen_t            len;
+    ngx_connection_t    *c;
+    struct sockaddr_in   sin;
+
+    /* AF_INET only */
+
+    c = r->connection;
+
+    if (r->in_addr == 0) {
+        len = sizeof(struct sockaddr_in);
+        if (getsockname(c->fd, (struct sockaddr *) &sin, &len) == -1) {
+            ngx_connection_error(c, ngx_socket_errno, "getsockname() failed");
+            return NGX_ERROR;
+        }
+
+        r->in_addr = sin.sin_addr.s_addr;
+    }
+
+    if (s == NULL) {
+        return NGX_OK;
+    }
+
+    s->len = ngx_inet_ntop(c->listening->family, &r->in_addr,
+                           s->data, INET_ADDRSTRLEN);
+
+    return NGX_OK;
+}
+
+
 #if (NGX_HTTP_GZIP)
 
 ngx_int_t
@@ -1610,7 +1667,7 @@ ok:
 
     if (clcf->gzip_disable && r->headers_in.user_agent) {
 
-        if (ngx_regex_exec_array(clcf->gzip_disable, 
+        if (ngx_regex_exec_array(clcf->gzip_disable,
                                  &r->headers_in.user_agent->value,
                                  r->connection->log)
             != NGX_DECLINED)
@@ -1723,7 +1780,6 @@ ngx_http_subrequest(ngx_http_request_t *r,
     sr->in_addr = r->in_addr;
     sr->port = r->port;
     sr->port_text = r->port_text;
-    sr->server_name = r->server_name;
 
     sr->variables = r->variables;
 
@@ -2635,7 +2691,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     lcf->client_max_body_size = NGX_CONF_UNSET;
     lcf->client_body_buffer_size = NGX_CONF_UNSET_SIZE;
     lcf->client_body_timeout = NGX_CONF_UNSET_MSEC;
-    lcf->satisfy_any = NGX_CONF_UNSET;
+    lcf->satisfy = NGX_CONF_UNSET_UINT;
     lcf->internal = NGX_CONF_UNSET;
     lcf->client_body_in_file_only = NGX_CONF_UNSET;
     lcf->sendfile = NGX_CONF_UNSET;
@@ -2652,6 +2708,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     lcf->lingering_timeout = NGX_CONF_UNSET_MSEC;
     lcf->resolver_timeout = NGX_CONF_UNSET_MSEC;
     lcf->reset_timedout_connection = NGX_CONF_UNSET;
+    lcf->server_name_in_redirect = NGX_CONF_UNSET;
     lcf->port_in_redirect = NGX_CONF_UNSET;
     lcf->msie_padding = NGX_CONF_UNSET;
     lcf->msie_refresh = NGX_CONF_UNSET;
@@ -2670,7 +2727,9 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
 #if (NGX_HTTP_GZIP)
     lcf->gzip_vary = NGX_CONF_UNSET;
     lcf->gzip_http_version = NGX_CONF_UNSET_UINT;
+#if (NGX_PCRE)
     lcf->gzip_disable = NGX_CONF_UNSET_PTR;
+#endif
 #endif
 
     return lcf;
@@ -2817,7 +2876,8 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_msec_value(conf->client_body_timeout,
                               prev->client_body_timeout, 60000);
 
-    ngx_conf_merge_value(conf->satisfy_any, prev->satisfy_any, 0);
+    ngx_conf_merge_uint_value(conf->satisfy, prev->satisfy,
+                              NGX_HTTP_SATISFY_ALL);
     ngx_conf_merge_value(conf->internal, prev->internal, 0);
     ngx_conf_merge_value(conf->client_body_in_file_only,
                               prev->client_body_in_file_only, 0);
@@ -2861,6 +2921,8 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->reset_timedout_connection,
                               prev->reset_timedout_connection, 0);
+    ngx_conf_merge_value(conf->server_name_in_redirect,
+                              prev->server_name_in_redirect, 1);
     ngx_conf_merge_value(conf->port_in_redirect, prev->port_in_redirect, 1);
     ngx_conf_merge_value(conf->msie_padding, prev->msie_padding, 1);
     ngx_conf_merge_value(conf->msie_refresh, prev->msie_refresh, 0);
@@ -2891,7 +2953,9 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_bitmask_value(conf->gzip_proxied, prev->gzip_proxied,
                               (NGX_CONF_BITMASK_SET|NGX_HTTP_GZIP_PROXIED_OFF));
 
+#if (NGX_PCRE)
     ngx_conf_merge_ptr_value(conf->gzip_disable, prev->gzip_disable, NULL);
+#endif
 
 #endif
 
@@ -3074,20 +3138,6 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ch = value[1].data[0];
 
     if (cscf->server_name.data == NULL && value[1].len) {
-        if (ngx_strchr(value[1].data, '*')) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "first server name \"%V\" must not be wildcard",
-                               &value[1]);
-            return NGX_CONF_ERROR;
-        }
-
-        if (value[1].data[0] == '~') {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "first server name \"%V\" "
-                               "must not be regular expression", &value[1]);
-            return NGX_CONF_ERROR;
-        }
-
         name = value[1];
 
         if (ch == '.') {
@@ -3106,11 +3156,6 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         ch = value[i].data[0];
 
-        if (value[i].len == 1 && ch == '*') {
-            cscf->wildcard = 1;
-            continue;
-        }
-
         if (value[i].len == 0
             || (ch == '*' && (value[i].len < 3 || value[i].data[1] != '.'))
             || (ch == '.' && value[i].len < 2))
@@ -3124,6 +3169,13 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
                                "server name \"%V\" has strange symbols",
                                &value[i]);
+        }
+
+        if (value[i].len == 1 && ch == '*') {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "\"server_name *\" is unsupported, use "
+                               "\"server_name_in_redirect off\" instead");
+            return NGX_CONF_ERROR;
         }
 
         sn = ngx_array_push(&cscf->server_names);

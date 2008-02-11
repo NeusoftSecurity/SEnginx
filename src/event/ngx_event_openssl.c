@@ -187,6 +187,13 @@ ngx_ssl_create(ngx_ssl_t *ssl, ngx_uint_t protocols, void *data)
         SSL_CTX_set_options(ssl->ctx, ngx_ssl_protocols[protocols >> 1]);
     }
 
+    /*
+     * we need this option because in ngx_ssl_send_chain()
+     * we may switch to a buffered write and may copy leftover part of
+     * previously unbuffered data to our internal buffer
+     */
+    SSL_CTX_set_mode(ssl->ctx, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+
     SSL_CTX_set_read_ahead(ssl->ctx, 1);
 
     return NGX_OK;
@@ -1035,19 +1042,16 @@ ngx_ssl_shutdown(ngx_connection_t *c)
 
     sslerr = 0;
 
-    /* SSL_shutdown() never return -1, on error it return 0 */
+    /* SSL_shutdown() never returns -1, on error it returns 0 */
 
-    if (n != 1) {
+    if (n != 1 && ERR_peek_error()) {
         sslerr = SSL_get_error(c->ssl->connection, n);
 
         ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0,
                        "SSL_get_error: %d", sslerr);
     }
 
-    if (n == 1
-        || sslerr == SSL_ERROR_ZERO_RETURN
-        || (sslerr == 0 && c->timedout))
-    {
+    if (n == 1 || sslerr == 0 || sslerr == SSL_ERROR_ZERO_RETURN) {
         SSL_free(c->ssl->connection);
         c->ssl = NULL;
 
@@ -1111,6 +1115,7 @@ static void
 ngx_ssl_connection_error(ngx_connection_t *c, int sslerr, ngx_err_t err,
     char *text)
 {
+    int         n;
     ngx_uint_t  level;
 
     level = NGX_LOG_CRIT;
@@ -1124,7 +1129,39 @@ ngx_ssl_connection_error(ngx_connection_t *c, int sslerr, ngx_err_t err,
             || err == NGX_ETIMEDOUT
 #endif
             || err == NGX_ECONNREFUSED
+            || err == NGX_ENETDOWN
+            || err == NGX_ENETUNREACH
+            || err == NGX_EHOSTDOWN
             || err == NGX_EHOSTUNREACH)
+        {
+            switch (c->log_error) {
+
+            case NGX_ERROR_IGNORE_ECONNRESET:
+            case NGX_ERROR_INFO:
+                level = NGX_LOG_INFO;
+                break;
+
+            case NGX_ERROR_ERR:
+                level = NGX_LOG_ERR;
+                break;
+
+            default:
+                break;
+            }
+        }
+
+    } else if (sslerr == SSL_ERROR_SSL) {
+
+        n = ERR_GET_REASON(ERR_peek_error());
+
+            /* handshake failures */
+        if (n == SSL_R_NO_SHARED_CIPHER
+            || n == SSL_R_UNEXPECTED_MESSAGE
+            || n == SSL_R_WRONG_VERSION_NUMBER
+            || n == 1000 /* SSL_R_SSLV3_ALERT_CLOSE_NOTIFY */
+            || n == SSL_R_SSLV3_ALERT_CERTIFICATE_EXPIRED
+            || n == SSL_R_SSLV3_ALERT_ILLEGAL_PARAMETER
+            || n == SSL_R_TLSV1_ALERT_UNKNOWN_CA)
         {
             switch (c->log_error) {
 
@@ -1150,18 +1187,21 @@ ngx_ssl_connection_error(ngx_connection_t *c, int sslerr, ngx_err_t err,
 static void
 ngx_ssl_clear_error(ngx_log_t *log)
 {
-    if (ERR_peek_error()) {
+    while (ERR_peek_error()) {
         ngx_ssl_error(NGX_LOG_ALERT, log, 0, "ignoring stale global SSL error");
     }
+
+    ERR_clear_error();
 }
 
 
 void ngx_cdecl
 ngx_ssl_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err, char *fmt, ...)
 {
-    u_long   n;
-    va_list  args;
-    u_char   errstr[NGX_MAX_CONF_ERRSTR], *p, *last;
+    u_long    n;
+    va_list   args;
+    u_char   *p, *last;
+    u_char    errstr[NGX_MAX_CONF_ERRSTR];
 
     last = errstr + NGX_MAX_CONF_ERRSTR;
 
@@ -1171,12 +1211,16 @@ ngx_ssl_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err, char *fmt, ...)
 
     p = ngx_cpystrn(p, (u_char *) " (SSL:", last - p);
 
-    while (p < last) {
+    for ( ;; ) {
 
         n = ERR_get_error();
 
         if (n == 0) {
             break;
+        }
+
+        if (p >= last) {
+            continue;
         }
 
         *p++ = ' ';

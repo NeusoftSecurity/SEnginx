@@ -147,7 +147,7 @@ ngx_vsnprintf(u_char *buf, size_t max, const char *fmt, va_list args)
             sign = 1;
             hexadecimal = 0;
             max_width = 0;
-            slen = 0;
+            slen = (size_t) -1;
 
             p = temp + NGX_INT64_LEN;
 
@@ -182,7 +182,7 @@ ngx_vsnprintf(u_char *buf, size_t max, const char *fmt, va_list args)
                     continue;
 
                 case '*':
-                    slen = va_arg(args, u_int);
+                    slen = va_arg(args, size_t);
                     fmt++;
                     continue;
 
@@ -221,13 +221,15 @@ ngx_vsnprintf(u_char *buf, size_t max, const char *fmt, va_list args)
             case 's':
                 p = va_arg(args, u_char *);
 
-                if (slen == 0) {
+                if (slen == (size_t) -1) {
                     while (*p && buf < last) {
                         *buf++ = *p++;
                     }
 
                 } else {
-                    buf = ngx_cpymem(buf, p, slen);
+                    len = (buf + slen < last) ? slen : (size_t) (last - buf);
+
+                    buf = ngx_cpymem(buf, p, len);
                 }
 
                 fmt++;

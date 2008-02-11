@@ -1,4 +1,29 @@
 
+Changes with nginx 0.6.26                                        11 Feb 2008
+
+    *) Bugfix: the "proxy_store" and "fastcgi_store" directives did not 
+       check a response length.
+
+    *) Bugfix: a segmentation fault occurred in worker process, if big 
+       value was used in a "expires" directive.
+       Thanks to Joaquin Cuenca Abela.
+
+    *) Bugfix: nginx incorrectly detected cache line size on Pentium 4.
+       Thanks to Gena Makhomed.
+
+    *) Bugfix: in proxied or FastCGI subrequests a client original method 
+       was used instead of the GET method.
+
+    *) Bugfix: socket leak in HTTPS mode if deferred accept was used.
+       Thanks to Ben Maurer.
+
+    *) Bugfix: nginx issued the bogus error message "SSL_shutdown() failed 
+       (SSL: )"; bug appeared in 0.6.23.
+
+    *) Bugfix: in HTTPS mode requests might fail with the "bad write retry" 
+       error; bug appeared in 0.6.23.
+
+
 Changes with nginx 0.6.25                                        08 Jan 2008
 
     *) Change: now the "server_name_in_redirect" directive is used instead 

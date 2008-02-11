@@ -479,6 +479,15 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
     n = recv(c->fd, (char *) buf, 1, MSG_PEEK);
 
     if (n == -1 && ngx_socket_errno == NGX_EAGAIN) {
+
+        if (!rev->timer_set) {
+            ngx_add_timer(rev, c->listening->post_accept_timeout);
+        }
+
+        if (ngx_handle_read_event(rev, 0) == NGX_ERROR) {
+            ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+        }
+
         return;
     }
 
@@ -985,10 +994,9 @@ ngx_http_read_request_header(ngx_http_request_t *r)
     }
 
     if (n == NGX_AGAIN) {
-        if (!r->header_timeout_set) {
+        if (!rev->timer_set) {
             cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
             ngx_add_timer(rev, cscf->client_header_timeout);
-            r->header_timeout_set = 1;
         }
 
         if (ngx_handle_read_event(rev, 0) == NGX_ERROR) {

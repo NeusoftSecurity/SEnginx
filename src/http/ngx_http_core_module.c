@@ -652,6 +652,9 @@ ngx_module_t  ngx_http_core_module = {
 };
 
 
+static ngx_str_t  ngx_http_core_get_method = { 3, (u_char *) "GET " };
+
+
 void
 ngx_http_handler(ngx_http_request_t *r)
 {
@@ -1760,7 +1763,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
     sr->subrequest_in_memory = (flags & NGX_HTTP_SUBREQUEST_IN_MEMORY) != 0;
 
     sr->unparsed_uri = r->unparsed_uri;
-    sr->method_name = r->method_name;
+    sr->method_name = ngx_http_core_get_method;
     sr->http_protocol = r->http_protocol;
 
     if (ngx_http_set_exten(sr) != NGX_OK) {
@@ -2909,7 +2912,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         if (conf->resolver == NULL) {
             conf->resolver = ngx_resolver_create(NULL, cf->cycle->new_log);
             if (conf->resolver == NULL) {
-                return NGX_OK;
+                return NGX_CONF_ERROR;
             }
         }
     }

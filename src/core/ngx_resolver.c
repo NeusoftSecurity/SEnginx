@@ -215,9 +215,8 @@ ngx_resolve_name(ngx_resolver_ctx_t *ctx)
 
     if (ctx->event) {
         ngx_resolver_free_locked(r, ctx->event);
+        ctx->event = NULL;
     }
-
-    ngx_resolver_free_locked(r, ctx);
 
     /* unlock alloc mutex */
 
@@ -787,9 +786,9 @@ ngx_resolver_resend(ngx_resolver_t *r, ngx_rbtree_t *tree, ngx_queue_t *queue)
                 rn->expire = now + r->resend_timeout;
 
                 ngx_queue_insert_head(queue, &rn->queue);
-
-                continue;
             }
+
+            continue;
         }
 
         ngx_rbtree_delete(tree, &rn->node);

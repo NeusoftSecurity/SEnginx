@@ -135,33 +135,6 @@ static char *ngx_http_fastcgi_upstream_fail_timeout_unsupported(ngx_conf_t *cf,
     ngx_command_t *cmd, void *conf);
 
 
-static ngx_http_fastcgi_request_start_t  ngx_http_fastcgi_request_start = {
-    { 1,                                               /* version */
-      NGX_HTTP_FASTCGI_BEGIN_REQUEST,                  /* type */
-      0,                                               /* request_id_hi */
-      1,                                               /* request_id_lo */
-      0,                                               /* content_length_hi */
-      sizeof(ngx_http_fastcgi_begin_request_t),        /* content_length_lo */
-      0,                                               /* padding_length */
-      0 },                                             /* reserved */
-
-    { 0,                                               /* role_hi */
-      NGX_HTTP_FASTCGI_RESPONDER,                      /* role_lo */
-      0, /* NGX_HTTP_FASTCGI_KEEP_CONN */              /* flags */
-      { 0, 0, 0, 0, 0 } },                             /* reserved[5] */
-
-    { 1,                                               /* version */
-      NGX_HTTP_FASTCGI_PARAMS,                         /* type */
-      0,                                               /* request_id_hi */
-      1 },                                             /* request_id_lo */
-
-};
-
-
-static ngx_str_t  ngx_http_fastcgi_script_name =
-    ngx_string("fastcgi_script_name");
-
-
 static ngx_conf_post_t  ngx_http_fastcgi_lowat_post =
     { ngx_http_fastcgi_lowat_check };
 
@@ -412,12 +385,40 @@ ngx_module_t  ngx_http_fastcgi_module = {
 };
 
 
+static ngx_http_fastcgi_request_start_t  ngx_http_fastcgi_request_start = {
+    { 1,                                               /* version */
+      NGX_HTTP_FASTCGI_BEGIN_REQUEST,                  /* type */
+      0,                                               /* request_id_hi */
+      1,                                               /* request_id_lo */
+      0,                                               /* content_length_hi */
+      sizeof(ngx_http_fastcgi_begin_request_t),        /* content_length_lo */
+      0,                                               /* padding_length */
+      0 },                                             /* reserved */
+
+    { 0,                                               /* role_hi */
+      NGX_HTTP_FASTCGI_RESPONDER,                      /* role_lo */
+      0, /* NGX_HTTP_FASTCGI_KEEP_CONN */              /* flags */
+      { 0, 0, 0, 0, 0 } },                             /* reserved[5] */
+
+    { 1,                                               /* version */
+      NGX_HTTP_FASTCGI_PARAMS,                         /* type */
+      0,                                               /* request_id_hi */
+      1 },                                             /* request_id_lo */
+
+};
+
+
+static ngx_str_t  ngx_http_fastcgi_script_name =
+    ngx_string("fastcgi_script_name");
+
+
 static ngx_str_t  ngx_http_fastcgi_hide_headers[] = {
     ngx_string("Status"),
     ngx_string("X-Accel-Expires"),
     ngx_string("X-Accel-Redirect"),
     ngx_string("X-Accel-Limit-Rate"),
-    ngx_string("X-Accel-Buffer"),
+    ngx_string("X-Accel-Buffering"),
+    ngx_string("X-Accel-Charset"),
     ngx_null_string
 };
 

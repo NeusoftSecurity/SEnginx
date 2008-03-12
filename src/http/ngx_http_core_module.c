@@ -1916,7 +1916,7 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
                        "named location: %V \"%V?%V\"", name, &r->uri, &r->args);
 
         r->internal = 1;
-
+        r->content_handler = NULL;
         r->loc_conf = clcfp[i]->loc_conf;
 
         ngx_http_update_location_config(r);
@@ -1924,6 +1924,7 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
         cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
         r->phase_handler = cmcf->phase_engine.location_rewrite_index;
+
         ngx_http_core_run_phases(r);
 
         return NGX_DONE;
@@ -2907,14 +2908,21 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               prev->resolver_timeout, 30000);
 
     if (conf->resolver == NULL) {
-        conf->resolver = prev->resolver;
 
-        if (conf->resolver == NULL) {
-            conf->resolver = ngx_resolver_create(NULL, cf->cycle->new_log);
-            if (conf->resolver == NULL) {
+        if (prev->resolver == NULL) {
+
+            /*
+             * create dummy resolver in http {} context
+             * to inherit it in all servers
+             */
+
+            prev->resolver = ngx_resolver_create(cf, NULL);
+            if (prev->resolver == NULL) {
                 return NGX_CONF_ERROR;
             }
         }
+ 
+        conf->resolver = prev->resolver;
     }
 
     ngx_conf_merge_path_value(conf->client_body_temp_path,
@@ -3551,7 +3559,22 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             return NGX_CONF_ERROR;
         }
 
-        err->overwrite = (overwrite >= 0) ? overwrite : err->status;
+        if (overwrite >= 0) {
+            err->overwrite = overwrite;
+
+        } else {
+            switch (err->status) {
+                case NGX_HTTP_TO_HTTPS:
+                case NGX_HTTPS_CERT_ERROR:
+                case NGX_HTTPS_NO_CERT:
+                    err->overwrite = NGX_HTTP_BAD_REQUEST;
+                    break;
+
+                default:
+                    err->overwrite = err->status;
+                    break;
+            }
+        }
 
         err->uri = uri;
         err->uri_lengths = uri_lengths;
@@ -3716,6 +3739,10 @@ ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_url_t   u;
     ngx_str_t  *value;
 
+    if (clcf->resolver) {
+        return "is duplicate";
+    }
+
     value = cf->args->elts;
 
     ngx_memzero(&u, sizeof(ngx_url_t));
@@ -3728,7 +3755,7 @@ ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    clcf->resolver = ngx_resolver_create(&u.addrs[0], cf->cycle->new_log);
+    clcf->resolver = ngx_resolver_create(cf, &u.addrs[0]);
     if (clcf->resolver == NULL) {
         return NGX_OK;
     }

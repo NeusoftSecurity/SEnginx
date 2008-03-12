@@ -16,18 +16,18 @@ CC_AUX_FLAGS="$CC_AUX_FLAGS -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64"
 
 # Linux kernel version
 
-version=`grep "#define LINUX_VERSION_CODE" /usr/include/linux/version.h \
-         | sed -e 's/^.* \(.*\)$/\1/'`
+version=$((`uname -r \
+         | sed 's/^\([^.]*\)\.\([^.]*\)\.\([^.-]*\).*/\1*256*256+\2*256+\3/'`))
 
 version=${version:-0}
 
 
-# enable the rt signals on Linux 2.2.19 and onward
+# enable the rt signals on Linux between 2.2.19 and 2.6.17
 
-if [ $version -ge 131609 -o $EVENT_RTSIG = YES ]; then
+if [ \( $version -ge 131603 -a $version -lt 132626 \) -o $EVENT_RTSIG = YES ]
+then
     echo " + rt signals found"
     have=NGX_HAVE_RTSIG . auto/have
-    have=NGX_HAVE_POLL . auto/have
     EVENT_MODULES="$EVENT_MODULES $RTSIG_MODULE"
     CORE_SRCS="$CORE_SRCS $RTSIG_SRCS"
     EVENT_FOUND=YES

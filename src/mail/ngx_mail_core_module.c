@@ -20,6 +20,8 @@ static char *ngx_mail_core_listen(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_mail_core_protocol(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
+static char *ngx_mail_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
 
 
 static ngx_command_t  ngx_mail_core_commands[] = {
@@ -64,6 +66,20 @@ static ngx_command_t  ngx_mail_core_commands[] = {
       ngx_conf_set_str_slot,
       NGX_MAIL_SRV_CONF_OFFSET,
       offsetof(ngx_mail_core_srv_conf_t, server_name),
+      NULL },
+
+    { ngx_string("resolver"),
+      NGX_MAIL_MAIN_CONF|NGX_MAIL_SRV_CONF|NGX_CONF_TAKE1,
+      ngx_mail_core_resolver,
+      NGX_MAIL_SRV_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("resolver_timeout"),
+      NGX_MAIL_MAIN_CONF|NGX_MAIL_SRV_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_msec_slot,
+      NGX_MAIL_SRV_CONF_OFFSET,
+      offsetof(ngx_mail_core_srv_conf_t, resolver_timeout),
       NULL },
 
       ngx_null_command
@@ -141,7 +157,13 @@ ngx_mail_core_create_srv_conf(ngx_conf_t *cf)
      */
 
     cscf->timeout = NGX_CONF_UNSET_MSEC;
+    cscf->resolver_timeout = NGX_CONF_UNSET_MSEC;
     cscf->so_keepalive = NGX_CONF_UNSET;
+
+    cscf->resolver = NGX_CONF_UNSET_PTR;
+
+    cscf->file_name = cf->conf_file->file.name.data;
+    cscf->line = cf->conf_file->line;
 
     return cscf;
 }
@@ -154,6 +176,8 @@ ngx_mail_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_mail_core_srv_conf_t *conf = child;
 
     ngx_conf_merge_msec_value(conf->timeout, prev->timeout, 60000);
+    ngx_conf_merge_msec_value(conf->resolver_timeout, prev->resolver_timeout,
+                              30000);
 
     ngx_conf_merge_value(conf->so_keepalive, prev->so_keepalive, 0);
 
@@ -183,6 +207,8 @@ ngx_mail_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
                       conf->file_name, conf->line);
         return NGX_CONF_ERROR;
     }
+
+    ngx_conf_merge_ptr_value(conf->resolver, prev->resolver, NULL);
 
     return NGX_CONF_OK;
 }
@@ -236,9 +262,6 @@ ngx_mail_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     cscf = ctx->srv_conf[ngx_mail_core_module.ctx_index];
     cscf->ctx = ctx;
-
-    cscf->file_name = cf->conf_file->file.name.data;
-    cscf->line = cf->conf_file->line;
 
     cmcf = ctx->main_conf[ngx_mail_core_module.ctx_index];
 
@@ -386,6 +409,44 @@ ngx_mail_core_protocol(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                        "unknown protocol \"%V\"", &value[1]);
     return NGX_CONF_ERROR;
+}
+
+
+static char *
+ngx_mail_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_mail_core_srv_conf_t  *cscf = conf;
+
+    ngx_url_t   u;
+    ngx_str_t  *value;
+
+    value = cf->args->elts;
+
+    if (cscf->resolver != NGX_CONF_UNSET_PTR) {
+        return "is duplicate";
+    }
+
+    if (ngx_strcmp(value[1].data, "off") == 0) {
+        cscf->resolver = NULL;
+        return NGX_CONF_OK;
+    }
+
+    ngx_memzero(&u, sizeof(ngx_url_t));
+
+    u.host = value[1];
+    u.port = 53;
+
+    if (ngx_inet_resolve_host(cf->pool, &u) != NGX_OK) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%V: %s", &u.host, u.err);
+        return NGX_CONF_ERROR;
+    }
+
+    cscf->resolver = ngx_resolver_create(cf, &u.addrs[0]);
+    if (cscf->resolver == NULL) {
+        return NGX_CONF_OK;
+    }
+
+    return NGX_CONF_OK;
 }
 
 

@@ -994,18 +994,18 @@ ngx_worker_process_exit(ngx_cycle_t *cycle)
         }
     }
 
-    if (ngx_quit) {
+    if (ngx_exiting) {
         c = cycle->connections;
         for (i = 0; i < cycle->connection_n; i++) {
             if (c[i].fd != -1
                 && c[i].read
                 && !c[i].read->accept
-                && !c[i].read->channel)
+                && !c[i].read->channel
+                && !c[i].read->resolver)
             {
                 ngx_log_error(NGX_LOG_ALERT, cycle->log, 0,
-                              "open socket #%d left in %ui connection, "
-                              "aborting",
-                              c[i].fd, i);
+                              "open socket #%d left in %ui connection %s",
+                              c[i].fd, i, ngx_debug_quit ? ", aborting" : "");
                 ngx_debug_point();
             }
         }
@@ -1059,6 +1059,11 @@ ngx_channel_handler(ngx_event_t *ev)
     ngx_log_debug1(NGX_LOG_DEBUG_CORE, ev->log, 0, "channel: %i", n);
 
     if (n == NGX_ERROR) {
+
+        if (ngx_event_flags & NGX_USE_EPOLL_EVENT) {
+            ngx_del_conn(c, 0);
+        }
+
         ngx_close_connection(c);
         return;
     }

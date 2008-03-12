@@ -392,6 +392,8 @@ ngx_http_upstream_init(ngx_http_request_t *r)
             uscf = uscfp[i];
 
             if (uscf->host.len == host->len
+                && ((uscf->port == 0 && u->resolved->default_port)
+                     || uscf->port == u->resolved->port)
                 && ngx_memcmp(uscf->host.data, host->data, host->len) == 0)
             {
                 goto found;
@@ -420,12 +422,12 @@ ngx_http_upstream_init(ngx_http_request_t *r)
         ctx->data = r;
         ctx->timeout = clcf->resolver_timeout;
 
-        u->resolved->ctx = ctx;
-
         if (ngx_resolve_name(ctx) != NGX_OK) {
             ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
             return;
         }
+
+        u->resolved->ctx = ctx;
 
         return;
     }
@@ -1936,6 +1938,7 @@ ngx_http_upstream_non_buffered_filter(void *data, ssize_t bytes)
     cl->buf->pos = b->last;
     b->last += bytes;
     cl->buf->last = b->last;
+    cl->buf->tag = u->output.tag;
 
     if (u->length == NGX_MAX_SIZE_T_VALUE) {
         return NGX_OK;

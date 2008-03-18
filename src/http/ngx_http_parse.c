@@ -775,7 +775,7 @@ ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b)
             if (c) {
                 hash = ngx_hash(hash, c);
                 r->lowcase_header[i++] = c;
-                i &= ~NGX_HTTP_LC_HEADER_LEN;
+                i &= (NGX_HTTP_LC_HEADER_LEN - 1);
                 break;
             }
 
@@ -882,10 +882,10 @@ ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b)
         /* end of header line */
         case sw_almost_done:
             switch (ch) {
-            case CR:
-                break;
             case LF:
                 goto done;
+            case CR:
+                break;
             default:
                 return NGX_HTTP_PARSE_INVALID_HEADER;
             }

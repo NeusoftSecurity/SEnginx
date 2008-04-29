@@ -333,7 +333,6 @@ ngx_http_upstream_init(ngx_http_request_t *r)
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-    u->output.sendfile = c->sendfile;
     u->output.pool = r->pool;
     u->output.bufs.num = 1;
     u->output.bufs.size = clcf->client_body_buffer_size;
@@ -422,12 +421,13 @@ ngx_http_upstream_init(ngx_http_request_t *r)
         ctx->data = r;
         ctx->timeout = clcf->resolver_timeout;
 
+        u->resolved->ctx = ctx;
+
         if (ngx_resolve_name(ctx) != NGX_OK) {
+            u->resolved->ctx = NULL;
             ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
             return;
         }
-
-        u->resolved->ctx = ctx;
 
         return;
     }
@@ -702,6 +702,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     c->read->handler = ngx_http_upstream_process_header;
 
     c->sendfile &= r->connection->sendfile;
+    u->output.sendfile = c->sendfile;
 
     c->pool = r->pool;
     c->read->log = c->write->log = c->log = r->connection->log;
@@ -2612,6 +2613,10 @@ ngx_http_upstream_copy_content_type(ngx_http_request_t *r, ngx_table_elt_t *h,
 
         while (*++p == ' ') { /* void */ }
 
+        if (*p == '\0') {
+            return NGX_OK;
+        }
+
         if (ngx_strncasecmp(p, (u_char *) "charset=", 8) != 0) {
             continue;
         }
@@ -3200,7 +3205,7 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             fail_timeout = ngx_parse_time(&s, 1);
 
-            if (fail_timeout < 0) {
+            if (fail_timeout == NGX_ERROR) {
                 goto invalid;
             }
 

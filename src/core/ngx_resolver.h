@@ -17,6 +17,7 @@
 #define NGX_RESOLVE_PTR       12
 #define NGX_RESOLVE_MX        15
 #define NGX_RESOLVE_TXT       16
+#define NGX_RESOLVE_DNAME     39
 
 #define NGX_RESOLVE_FORMERR   1
 #define NGX_RESOLVE_SERVFAIL  2
@@ -27,6 +28,8 @@
 
 
 #define NGX_NO_RESOLVER       (void *) -1
+
+#define NGX_RESOLVER_MAX_RECURSION    50
 
 
 typedef struct {
@@ -127,6 +130,7 @@ struct ngx_resolver_ctx_s {
     ngx_msec_t                timeout;
 
     ngx_uint_t                quick;  /* unsigned  quick:1; */
+    ngx_uint_t                recursion;
     ngx_event_t              *event;
 };
 

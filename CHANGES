@@ -1,15 +1,37 @@
 
+Changes with nginx 0.6.30                                        29 Apr 2008
+
+    *) Change: now if an "include" directive pattern does not match any 
+       file, then nginx does not issue an error.
+
+    *) Feature: now the time in directives may be specified without spaces, 
+       for example, "1h50m".
+
+    *) Bugfix: memory leaks if the "ssl_verify_client" directive was on. 
+       Thanks to Chavelle Vincent.
+
+    *) Bugfix: the "sub_filter" directive might set text to change into 
+       output.
+
+    *) Bugfix: the "error_page" directive did not take into account 
+       arguments in redirected URI.
+
+    *) Bugfix: now nginx always opens files in binary mode under Cygwin.
+
+    *) Bugfix: nginx could not be built on OpenBSD; bug appeared in 0.6.15.
+
+
 Changes with nginx 0.6.29                                        18 Mar 2008
 
     *) Feature: the ngx_google_perftools_module.
 
-    *) Bugfix: the ngx_http_perl_module could be not built on 64-bit 
+    *) Bugfix: the ngx_http_perl_module could not be built on 64-bit 
        platforms; bug appeared in 0.6.27.
 
 
 Changes with nginx 0.6.28                                        13 Mar 2008
 
-    *) Bugfix: the rtsig method could be not built; bug appeared in 0.6.27.
+    *) Bugfix: the rtsig method could not be built; bug appeared in 0.6.27.
 
 
 Changes with nginx 0.6.27                                        12 Mar 2008
@@ -665,7 +687,8 @@ Changes with nginx 0.5.20                                        07 May 2007
        Studio.
        Thanks to Andrei Nigmatulin.
 
-    *) Bugfix: the ngx_http_perl_module could not built by Solaris make.
+    *) Bugfix: the ngx_http_perl_module could not be built by Solaris 
+       make.
        Thanks to Andrei Nigmatulin.
 
 

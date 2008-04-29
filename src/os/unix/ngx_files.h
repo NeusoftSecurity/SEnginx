@@ -17,8 +17,18 @@
 
 
 
+#ifdef __CYGWIN__
+
+#define ngx_open_file(name, mode, create, access)                            \
+    open((const char *) name, mode|create|O_BINARY, access)
+
+#else
+
 #define ngx_open_file(name, mode, create, access)                            \
     open((const char *) name, mode|create, access)
+
+#endif
+
 #define ngx_open_file_n          "open()"
 
 #define NGX_FILE_RDONLY          O_RDONLY
@@ -144,10 +154,11 @@ ngx_int_t ngx_open_dir(ngx_str_t *name, ngx_dir_t *dir);
 
 
 typedef struct {
-    size_t      n;
-    glob_t      pglob;
-    u_char     *pattern;
-    ngx_log_t  *log;
+    size_t       n;
+    glob_t       pglob;
+    u_char      *pattern;
+    ngx_log_t   *log;
+    ngx_uint_t   test;
 } ngx_glob_t;
 
 

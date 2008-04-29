@@ -369,6 +369,7 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx)
 {
     uint32_t              hash;
     in_addr_t             addr, *addrs;
+    ngx_int_t             rc;
     ngx_uint_t            naddrs;
     ngx_resolver_ctx_t   *next;
     ngx_resolver_node_t  *rn;
@@ -434,10 +435,29 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx)
 
             /* NGX_RESOLVE_CNAME */
 
-            ctx->name.len = rn->cnlen;
-            ctx->name.data = rn->u.cname;
+            if (ctx->recursion++ < NGX_RESOLVER_MAX_RECURSION) {
 
-            return ngx_resolve_name_locked(r, ctx);
+                ctx->name.len = rn->cnlen;
+                ctx->name.data = rn->u.cname;
+
+                return ngx_resolve_name_locked(r, ctx);
+            }
+
+            ctx->next = rn->waiting;
+            rn->waiting = NULL;
+
+            /* unlock name mutex */
+
+            do {
+                ctx->state = NGX_RESOLVE_NXDOMAIN;
+                next = ctx->next;
+
+                ctx->handler(ctx);
+
+                ctx = next;
+            } while (ctx);
+
+            return NGX_OK;
         }
 
         if (rn->waiting) {
@@ -453,6 +473,7 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx)
         /* lock alloc mutex */
 
         ngx_resolver_free_locked(r, rn->query);
+        rn->query = NULL;
 
         if (rn->cnlen) {
             ngx_resolver_free_locked(r, rn->u.cname);
@@ -479,12 +500,28 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx)
 
         rn->node.key = hash;
         rn->nlen = (u_short) ctx->name.len;
+        rn->query = NULL;
 
         ngx_rbtree_insert(&r->name_rbtree, &rn->node);
     }
 
-    if (ngx_resolver_create_name_query(rn, ctx) != NGX_OK) {
+    rc = ngx_resolver_create_name_query(rn, ctx);
+
+    if (rc == NGX_ERROR) {
         goto failed;
+    }
+
+    if (rc == NGX_DECLINED) {
+        ngx_rbtree_delete(&r->name_rbtree, &rn->node);
+
+        ngx_resolver_free(r, rn->query);
+        ngx_resolver_free(r, rn->name);
+        ngx_resolver_free(r, rn);
+
+        ctx->state = NGX_RESOLVE_NXDOMAIN;
+        ctx->handler(ctx);
+
+        return NGX_OK;
     }
 
     if (ngx_resolver_send_query(r, rn) != NGX_OK) {
@@ -525,6 +562,10 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx)
 failed:
 
     ngx_rbtree_delete(&r->name_rbtree, &rn->node);
+
+    if (rn->query) {
+        ngx_resolver_free(r, rn->query);
+    }
 
     ngx_resolver_free(r, rn->name);
 
@@ -588,6 +629,7 @@ ngx_resolve_addr(ngx_resolver_ctx_t *ctx)
         ngx_queue_remove(&rn->queue);
 
         ngx_resolver_free(r, rn->query);
+        rn->query = NULL;
 
     } else {
         rn = ngx_resolver_alloc(r, sizeof(ngx_resolver_node_t));
@@ -596,6 +638,7 @@ ngx_resolve_addr(ngx_resolver_ctx_t *ctx)
         }
 
         rn->node.key = ctx->addr;
+        rn->query = NULL;
 
         ngx_rbtree_insert(&r->addr_rbtree, &rn->node);
     }
@@ -645,6 +688,10 @@ failed:
 
     if (rn) {
         ngx_rbtree_delete(&r->addr_rbtree, &rn->node);
+
+        if (rn->query) {
+            ngx_resolver_free(r, rn->query);
+        }
 
         ngx_resolver_free(r, rn);
     }
@@ -925,14 +972,14 @@ ngx_resolver_process_response(ngx_resolver_t *r, u_char *buf, size_t n)
     nan = (query->nan_hi << 8) + query->nan_lo;
 
     ngx_log_debug6(NGX_LOG_DEBUG_CORE, r->log, 0,
-                   "resolver DNS response %d fl:%04Xud %d/%d/%d/%d",
+                   "resolver DNS response %ui fl:%04Xui %ui/%ui/%ui/%ui",
                    ident, flags, nqs, nan,
                    (query->nns_hi << 8) + query->nns_lo,
                    (query->nar_hi << 8) + query->nar_lo);
 
     if (!(flags & 0x8000)) {
         ngx_log_error(r->log_level, r->log, 0,
-                      "invalid DNS response %d fl:%04Xud", ident, flags);
+                      "invalid DNS response %ui fl:%04Xui", ident, flags);
         return;
     }
 
@@ -940,7 +987,7 @@ ngx_resolver_process_response(ngx_resolver_t *r, u_char *buf, size_t n)
 
     if (code == NGX_RESOLVE_FORMERR || code > NGX_RESOLVE_REFUSED) {
         ngx_log_error(r->log_level, r->log, 0,
-                      "DNS error (%d: %s), query id:%d",
+                      "DNS error (%ui: %s), query id:%ui",
                       code, ngx_resolver_strerror(code), ident);
         return;
     }
@@ -982,11 +1029,11 @@ found:
     qclass = (qs->class_hi << 8) + qs->class_lo;
 
     ngx_log_debug2(NGX_LOG_DEBUG_CORE, r->log, 0,
-                   "resolver DNS response qt:%d cl:%d", qtype, qclass);
+                   "resolver DNS response qt:%ui cl:%ui", qtype, qclass);
 
     if (qclass != 1) {
         ngx_log_error(r->log_level, r->log, 0,
-                      "unknown query class %d in DNS response", qclass);
+                      "unknown query class %ui in DNS response", qclass);
         return;
     }
 
@@ -1007,7 +1054,7 @@ found:
 
     default:
         ngx_log_error(r->log_level, r->log, 0,
-                      "unknown query type %d in DNS response", qtype);
+                      "unknown query type %ui in DNS response", qtype);
         return;
     }
 
@@ -1062,7 +1109,7 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
 
     if (ident != qident) {
         ngx_log_error(r->log_level, r->log, 0,
-                      "wrong ident %d response for %V, expect %d",
+                      "wrong ident %ui response for %V, expect %ui",
                       ident, &name, qident);
         goto failed;
     }
@@ -1158,6 +1205,13 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
         } else if (qtype == NGX_RESOLVE_CNAME) {
             cname = &buf[i] + sizeof(ngx_resolver_an_t);
             i += sizeof(ngx_resolver_an_t) + len;
+
+        } else if (qtype == NGX_RESOLVE_DNAME) {
+            i += sizeof(ngx_resolver_an_t) + len;
+
+        } else {
+            ngx_log_error(r->log_level, r->log, 0,
+                          "unexpected qtype %ui", qtype);
         }
     }
 
@@ -1291,8 +1345,8 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
     }
 
     ngx_log_error(r->log_level, r->log, 0,
-                "no A or CNAME types in DNS responses, unknown query type: %d",
-                qtype);
+               "no A or CNAME types in DNS responses, unknown query type: %ui",
+               qtype);
     return;
 
 short_response:
@@ -1368,9 +1422,9 @@ ngx_resolver_process_ptr(ngx_resolver_t *r, u_char *buf, size_t n,
 
     if (ident != qident) {
         ngx_log_error(r->log_level, r->log, 0,
-                      "wrong ident %d response for %ud.%ud.%ud.%ud, expect %d",
-                      ident, (addr >> 24) & 0xff, (addr >> 16) & 0xff,
-                      (addr >> 8) & 0xff, addr & 0xff, qident);
+                    "wrong ident %ui response for %ud.%ud.%ud.%ud, expect %ui",
+                    ident, (addr >> 24) & 0xff, (addr >> 16) & 0xff,
+                    (addr >> 8) & 0xff, addr & 0xff, qident);
         goto failed;
     }
 
@@ -1421,7 +1475,7 @@ ngx_resolver_process_ptr(ngx_resolver_t *r, u_char *buf, size_t n,
     len = (an->len_hi << 8) + an->len_lo;
 
     ngx_log_debug3(NGX_LOG_DEBUG_CORE, r->log, 0,
-                  "resolver qt:%d cl:%d len:%uz", qtype, qclass, len);
+                  "resolver qt:%ui cl:%ui len:%uz", qtype, qclass, len);
 
     i += 2 + sizeof(ngx_resolver_an_t);
 
@@ -1684,6 +1738,10 @@ ngx_resolver_create_name_query(ngx_resolver_node_t *rn, ngx_resolver_ctx_t *ctx)
             len++;
 
         } else {
+            if (len == 0) {
+                return NGX_DECLINED;
+            }
+
             *p = (u_char) len;
             len = 0;
         }

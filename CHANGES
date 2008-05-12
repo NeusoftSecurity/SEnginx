@@ -1,4 +1,14 @@
 
+Changes with nginx 0.6.31                                        12 May 2008
+
+    *) Bugfix: nginx did not process FastCGI response if header was at the 
+       end of FastCGI record; bug appeared in 0.6.2.
+       Thanks to Sergey Serov.
+
+    *) Bugfix: a segmentation fault might occur in worker process if a file 
+       was deleted and the "open_file_cache_errors" directive was off.
+
+
 Changes with nginx 0.6.30                                        29 Apr 2008
 
     *) Change: now if an "include" directive pattern does not match any 
@@ -7,7 +17,7 @@ Changes with nginx 0.6.30                                        29 Apr 2008
     *) Feature: now the time in directives may be specified without spaces, 
        for example, "1h50m".
 
-    *) Bugfix: memory leaks if the "ssl_verify_client" directive was on. 
+    *) Bugfix: memory leaks if the "ssl_verify_client" directive was on.
        Thanks to Chavelle Vincent.
 
     *) Bugfix: the "sub_filter" directive might set text to change into 

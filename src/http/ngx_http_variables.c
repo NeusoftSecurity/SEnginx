@@ -75,6 +75,8 @@ static ngx_int_t ngx_http_variable_sent_transfer_encoding(ngx_http_request_t *r,
 
 static ngx_int_t ngx_http_variable_nginx_version(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_variable_hostname(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 
 /*
  * TODO:
@@ -219,6 +221,9 @@ static ngx_http_variable_t  ngx_http_core_variables[] = {
       NGX_HTTP_VAR_CHANGEABLE|NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("nginx_version"), NULL, ngx_http_variable_nginx_version,
+      0, 0, 0 },
+
+    { ngx_string("hostname"), NULL, ngx_http_variable_hostname,
       0, 0, 0 },
 
     { ngx_null_string, NULL, NULL, 0, 0, 0 }
@@ -712,26 +717,15 @@ ngx_http_variable_host(ngx_http_request_t *r, ngx_http_variable_value_t *v,
 {
     ngx_http_core_srv_conf_t  *cscf;
 
-    if (r->host_start == NULL) {
-
-        if (r->headers_in.host) {
-            v->len = r->headers_in.host_name_len;
-            v->data = r->headers_in.host->value.data;
-
-        } else {
-            cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
-
-            v->len = cscf->server_name.len;
-            v->data = cscf->server_name.data;
-        }
-
-    } else if (r->host_end) {
-        v->len = r->host_end - r->host_start;
-        v->data = r->host_start;
+    if (r->headers_in.server.len) {
+        v->len = r->headers_in.server.len;
+        v->data = r->headers_in.server.data;
 
     } else {
-        v->not_found = 1;
-        return NGX_OK;
+        cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+
+        v->len = cscf->server_name.len;
+        v->data = cscf->server_name.data;
     }
 
     v->valid = 1;
@@ -1278,6 +1272,20 @@ ngx_http_variable_nginx_version(ngx_http_request_t *r,
     v->no_cacheable = 0;
     v->not_found = 0;
     v->data = (u_char *) NGINX_VERSION;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_variable_hostname(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    v->len = ngx_cycle->hostname.len;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->data = ngx_cycle->hostname.data;
 
     return NGX_OK;
 }

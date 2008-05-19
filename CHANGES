@@ -1,4 +1,27 @@
 
+Changes with nginx 0.7.0                                         19 May 2008
+
+    *) Change: now the 0x00-0x1F, '"' and '\' characters are escaped as 
+       \xXX in an access_log.
+       Thanks to Maxim Dounin.
+
+    *) Change: now nginx allows several "Host" request header line.
+
+    *) Feature: the "modified" flag in the "expires" directive.
+
+    *) Feature: the $uid_got and $uid_set variables may be used at any 
+       request processing stage.
+
+    *) Feature: the $hostname variable.
+       Thanks to Andrei Nigmatulin.
+
+    *) Feature: DESTDIR support.
+       Thanks to Todd A. Fisher and Andras Voroskoi.
+
+    *) Bugfix: a segmentation fault might occur in worker process on Linux, 
+       if keepalive was enabled.
+
+
 Changes with nginx 0.6.31                                        12 May 2008
 
     *) Bugfix: nginx did not process FastCGI response if header was at the 

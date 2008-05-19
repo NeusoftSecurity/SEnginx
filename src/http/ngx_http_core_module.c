@@ -2606,20 +2606,7 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 
     if (conf->server_name.data == NULL) {
-        conf->server_name.data = ngx_palloc(cf->pool, NGX_MAXHOSTNAMELEN);
-        if (conf->server_name.data == NULL) {
-            return NGX_CONF_ERROR;
-        }
-
-        if (gethostname((char *) conf->server_name.data, NGX_MAXHOSTNAMELEN)
-            == -1)
-        {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
-                               "gethostname() failed");
-            return NGX_CONF_ERROR;
-        }
-
-        conf->server_name.len = ngx_strlen(conf->server_name.data);
+        conf->server_name = cf->cycle->hostname;
 
         sn = ngx_array_push(&conf->server_names);
         if (sn == NULL) {
@@ -2922,7 +2909,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                 return NGX_CONF_ERROR;
             }
         }
- 
+
         conf->resolver = prev->resolver;
     }
 
@@ -3216,8 +3203,7 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         value[i].len--;
         value[i].data++;
 
-        sn->regex = ngx_regex_compile(&value[i], NGX_REGEX_CASELESS, cf->pool,
-                                      &err);
+        sn->regex = ngx_regex_compile(&value[i], 0, cf->pool, &err);
 
         if (sn->regex == NULL) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s", err.data);

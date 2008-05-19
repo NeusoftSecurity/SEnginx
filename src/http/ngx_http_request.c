@@ -21,15 +21,20 @@ static ngx_int_t ngx_http_process_header_line(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_process_unique_header_line(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
+static ngx_int_t ngx_http_process_host(ngx_http_request_t *r,
+    ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_process_connection(ngx_http_request_t *r,
+    ngx_table_elt_t *h, ngx_uint_t offset);
+static ngx_int_t ngx_http_process_user_agent(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_process_cookie(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
 
 static ngx_int_t ngx_http_process_request_header(ngx_http_request_t *r);
 static void ngx_http_process_request(ngx_http_request_t *r);
-static void ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host,
-    size_t len, ngx_uint_t hash);
+static ssize_t ngx_http_validate_host(u_char *host, size_t len);
+static ngx_int_t ngx_http_find_virtual_server(ngx_http_request_t *r,
+    u_char *host, size_t len);
 
 static void ngx_http_request_handler(ngx_event_t *ev);
 static ngx_int_t ngx_http_set_write_handler(ngx_http_request_t *r);
@@ -69,18 +74,15 @@ static char *ngx_http_client_errors[] = {
 
 
 ngx_http_header_t  ngx_http_headers_in[] = {
-    { ngx_string("Host"), offsetof(ngx_http_headers_in_t, host),
-                 ngx_http_process_unique_header_line },
+    { ngx_string("Host"), 0, ngx_http_process_host },
 
-    { ngx_string("Connection"), offsetof(ngx_http_headers_in_t, connection),
-                 ngx_http_process_connection },
+    { ngx_string("Connection"), 0, ngx_http_process_connection },
 
     { ngx_string("If-Modified-Since"),
                  offsetof(ngx_http_headers_in_t, if_modified_since),
                  ngx_http_process_unique_header_line },
 
-    { ngx_string("User-Agent"), offsetof(ngx_http_headers_in_t, user_agent),
-                 ngx_http_process_header_line },
+    { ngx_string("User-Agent"), 0, ngx_http_process_user_agent },
 
     { ngx_string("Referer"), offsetof(ngx_http_headers_in_t, referer),
                  ngx_http_process_header_line },
@@ -562,8 +564,6 @@ ngx_http_ssl_handshake_handler(ngx_connection_t *c)
 int
 ngx_http_ssl_servername(ngx_ssl_conn_t *ssl_conn, int *ad, void *arg)
 {
-    u_char                   *p;
-    ngx_uint_t                hash;
     const char               *servername;
     ngx_connection_t         *c;
     ngx_http_request_t       *r;
@@ -582,20 +582,12 @@ ngx_http_ssl_servername(ngx_ssl_conn_t *ssl_conn, int *ad, void *arg)
 
     r = c->data;
 
-    if (r->virtual_names == NULL) {
+    if (ngx_http_find_virtual_server(r, (u_char *) servername,
+                                     ngx_strlen(servername))
+        != NGX_OK)
+    {
         return SSL_TLSEXT_ERR_NOACK;
     }
-
-    /* it seems browsers send low case server name */
-
-    hash = 0;
-
-    for (p = (u_char *) servername; *p; p++) {
-        hash = ngx_hash(hash, *p);
-    }
-
-    ngx_http_find_virtual_server(r, (u_char *) servername,
-                                 p - (u_char *) servername, hash);
 
     sscf = ngx_http_get_module_srv_conf(r, ngx_http_ssl_module);
 
@@ -726,7 +718,31 @@ ngx_http_process_request_line(ngx_event_t *rev)
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                            "http exten: \"%V\"", &r->exten);
 
+            if (r->host_start && r->host_end) {
+                n = ngx_http_validate_host(r->host_start,
+                                           r->host_end - r->host_start);
+
+                if (n <= 0) {
+                    ngx_log_error(NGX_LOG_INFO, c->log, 0,
+                                  "client sent invalid host in request line");
+                    ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+                    return;
+                }
+
+                r->headers_in.server.len = n;
+                r->headers_in.server.data = r->host_start;
+            }
+
             if (r->http_version < NGX_HTTP_VERSION_10) {
+
+                if (ngx_http_find_virtual_server(r, r->headers_in.server.data,
+                                                 r->headers_in.server.len)
+                    == NGX_ERROR)
+                {
+                    ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+                    return;
+                }
+
                 ngx_http_process_request(r);
                 return;
             }
@@ -1217,6 +1233,36 @@ ngx_http_process_unique_header_line(ngx_http_request_t *r, ngx_table_elt_t *h,
 
 
 static ngx_int_t
+ngx_http_process_host(ngx_http_request_t *r, ngx_table_elt_t *h,
+    ngx_uint_t offset)
+{
+    ssize_t  len;
+
+    if (r->headers_in.host == NULL) {
+        r->headers_in.host = h;
+    }
+
+    len = ngx_http_validate_host(h->value.data, h->value.len);
+
+    if (len <= 0) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent invalid host header");
+        ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+        return NGX_ERROR;
+    }
+
+    if (r->headers_in.server.len) {
+        return NGX_OK;
+    }
+
+    r->headers_in.server.len = len;
+    r->headers_in.server.data = h->value.data;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 ngx_http_process_connection(ngx_http_request_t *r, ngx_table_elt_t *h,
     ngx_uint_t offset)
 {
@@ -1225,6 +1271,60 @@ ngx_http_process_connection(ngx_http_request_t *r, ngx_table_elt_t *h,
 
     } else if (ngx_strcasestrn(h->value.data, "keep-alive", 10 - 1)) {
         r->headers_in.connection_type = NGX_HTTP_CONNECTION_KEEP_ALIVE;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_process_user_agent(ngx_http_request_t *r, ngx_table_elt_t *h,
+    ngx_uint_t offset)
+{
+    u_char  *ua, *user_agent;
+
+    if (r->headers_in.user_agent) {
+        return NGX_OK;
+    }
+
+    r->headers_in.user_agent = h;
+
+    /* check some widespread browsers while the header is in CPU cache */
+
+    user_agent = h->value.data;
+
+    ua = ngx_strstrn(user_agent, "MSIE", 4 - 1);
+
+    if (ua && ua + 8 < user_agent + h->value.len) {
+
+        r->headers_in.msie = 1;
+
+        if (ua[4] == ' ' && ua[5] == '4' && ua[6] == '.') {
+            r->headers_in.msie4 = 1;
+        }
+
+#if 0
+        /* MSIE ignores the SSL "close notify" alert */
+        if (c->ssl) {
+            c->ssl->no_send_shutdown = 1;
+        }
+#endif
+    }
+
+    if (ngx_strstrn(user_agent, "Opera", 5 - 1)) {
+        r->headers_in.opera = 1;
+        r->headers_in.msie = 0;
+        r->headers_in.msie4 = 0;
+    }
+
+    if (!r->headers_in.msie && !r->headers_in.opera) {
+
+        if (ngx_strstrn(user_agent, "Gecko/", 6 - 1)) {
+            r->headers_in.gecko = 1;
+
+        } else if (ngx_strstrn(user_agent, "Konqueror", 9 - 1)) {
+            r->headers_in.konqueror = 1;
+        }
     }
 
     return NGX_OK;
@@ -1252,57 +1352,19 @@ ngx_http_process_cookie(ngx_http_request_t *r, ngx_table_elt_t *h,
 static ngx_int_t
 ngx_http_process_request_header(ngx_http_request_t *r)
 {
-    size_t       len;
-    u_char      *host, *ua, *user_agent, ch;
-    ngx_uint_t   hash;
+    if (ngx_http_find_virtual_server(r, r->headers_in.server.data,
+                                     r->headers_in.server.len)
+        == NGX_ERROR)
+    {
+        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+        return NGX_ERROR;
+    }
 
-    if (r->headers_in.host) {
-
-        hash = 0;
-
-        for (len = 0; len < r->headers_in.host->value.len; len++) {
-            ch = r->headers_in.host->value.data[len];
-
-            if (ch == ':') {
-                break;
-            }
-
-            ch = ngx_tolower(ch);
-            r->headers_in.host->value.data[len] = ch;
-            hash = ngx_hash(hash, ch);
-        }
-
-        if (len && r->headers_in.host->value.data[len - 1] == '.') {
-            len--;
-            hash = ngx_hash_key(r->headers_in.host->value.data, len);
-        }
-
-        r->headers_in.host_name_len = len;
-
-        if (r->virtual_names) {
-
-            host = r->host_start;
-
-            if (host == NULL) {
-                host = r->headers_in.host->value.data;
-                len = r->headers_in.host_name_len;
-
-            } else {
-                len = r->host_end - host;
-            }
-
-            ngx_http_find_virtual_server(r, host, len, hash);
-        }
-
-    } else {
-        if (r->http_version > NGX_HTTP_VERSION_10) {
-            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                       "client sent HTTP/1.1 request without \"Host\" header");
-            ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
-            return NGX_ERROR;
-        }
-
-        r->headers_in.host_name_len = 0;
+    if (r->headers_in.host == NULL && r->http_version > NGX_HTTP_VERSION_10) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                   "client sent HTTP/1.1 request without \"Host\" header");
+        ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+        return NGX_ERROR;
     }
 
     if (r->headers_in.content_length) {
@@ -1350,50 +1412,6 @@ ngx_http_process_request_header(ngx_http_request_t *r)
             r->headers_in.keep_alive_n =
                             ngx_atotm(r->headers_in.keep_alive->value.data,
                                       r->headers_in.keep_alive->value.len);
-        }
-    }
-
-    if (r->headers_in.user_agent) {
-
-        /*
-         * check some widespread browsers while the headers are still
-         * in CPU cache
-         */
-
-        user_agent = r->headers_in.user_agent->value.data;
-
-        ua = ngx_strstrn(user_agent, "MSIE", 4 - 1);
-
-        if (ua && ua + 8 < user_agent + r->headers_in.user_agent->value.len) {
-
-            r->headers_in.msie = 1;
-
-            if (ua[4] == ' ' && ua[5] == '4' && ua[6] == '.') {
-                r->headers_in.msie4 = 1;
-            }
-
-#if 0
-            /* MSIE ignores the SSL "close notify" alert */
-            if (c->ssl) {
-                c->ssl->no_send_shutdown = 1;
-            }
-#endif
-        }
-
-        if (ngx_strstrn(user_agent, "Opera", 5 - 1)) {
-            r->headers_in.opera = 1;
-            r->headers_in.msie = 0;
-            r->headers_in.msie4 = 0;
-        }
-
-        if (!r->headers_in.msie && !r->headers_in.opera) {
-
-            if (ngx_strstrn(user_agent, "Gecko/", 6 - 1)) {
-                r->headers_in.gecko = 1;
-
-            } else if (ngx_strstrn(user_agent, "Konqueror", 9 - 1)) {
-                r->headers_in.konqueror = 1;
-            }
         }
     }
 
@@ -1479,14 +1497,89 @@ ngx_http_process_request(ngx_http_request_t *r)
 }
 
 
-static void
-ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len,
-    ngx_uint_t hash)
+static ssize_t
+ngx_http_validate_host(u_char *host, size_t len)
 {
+    u_char      ch;
+    size_t      i, last;
+    ngx_uint_t  dot;
+
+    last = len;
+    dot = 0;
+
+    for (i = 0; i < len; i++) {
+        ch = host[i];
+
+        if (ch == '.') {
+            if (dot) {
+                return -1;
+            }
+
+            dot = 1;
+            continue;
+        }
+
+        dot = 0;
+
+        if (ch == ':') {
+            last = i;
+            continue;
+        }
+
+        if (ch == '/' || ch == '\0') {
+            return -1;
+        }
+
+#if (NGX_WIN32)
+        if (ch == '\\') {
+            return -1;
+        }
+#endif
+    }
+
+    if (dot) {
+        last--;
+    }
+
+    return last;
+}
+
+
+static ngx_int_t
+ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len)
+{
+    u_char                    *server, ch;
+    ngx_uint_t                 i, hash;
     ngx_http_core_loc_conf_t  *clcf;
     ngx_http_core_srv_conf_t  *cscf;
+    u_char                     buf[32];
 
-    cscf = ngx_hash_find_combined(&r->virtual_names->names, hash, host, len);
+    if (len == 0 || r->virtual_names == NULL) {
+        return NGX_DECLINED;
+    }
+
+    if (len <= 32) {
+        server = buf;
+
+    } else {
+        server = ngx_palloc(r->pool, len);
+        if (server == NULL) {
+            return NGX_ERROR;
+        }
+    }
+
+    hash = 0;
+
+    for (i = 0; i < len; i++) {
+        ch = host[i];
+
+        ch = ngx_tolower(ch);
+        server[i] = ch;
+
+        hash = ngx_hash(hash, ch);
+    }
+
+    cscf = ngx_hash_find_combined(&r->virtual_names->names, hash, server, len);
 
     if (cscf) {
         goto found;
@@ -1501,7 +1594,7 @@ ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len,
         ngx_http_server_name_t  *sn;
 
         name.len = len;
-        name.data = host;
+        name.data = server;
 
         sn = r->virtual_names->regex;
 
@@ -1518,7 +1611,7 @@ ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len,
                               ngx_regex_exec_n
                               " failed: %d on \"%V\" using \"%V\"",
                               n, &name, &sn[i].name);
-                return;
+                return NGX_ERROR;
             }
 
             /* match */
@@ -1531,7 +1624,7 @@ ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len,
 
 #endif
 
-    return;
+    return NGX_OK;
 
 found:
 
@@ -1545,7 +1638,7 @@ found:
         r->connection->log->log_level = clcf->err_log->log_level;
     }
 
-    return;
+    return NGX_OK;
 }
 
 
@@ -2064,7 +2157,8 @@ ngx_http_set_keepalive(ngx_http_request_t *r)
         hc->pipeline = 1;
         c->log->action = "reading client pipelined request line";
 
-        ngx_http_init_request(rev);
+        rev->handler = ngx_http_init_request;
+        ngx_post_event(rev, &ngx_posted_events);
         return;
     }
 
@@ -2180,7 +2274,7 @@ ngx_http_set_keepalive(ngx_http_request_t *r)
     c->idle = 1;
 
     if (rev->ready) {
-        ngx_http_keepalive_handler(rev);
+        ngx_post_event(rev, &ngx_posted_events);
     }
 }
 

@@ -1,4 +1,24 @@
 
+Changes with nginx 0.7.1                                         26 May 2008
+
+    *) Change: now locations are searched in a tree.
+
+    *) Change: the "optimize_server_names" directive was canceled due to 
+       the "server_name_in_redirect" directive introduction.
+
+    *) Change: some long deprecated directives are not supported anymore.
+
+    *) Change: the "none" parameter in the "ssl_session_cache" directive; 
+       now this is default parameter.
+       Thanks to Rob Mueller.
+
+    *) Bugfix: worker processes might not catch reconfiguration and log 
+       rotation signals.
+
+    *) Bugfix: nginx could not be built on latest Fedora 9 Linux.
+       Thanks to Roxis.
+
+
 Changes with nginx 0.7.0                                         19 May 2008
 
     *) Change: now the 0x00-0x1F, '"' and '\' characters are escaped as 

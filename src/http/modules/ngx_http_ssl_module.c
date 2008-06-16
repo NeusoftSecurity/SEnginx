@@ -72,6 +72,13 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
       offsetof(ngx_http_ssl_srv_conf_t, certificate_key),
       NULL },
 
+    { ngx_string("ssl_dhparam"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      offsetof(ngx_http_ssl_srv_conf_t, dhparam),
+      NULL },
+
     { ngx_string("ssl_protocols"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_1MORE,
       ngx_conf_set_bitmask_slot,
@@ -174,6 +181,9 @@ static ngx_http_variable_t  ngx_http_ssl_vars[] = {
 
     { ngx_string("ssl_cipher"), NULL, ngx_http_ssl_static_variable,
       (uintptr_t) ngx_ssl_get_cipher_name, NGX_HTTP_VAR_CHANGEABLE, 0 },
+
+    { ngx_string("ssl_client_cert"), NULL, ngx_http_ssl_variable,
+      (uintptr_t) ngx_ssl_get_certificate, NGX_HTTP_VAR_CHANGEABLE, 0 },
 
     { ngx_string("ssl_client_s_dn"), NULL, ngx_http_ssl_variable,
       (uintptr_t) ngx_ssl_get_subject_dn, NGX_HTTP_VAR_CHANGEABLE, 0 },
@@ -287,12 +297,10 @@ ngx_http_ssl_create_srv_conf(ngx_conf_t *cf)
      * set by ngx_pcalloc():
      *
      *     sscf->protocols = 0;
-     *     sscf->certificate.len = 0;
-     *     sscf->certificate.data = NULL;
-     *     sscf->certificate_key.len = 0;
-     *     sscf->certificate_key.data = NULL;
-     *     sscf->client_certificate.len = 0;
-     *     sscf->client_certificate.data = NULL;
+     *     sscf->certificate = { 0, NULL };
+     *     sscf->certificate_key = { 0, NULL };
+     *     sscf->dhparam = { 0, NULL };
+     *     sscf->client_certificate = { 0, NULL };
      *     sscf->ciphers.len = 0;
      *     sscf->ciphers.data = NULL;
      *     sscf->shm_zone = NULL;
@@ -341,6 +349,8 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_str_value(conf->certificate_key, prev->certificate_key,
                          NGX_DEFLAUT_CERTIFICATE_KEY);
+
+    ngx_conf_merge_str_value(conf->dhparam, prev->dhparam, "");
 
     ngx_conf_merge_str_value(conf->client_certificate, prev->client_certificate,
                          "");
@@ -411,6 +421,10 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     /* a temporary 512-bit RSA key is required for export versions of MSIE */
     if (ngx_ssl_generate_rsa512_key(&conf->ssl) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    if (ngx_ssl_dhparam(cf, &conf->ssl, &conf->dhparam) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 

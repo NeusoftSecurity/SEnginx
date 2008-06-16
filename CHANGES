@@ -1,4 +1,24 @@
 
+Changes with nginx 0.7.2                                         16 Jun 2008
+
+    *) Feature: now nginx supports EDH key exchange ciphers.
+
+    *) Feature: the "ssl_dhparam" directive.
+
+    *) Feature: the $ssl_client_cert variable.
+       Thanks to Manlio Perillo.
+
+    *) Bugfix: after changing URI via a "rewrite" directive nginx did not 
+       search a new location; bug appeared in 0.7.1.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: nginx could not be built without PCRE library; bug appeared 
+       in 0.7.1.
+
+    *) Bugfix: when a request to a directory was redirected with the slash 
+       added, nginx dropped a query string from the original request.
+
+
 Changes with nginx 0.7.1                                         26 May 2008
 
     *) Change: now locations are searched in a tree.

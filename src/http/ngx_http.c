@@ -1024,12 +1024,15 @@ ngx_http_create_locations_tree(ngx_conf_t *cf, ngx_queue_t *locations,
     lq = (ngx_http_location_queue_t *) q;
     len = lq->name->len - prefix;
 
-    node = ngx_pcalloc(cf->pool,
-                       offsetof(ngx_http_location_tree_node_t, name) + len);
+    node = ngx_palloc_aligned(cf->pool,
+                          offsetof(ngx_http_location_tree_node_t, name) + len);
     if (node == NULL) {
         return NULL;
     }
 
+    node->left = NULL;
+    node->right = NULL;
+    node->tree = NULL;
     node->exact = lq->exact;
     node->inclusive = lq->inclusive;
 
@@ -1297,14 +1300,14 @@ ngx_http_optimize_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
     ngx_array_t *in_ports)
 {
     ngx_int_t                  rc;
-    ngx_uint_t                 s, p, a, i;
+    ngx_uint_t                 s, p, a;
     ngx_hash_init_t            hash;
     ngx_http_server_name_t    *name;
     ngx_hash_keys_arrays_t     ha;
     ngx_http_conf_in_port_t   *in_port;
     ngx_http_conf_in_addr_t   *in_addr;
 #if (NGX_PCRE)
-    ngx_uint_t                 regex;
+    ngx_uint_t                 regex, i;
 #endif
 
     in_port = in_ports->elts;

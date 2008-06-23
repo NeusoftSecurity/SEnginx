@@ -1,4 +1,19 @@
 
+Changes with nginx 0.7.3                                         23 Jun 2008
+
+    *) Change: the "rss" extension MIME type has been changed to 
+       "application/rss+xml".
+
+    *) Change: now the "gzip_vary" directive turned on issues a 
+       "Vary: Accept-Encoding" header line for uncompressed responses too.
+
+    *) Feature: now the "rewrite" directive does a redirect automatically 
+       if the "https://" protocol is used.
+
+    *) Bugfix: the "proxy_pass" directive did not work with the HTTPS 
+       protocol; the bug had appeared in 0.6.9.
+
+
 Changes with nginx 0.7.2                                         16 Jun 2008
 
     *) Feature: now nginx supports EDH key exchange ciphers.
@@ -9,11 +24,11 @@ Changes with nginx 0.7.2                                         16 Jun 2008
        Thanks to Manlio Perillo.
 
     *) Bugfix: after changing URI via a "rewrite" directive nginx did not 
-       search a new location; bug appeared in 0.7.1.
+       search a new location; the bug had appeared in 0.7.1.
        Thanks to Maxim Dounin.
 
-    *) Bugfix: nginx could not be built without PCRE library; bug appeared 
-       in 0.7.1.
+    *) Bugfix: nginx could not be built without PCRE library; the bug had 
+       appeared in 0.7.1.
 
     *) Bugfix: when a request to a directory was redirected with the slash 
        added, nginx dropped a query string from the original request.
@@ -65,7 +80,7 @@ Changes with nginx 0.7.0                                         19 May 2008
 Changes with nginx 0.6.31                                        12 May 2008
 
     *) Bugfix: nginx did not process FastCGI response if header was at the 
-       end of FastCGI record; bug appeared in 0.6.2.
+       end of FastCGI record; the bug had appeared in 0.6.2.
        Thanks to Sergey Serov.
 
     *) Bugfix: a segmentation fault might occur in worker process if a file 
@@ -91,7 +106,8 @@ Changes with nginx 0.6.30                                        29 Apr 2008
 
     *) Bugfix: now nginx always opens files in binary mode under Cygwin.
 
-    *) Bugfix: nginx could not be built on OpenBSD; bug appeared in 0.6.15.
+    *) Bugfix: nginx could not be built on OpenBSD; the bug had appeared in 
+       0.6.15.
 
 
 Changes with nginx 0.6.29                                        18 Mar 2008
@@ -99,12 +115,13 @@ Changes with nginx 0.6.29                                        18 Mar 2008
     *) Feature: the ngx_google_perftools_module.
 
     *) Bugfix: the ngx_http_perl_module could not be built on 64-bit 
-       platforms; bug appeared in 0.6.27.
+       platforms; the bug had appeared in 0.6.27.
 
 
 Changes with nginx 0.6.28                                        13 Mar 2008
 
-    *) Bugfix: the rtsig method could not be built; bug appeared in 0.6.27.
+    *) Bugfix: the rtsig method could not be built; the bug had appeared in 
+       0.6.27.
 
 
 Changes with nginx 0.6.27                                        12 Mar 2008
@@ -176,10 +193,10 @@ Changes with nginx 0.6.26                                        11 Feb 2008
        Thanks to Ben Maurer.
 
     *) Bugfix: nginx issued the bogus error message "SSL_shutdown() failed 
-       (SSL: )"; bug appeared in 0.6.23.
+       (SSL: )"; the bug had appeared in 0.6.23.
 
     *) Bugfix: in HTTPS mode requests might fail with the "bad write retry" 
-       error; bug appeared in 0.6.23.
+       error; the bug had appeared in 0.6.23.
 
 
 Changes with nginx 0.6.25                                        08 Jan 2008
@@ -201,19 +218,19 @@ Changes with nginx 0.6.25                                        08 Jan 2008
     *) Bugfix: the COPY and MOVE methods did not work with single files.
 
     *) Bugfix: the ngx_http_gzip_static_module did not allow the 
-       ngx_http_dav_module to work; bug appeared in 0.6.23.
+       ngx_http_dav_module to work; the bug had appeared in 0.6.23.
 
     *) Bugfix: socket leak in HTTPS mode if deferred accept was used.
        Thanks to Ben Maurer.
 
-    *) Bugfix: nginx could not be built without PCRE library; bug appeared 
-       in 0.6.23.
+    *) Bugfix: nginx could not be built without PCRE library; the bug had 
+       appeared in 0.6.23.
 
 
 Changes with nginx 0.6.24                                        27 Dec 2007
 
     *) Bugfix: a segmentation fault might occur in worker process if HTTPS 
-       was used; bug appeared in 0.6.23.
+       was used; the bug had appeared in 0.6.23.
 
 
 Changes with nginx 0.6.23                                        27 Dec 2007
@@ -253,7 +270,7 @@ Changes with nginx 0.6.23                                        27 Dec 2007
        Thanks to Oleg Motienko.
 
     *) Bugfix: in HTTPS mode requests might fail with the "bad write retry" 
-       error; bug appeared in 0.5.13.
+       error; the bug had appeared in 0.5.13.
 
 
 Changes with nginx 0.6.22                                        19 Dec 2007
@@ -263,7 +280,7 @@ Changes with nginx 0.6.22                                        19 Dec 2007
 
     *) Bugfix: if nginx was built with ngx_http_perl_module, the perl 
        before 5.8.6 was used, and perl supported threads, then during 
-       reconfiguration the master process aborted; bug appeared in 
+       reconfiguration the master process aborted; the bug had appeared in 
        0.5.9.
        Thanks to Boris Zhmurov.
 
@@ -279,14 +296,14 @@ Changes with nginx 0.6.22                                        19 Dec 2007
        Thanks to Olexander Shtepa.
 
     *) Bugfix: the last address was missed in the $upstream_addr variable; 
-       bug appeared in 0.6.18.
+       the bug had appeared in 0.6.18.
 
     *) Bugfix: the "fastcgi_catch_stderr" directive did return error code; 
        now it returns 502 code, that can be rerouted to a next server using 
        the "fastcgi_next_upstream invalid_header" directive.
 
     *) Bugfix: a segmentation fault occurred in master process if the 
-       "fastcgi_catch_stderr" directive was used; bug appeared in 
+       "fastcgi_catch_stderr" directive was used; the bug had appeared in 
        0.6.10.
        Thanks to Manlio Perillo.
 
@@ -298,8 +315,8 @@ Changes with nginx 0.6.21                                        03 Dec 2007
        resolver
 
     *) Bugfix: a segmentation fault might occur in worker process if a 
-       "proxy_pass" directive with URI-part was used; bug appeared in 
-       0.6.19.
+       "proxy_pass" directive with URI-part was used; the bug had appeared 
+       in 0.6.19.
 
     *) Bugfix: if resolver was used on platform that does not support 
        kqueue, then nginx issued an alert "name is out of response".
@@ -317,8 +334,8 @@ Changes with nginx 0.6.21                                        03 Dec 2007
 Changes with nginx 0.6.20                                        28 Nov 2007
 
     *) Bugfix: a segmentation fault might occur in worker process if a 
-       "proxy_pass" directive with URI-part was used; bug appeared in 
-       0.6.19.
+       "proxy_pass" directive with URI-part was used; the bug had appeared 
+       in 0.6.19.
 
 
 Changes with nginx 0.6.19                                        27 Nov 2007
@@ -351,7 +368,7 @@ Changes with nginx 0.6.17                                        15 Nov 2007
        Thanks to Alexander V. Inyukhin.
 
     *) Bugfix: URL double escaping in a redirect of the "msie_refresh" 
-       directive; bug appeared in 0.6.4.
+       directive; the bug had appeared in 0.6.4.
 
     *) Bugfix: the "autoindex" directive did not work with the "alias /" 
        directive.
@@ -372,7 +389,7 @@ Changes with nginx 0.6.16                                        29 Oct 2007
        Thanks to Ilya Novikov.
 
     *) Bugfix: if the "?" character was in a "error_page" directive, then 
-       it was escaped in a proxied request; bug appeared in 0.6.11.
+       it was escaped in a proxied request; the bug had appeared in 0.6.11.
 
     *) Bugfix: compatibility with mget.
 
@@ -400,11 +417,11 @@ Changes with nginx 0.6.15                                        22 Oct 2007
 
     *) Bugfix: if request with request body was redirected using the 
        "error_page" directive, then nginx tried to read the request body 
-       again; bug appeared in 0.6.7.
+       again; the bug had appeared in 0.6.7.
 
     *) Bugfix: a segmentation fault occurred in worker process if no 
        server_name was explicitly defined for server processing request; 
-       bug appeared in 0.6.7.
+       the bug had appeared in 0.6.7.
 
 
 Changes with nginx 0.6.14                                        15 Oct 2007
@@ -417,7 +434,7 @@ Changes with nginx 0.6.14                                        15 Oct 2007
        "limit_except" block.
 
     *) Bugfix: if all upstream servers were failed, then all servers had 
-       got weight the was equal one until servers became alive; bug 
+       got weight the was equal one until servers became alive; the bug had 
        appeared in 0.6.6.
 
     *) Bugfix: a segmentation fault occurred in worker process if 
@@ -436,8 +453,8 @@ Changes with nginx 0.6.14                                        15 Oct 2007
        memcached was used.
 
     *) Bugfix: nginx supported low case only "close" and "keep-alive" 
-       values in the "Connection" request header line; bug appeared in 
-       0.6.11.
+       values in the "Connection" request header line; the bug had appeared 
+       in 0.6.11.
 
     *) Bugfix: sub_filter did not work with empty substitution.
 
@@ -461,7 +478,8 @@ Changes with nginx 0.6.12                                        21 Sep 2007
     *) Feature: the "smtp_greeting_delay" and "smtp_client_buffer" 
        directives of the ngx_mail_smtp_module.
 
-    *) Bugfix: the trailing wildcards did not work; bug appeared in 0.6.9.
+    *) Bugfix: the trailing wildcards did not work; the bug had appeared in 
+       0.6.9.
 
     *) Bugfix: nginx could not start on Solaris if the shared PCRE library 
        located in non-standard place was used.
@@ -484,7 +502,8 @@ Changes with nginx 0.6.11                                        11 Sep 2007
        lines.
 
     *) Bugfix: if the "max_fails" was set for upstream server, then after 
-       first failure server weight was always one; bug appeared in 0.6.6.
+       first failure server weight was always one; the bug had appeared in 
+       0.6.6.
 
 
 Changes with nginx 0.6.10                                        03 Sep 2007
@@ -492,7 +511,7 @@ Changes with nginx 0.6.10                                        03 Sep 2007
     *) Feature: the "open_file_cache", "open_file_cache_retest", and 
        "open_file_cache_errors" directives.
 
-    *) Bugfix: socket leak; bug appeared in 0.6.7.
+    *) Bugfix: socket leak; the bug had appeared in 0.6.7.
 
     *) Bugfix: a charset set by the "charset" directive was not appended to 
        the "Content-Type" header set by $r->send_http_header().
@@ -504,7 +523,7 @@ Changes with nginx 0.6.10                                        03 Sep 2007
 Changes with nginx 0.6.9                                         28 Aug 2007
 
     *) Bugfix: a worker process may got caught in an endless loop, if the 
-       HTTPS protocol was used; bug appeared in 0.6.7.
+       HTTPS protocol was used; the bug had appeared in 0.6.7.
 
     *) Bugfix: if server listened on two addresses or ports and trailing 
        wildcard was used, then nginx did not run.
@@ -512,7 +531,8 @@ Changes with nginx 0.6.9                                         28 Aug 2007
     *) Bugfix: the "ip_hash" directive might incorrectly mark servers as 
        down.
 
-    *) Bugfix: nginx could not be built on amd64; bug appeared in 0.6.8.
+    *) Bugfix: nginx could not be built on amd64; the bug had appeared in 
+       0.6.8.
 
 
 Changes with nginx 0.6.8                                         20 Aug 2007
@@ -527,8 +547,8 @@ Changes with nginx 0.6.8                                         20 Aug 2007
     *) Change: now nginx escapes "%" in $memcached_key variable.
 
     *) Bugfix: nginx used path relative to configuration prefix for 
-       non-absolute configuration file path specified in the "-c" key; bug 
-       appeared in 0.6.6.
+       non-absolute configuration file path specified in the "-c" key; the 
+       bug had appeared in 0.6.6.
 
     *) Bugfix: nginx did not work on FreeBSD/sparc64.
 
@@ -570,8 +590,8 @@ Changes with nginx 0.6.7                                         15 Aug 2007
        Thanks to Jiang Hong.
 
     *) Bugfix: a worker process may got caught in an endless loop, if a 
-       "server" inside "upstream" block was marked as "down"; bug appeared 
-       in 0.6.6.
+       "server" inside "upstream" block was marked as "down"; the bug had 
+       appeared in 0.6.6.
 
     *) Bugfix: now Solaris sendfilev() is not used to transfer the client 
        request body to FastCGI-server via the unix domain socket.
@@ -596,7 +616,7 @@ Changes with nginx 0.6.6                                         30 Jul 2007
        for HTTP and HTTPS, then nginx used only one port - 80 or 443.
 
     *) Bugfix: fix building on Solaris/amd64 by Sun Studio 11 and early 
-       versions; bug appeared in 0.6.4.
+       versions; the bug had appeared in 0.6.4.
 
 
 Changes with nginx 0.6.5                                         23 Jul 2007
@@ -657,8 +677,8 @@ Changes with nginx 0.6.3                                         12 Jul 2007
        eventport method was used.
 
     *) Bugfix: the "proxy_ignore_client_abort" and 
-       "fastcgi_ignore_client_abort" directives did not work; bug appeared 
-       in 0.5.13.
+       "fastcgi_ignore_client_abort" directives did not work; the bug had 
+       appeared in 0.5.13.
 
 
 Changes with nginx 0.6.2                                         09 Jul 2007
@@ -690,7 +710,8 @@ Changes with nginx 0.6.0                                         14 Jun 2007
 Changes with nginx 0.5.25                                        11 Jun 2007
 
     *) Bugfix: nginx could not be built with the 
-       --without-http_rewrite_module parameter; bug appeared in 0.5.24.
+       --without-http_rewrite_module parameter; the bug had appeared in 
+       0.5.24.
 
 
 Changes with nginx 0.5.24                                        06 Jun 2007
@@ -699,7 +720,7 @@ Changes with nginx 0.5.24                                        06 Jun 2007
        was made using HTTP/0.9.
 
     *) Bugfix: a part of response body might be passed uncompressed if gzip 
-       was used; bug appeared in 0.5.23.
+       was used; the bug had appeared in 0.5.23.
 
 
 Changes with nginx 0.5.23                                        04 Jun 2007
@@ -722,8 +743,8 @@ Changes with nginx 0.5.23                                        04 Jun 2007
 
 Changes with nginx 0.5.22                                        29 May 2007
 
-    *) Bugfix: a big request body might not be passed to backend; bug 
-       appeared in 0.5.21.
+    *) Bugfix: a big request body might not be passed to backend; the bug 
+       had appeared in 0.5.21.
 
 
 Changes with nginx 0.5.21                                        28 May 2007
@@ -796,11 +817,12 @@ Changes with nginx 0.5.18                                        19 Apr 2007
 
     *) Bugfix: a segmentation fault occurred in master process after first 
        reconfiguration and receiving any signal if nginx was built with 
-       ngx_http_perl_module and perl did not support multiplicity; bug 
-       appeared in 0.5.9.
+       ngx_http_perl_module and perl did not support multiplicity; the bug 
+       had appeared in 0.5.9.
 
     *) Bugfix: if perl did not support multiplicity, then after 
-       reconfiguration perl code did not work; bug appeared in 0.3.38.
+       reconfiguration perl code did not work; the bug had appeared in 
+       0.3.38.
 
 
 Changes with nginx 0.5.17                                        02 Apr 2007
@@ -827,14 +849,14 @@ Changes with nginx 0.5.16                                        26 Mar 2007
 
     *) Bugfix: a segmentation fault might occur in worker process if a 
        charset was set in the "Content-Type" header line and the line has 
-       trailing ";"; bug appeared in 0.3.50.
+       trailing ";"; the bug had appeared in 0.3.50.
 
     *) Bugfix: the "[alert] zero size buf" error when FastCGI server was 
        used and a request body written in a temporary file was multiple of 
        32K.
 
     *) Bugfix: nginx could not be built on Solaris without the --with-debug 
-       option; bug appeared in 0.5.15.
+       option; the bug had appeared in 0.5.15.
 
 
 Changes with nginx 0.5.15                                        19 Mar 2007
@@ -890,17 +912,17 @@ Changes with nginx 0.5.13                                        19 Feb 2007
        send timeout only.
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
-       amd64, sparc and ppc; bug appeared in 0.5.8.
+       amd64, sparc and ppc; the bug had appeared in 0.5.8.
 
 
 Changes with nginx 0.5.12                                        12 Feb 2007
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
-       amd64, sparc É ppc; bug appeared in 0.5.8.
+       amd64, sparc É ppc; the bug had appeared in 0.5.8.
 
     *) Bugfix: a segmentation fault might occur in worker process if the 
-       temporarily files were used while working with FastCGI server; bug 
-       appeared in 0.5.8.
+       temporarily files were used while working with FastCGI server; the 
+       bug had appeared in 0.5.8.
 
     *) Bugfix: a segmentation fault might occur in worker process if the 
        $fastcgi_script_name variable was logged.
@@ -914,7 +936,7 @@ Changes with nginx 0.5.11                                        05 Feb 2007
        Thanks to Chris McGrath.
 
     *) Bugfix: the response was incorrect if several ranges were requested; 
-       bug appeared in 0.5.6.
+       the bug had appeared in 0.5.6.
 
     *) Bugfix: the "create_full_put_path" directive could not create the 
        intermediate directories if no "dav_access" directive was set.
@@ -930,10 +952,10 @@ Changes with nginx 0.5.11                                        05 Feb 2007
 Changes with nginx 0.5.10                                        26 Jan 2007
 
     *) Bugfix: while online executable file upgrade the new master process 
-       did not inherit the listening sockets; bug appeared in 0.5.9.
+       did not inherit the listening sockets; the bug had appeared in 0.5.9.
 
     *) Bugfix: a segmentation fault might occur in worker process if nginx 
-       was built with -O2 optimization; bug appeared in 0.5.1.
+       was built with -O2 optimization; the bug had appeared in 0.5.1.
 
 
 Changes with nginx 0.5.9                                         25 Jan 2007
@@ -969,7 +991,7 @@ Changes with nginx 0.5.8                                         19 Jan 2007
 
     *) Bugfix: if the "proxy_buffering off" directive was used and a client 
        connection was non-active, then the connection was closed after send 
-       timeout; bug appeared in 0.4.7.
+       timeout; the bug had appeared in 0.4.7.
 
     *) Bugfix: if the "epoll" method was used and a client closed a 
        connection prematurely, then nginx closed the connection after a 
@@ -1050,7 +1072,7 @@ Changes with nginx 0.5.4                                         15 Dec 2006
        directive, then nginx might report about configuration error.
 
     *) Bugfix: a segmentation fault might occur if the $host variable was 
-       used; bug appeared in 0.4.14.
+       used; the bug had appeared in 0.4.14.
 
 
 Changes with nginx 0.5.3                                         13 Dec 2006
@@ -1067,8 +1089,8 @@ Changes with nginx 0.5.3                                         13 Dec 2006
 Changes with nginx 0.5.2                                         11 Dec 2006
 
     *) Bugfix: if the "proxy_pass" directive used the name of the 
-       "upstream" block, then nginx tried to resolve the name; bug appeared 
-       in 0.5.1.
+       "upstream" block, then nginx tried to resolve the name; the bug had 
+       appeared in 0.5.1.
 
 
 Changes with nginx 0.5.1                                         11 Dec 2006
@@ -1076,19 +1098,20 @@ Changes with nginx 0.5.1                                         11 Dec 2006
     *) Bugfix: the "post_action" directive might not run after a 
        unsuccessful completion of a request.
 
-    *) Workaround: for Eudora for Mac; bug appeared in 0.4.11.
+    *) Workaround: for Eudora for Mac; the bug had appeared in 0.4.11.
        Thanks to Bron Gondwana.
 
     *) Bugfix: if the "upstream" name was used in the "fastcgi_pass", then 
-       the message "no port in upstream" was issued; bug appeared in 0.5.0.
+       the message "no port in upstream" was issued; the bug had appeared 
+       in 0.5.0.
 
     *) Bugfix: if the "proxy_pass" and "fastcgi_pass" directives used the 
        same servers but different ports, then these directives uses the 
-       first described port; bug appeared in 0.5.0.
+       first described port; the bug had appeared in 0.5.0.
 
     *) Bugfix: if the "proxy_pass" and "fastcgi_pass" directives used the 
        unix domain sockets, then these directives used first described 
-       socket; bug appeared in 0.5.0.
+       socket; the bug had appeared in 0.5.0.
 
     *) Bugfix: ngx_http_auth_basic_module ignored the user if it was in the 
        last line in the password file and there was no the carriage return, 
@@ -1117,8 +1140,8 @@ Changes with nginx 0.5.0                                         04 Dec 2006
     *) Feature: the WAIT status in the "Auth-Status" header line of the 
        IMAP/POP3 proxy authentication server response.
 
-    *) Bugfix: nginx could not be built on 64-bit platforms; bug appeared 
-       in 0.4.14.
+    *) Bugfix: nginx could not be built on 64-bit platforms; the bug had 
+       appeared in 0.4.14.
 
 
 Changes with nginx 0.4.14                                        27 Nov 2006
@@ -1129,7 +1152,7 @@ Changes with nginx 0.4.14                                        27 Nov 2006
        Linux, and NetBSD.
 
     *) Bugfix: ngx_http_perl_module did not work with perl built with the 
-       threads support; bug appeared in 0.3.38.
+       threads support; the bug had appeared in 0.3.38.
 
     *) Bugfix: ngx_http_perl_module did not work if perl was called 
        recursively.
@@ -1164,7 +1187,7 @@ Changes with nginx 0.4.13                                        15 Nov 2006
        the deferred accept() were used.
 
     *) Bugfix: a charset could not be set for ngx_http_autoindex_module 
-       responses; bug appeared in 0.3.50.
+       responses; the bug had appeared in 0.3.50.
 
     *) Bugfix: the "[alert] zero size buf" error when FastCGI server was 
        used;
@@ -1172,8 +1195,8 @@ Changes with nginx 0.4.13                                        15 Nov 2006
     *) Bugfix: the --group= configuration parameter was ignored.
        Thanks to Thomas Moschny.
 
-    *) Bugfix: the 50th subrequest in SSI response did not work; bug 
-       appeared in 0.3.50.
+    *) Bugfix: the 50th subrequest in SSI response did not work; the bug 
+       had appeared in 0.3.50.
 
 
 Changes with nginx 0.4.12                                        31 Oct 2006
@@ -1194,7 +1217,7 @@ Changes with nginx 0.4.11                                        25 Oct 2006
        method.
 
     *) Bugfix: if the APOP was enabled in the POP3 proxy, then the 
-       USER/PASS commands might not work; bug appeared in 0.4.10.
+       USER/PASS commands might not work; the bug had appeared in 0.4.10.
 
 
 Changes with nginx 0.4.10                                        23 Oct 2006
@@ -1209,10 +1232,10 @@ Changes with nginx 0.4.10                                        23 Oct 2006
        variable was used in the "map" directive.
 
     *) Bugfix: the ngx_http_flv_module did not support the byte ranges for 
-       full responses; bug appeared in 0.4.7.
+       full responses; the bug had appeared in 0.4.7.
 
-    *) Bugfix: nginx could not be built on Debian amd64; bug appeared in 
-       0.4.9.
+    *) Bugfix: nginx could not be built on Debian amd64; the bug had 
+       appeared in 0.4.9.
 
 
 Changes with nginx 0.4.9                                         13 Oct 2006
@@ -1265,14 +1288,14 @@ Changes with nginx 0.4.6                                         06 Oct 2006
        $r->headers_out("Content-Length", ...) method.
 
     *) Bugfix: after redirecting error by an "error_page" directive any 
-       ngx_http_rewrite_module directive returned this error code; bug 
-       appeared in 0.4.4.
+       ngx_http_rewrite_module directive returned this error code; the bug 
+       had appeared in 0.4.4.
 
 
 Changes with nginx 0.4.5                                         02 Oct 2006
 
-    *) Bugfix: nginx could not be built on Linux and Solaris; bug appeared 
-       in 0.4.4.
+    *) Bugfix: nginx could not be built on Linux and Solaris; the bug had 
+       appeared in 0.4.4.
 
 
 Changes with nginx 0.4.4                                         02 Oct 2006
@@ -1307,7 +1330,7 @@ Changes with nginx 0.4.3                                         26 Sep 2006
        error to the proxied server using a "proxy_pass" directive.
 
     *) Bugfix: a segmentation fault occurred if an unix domain socket was 
-       used in a "proxy_pass" directive; bug appeared in 0.3.47.
+       used in a "proxy_pass" directive; the bug had appeared in 0.3.47.
 
     *) Bugfix: SSI did work with memcached and nonbuffered responses.
 
@@ -1316,8 +1339,8 @@ Changes with nginx 0.4.3                                         26 Sep 2006
 
 Changes with nginx 0.4.2                                         14 Sep 2006
 
-    *) Bugfix: the O_NOATIME flag support on Linux was canceled; bug 
-       appeared in 0.4.1.
+    *) Bugfix: the O_NOATIME flag support on Linux was canceled; the bug 
+       had appeared in 0.4.1.
 
 
 Changes with nginx 0.4.1                                         14 Sep 2006
@@ -1351,7 +1374,7 @@ Changes with nginx 0.4.0                                         30 Aug 2006
 
     *) Bugfix: a segmentation fault occurred if there was an "index" 
        directive with variables and the first index name was without 
-       variables; bug appeared in 0.1.29.
+       variables; the bug had appeared in 0.1.29.
 
 
 Changes with nginx 0.3.61                                        28 Aug 2006
@@ -1369,7 +1392,7 @@ Changes with nginx 0.3.61                                        28 Aug 2006
 Changes with nginx 0.3.60                                        18 Aug 2006
 
     *) Bugfix: a worker process may got caught in an endless loop while an 
-       error redirection; bug appeared in 0.3.59.
+       error redirection; the bug had appeared in 0.3.59.
 
 
 Changes with nginx 0.3.59                                        16 Aug 2006
@@ -1381,7 +1404,7 @@ Changes with nginx 0.3.59                                        16 Aug 2006
 
     *) Bugfix: the "error_page" directive did not changes the 
        "Content-Type" header line after the "X-Accel-Redirect" was used; 
-       bug appeared in 0.3.58.
+       the bug had appeared in 0.3.58.
 
 
 Changes with nginx 0.3.58                                        14 Aug 2006
@@ -1449,8 +1472,8 @@ Changes with nginx 0.3.55                                        28 Jul 2006
        upstream.
 
     *) Bugfix: on some condition while reconfiguration character codes 
-       inside the "charset_map" may be treated invalid; bug appeared in 
-       0.3.50.
+       inside the "charset_map" may be treated invalid; the bug had 
+       appeared in 0.3.50.
 
 
 Changes with nginx 0.3.54                                        11 Jul 2006
@@ -1469,8 +1492,8 @@ Changes with nginx 0.3.54                                        11 Jul 2006
     *) Bugfix: the $upstream_response_time variable had the time of the 
        first request to a backend only.
 
-    *) Bugfix: nginx could not be built on amd64 platform; bug appeared in 
-       0.3.53.
+    *) Bugfix: nginx could not be built on amd64 platform; the bug had 
+       appeared in 0.3.53.
 
 
 Changes with nginx 0.3.53                                        07 Jul 2006
@@ -1503,10 +1526,10 @@ Changes with nginx 0.3.52                                        03 Jul 2006
        return the 405 error.
 
     *) Bugfix: the worker process may got caught in an endless loop if the 
-       limit rate was used; bug appeared in 0.3.37.
+       limit rate was used; the bug had appeared in 0.3.37.
 
     *) Bugfix: ngx_http_charset_module logged "unknown charset" alert, even 
-       if the recoding was not needed; bug appeared in 0.3.50.
+       if the recoding was not needed; the bug had appeared in 0.3.50.
 
     *) Bugfix: if a code response of the PUT request was 409, then a 
        temporary file was not removed.
@@ -1515,7 +1538,7 @@ Changes with nginx 0.3.52                                        03 Jul 2006
 Changes with nginx 0.3.51                                        30 Jun 2006
 
     *) Bugfix: the "<" symbols might disappeared some conditions in the 
-       SSI; bug appeared in 0.3.50.
+       SSI; the bug had appeared in 0.3.50.
 
 
 Changes with nginx 0.3.50                                        28 Jun 2006
@@ -1560,10 +1583,11 @@ Changes with nginx 0.3.48                                        29 May 2006
 
     *) Bugfix: the internal redirect always transform client's HTTP method 
        to GET, now the transformation is made for the "X-Accel-Redirect" 
-       redirects only and if the method is not HEAD; bug appeared in 0.3.42.
+       redirects only and if the method is not HEAD; the bug had appeared 
+       in 0.3.42.
 
     *) Bugfix: the ngx_http_perl_module could not be built, if the perl was 
-       built with the threads support; bug appeared in 0.3.46.
+       built with the threads support; the bug had appeared in 0.3.46.
 
 
 Changes with nginx 0.3.47                                        23 May 2006
@@ -1677,9 +1701,9 @@ Changes with nginx 0.3.39                                        17 Apr 2006
 
     *) Bugfix: the active connection counter increased on the exceeding of 
        the connection limit specified by the "worker_connections" 
-       directive; bug appeared in 0.2.0.
+       directive; the bug had appeared in 0.2.0.
 
-    *) Bugfix: the limit rate might not work on some condition; bug 
+    *) Bugfix: the limit rate might not work on some condition; the bug had 
        appeared in 0.3.38.
 
 
@@ -1753,7 +1777,7 @@ Changes with nginx 0.3.36                                        05 Apr 2006
 Changes with nginx 0.3.35                                        22 Mar 2006
 
     *) Bugfix: the accept-filter and the TCP_DEFER_ACCEPT option were set 
-       for first "listen" directive only; bug appeared in 0.3.31.
+       for first "listen" directive only; the bug had appeared in 0.3.31.
 
     *) Bugfix: in the "proxy_pass" directive without the URI part in a 
        subrequest.
@@ -1778,7 +1802,7 @@ Changes with nginx 0.3.33                                        15 Mar 2006
 Changes with nginx 0.3.32                                        11 Mar 2006
 
     *) Bugfix: the debug logging on startup and reconfiguration time was 
-       removed; bug appeared in 0.3.31.
+       removed; the bug had appeared in 0.3.31.
 
 
 Changes with nginx 0.3.31                                        10 Mar 2006
@@ -1796,7 +1820,8 @@ Changes with nginx 0.3.31                                        10 Mar 2006
 
     *) Bugfix: if there were several "listen" directives listening one 
        various addresses inside one server, then server names like 
-       "*.domain.tld" worked for first address only; bug appeared in 0.3.18.
+       "*.domain.tld" worked for first address only; the bug had appeared 
+       in 0.3.18.
 
     *) Bugfix: if the HTTPS protocol was used in the "proxy_pass" directive 
        and the request body was in temporarily file then the request was 
@@ -1814,7 +1839,7 @@ Changes with nginx 0.3.30                                        22 Feb 2006
        ngx_http_ssi_filter_module.
 
     *) Bugfix: nginx could not be built on i386 platform, if the PIC was 
-       used; bug appeared in 0.3.27.
+       used; the bug had appeared in 0.3.27.
 
 
 Changes with nginx 0.3.29                                        20 Feb 2006
@@ -1890,8 +1915,8 @@ Changes with nginx 0.3.26                                        03 Feb 2006
 Changes with nginx 0.3.25                                        01 Feb 2006
 
     *) Bugfix: the segmentation fault was occurred on start or while 
-       reconfiguration if there was invalid configuration; bug appeared in 
-       0.3.24.
+       reconfiguration if there was invalid configuration; the bug had 
+       appeared in 0.3.24.
 
 
 Changes with nginx 0.3.24                                        01 Feb 2006
@@ -1907,8 +1932,8 @@ Changes with nginx 0.3.24                                        01 Feb 2006
        location.
 
     *) Bugfix: on 64-bit platforms segmentation fault may occurred on start 
-       if the many names were used in the "server_name" directives; bug 
-       appeared in 0.3.18.
+       if the many names were used in the "server_name" directives; the bug 
+       had appeared in 0.3.18.
 
 
 Changes with nginx 0.3.23                                        24 Jan 2006
@@ -1931,8 +1956,8 @@ Changes with nginx 0.3.22                                        17 Jan 2006
        canceled.
 
     *) Bugfix: segmentation fault was occurred if the "none" or "blocked" 
-       values was specified in the "valid_referers" directive; bug appeared 
-       in 0.3.18.
+       values was specified in the "valid_referers" directive; the bug had 
+       appeared in 0.3.18.
 
 
 Changes with nginx 0.3.21                                        16 Jan 2006
@@ -1983,10 +2008,10 @@ Changes with nginx 0.3.18                                        26 Dec 2005
        ngx_http_map_module.
 
     *) Bugfix: segmentation fault was occurred if configuration file did 
-       not exist; bug appeared in 0.3.12.
+       not exist; the bug had appeared in 0.3.12.
 
     *) Bugfix: on 64-bit platforms segmentation fault may occurred on 
-       start; bug appeared in 0.3.16.
+       start; the bug had appeared in 0.3.16.
 
 
 Changes with nginx 0.3.17                                        18 Dec 2005
@@ -1997,8 +2022,8 @@ Changes with nginx 0.3.17                                        18 Dec 2005
     *) Feature: the "map" directive supports domain names in the 
        ".domain.tld" form.
 
-    *) Bugfix: the timeouts were not used in SSL handshake; bug appeared in 
-       0.2.4.
+    *) Bugfix: the timeouts were not used in SSL handshake; the bug had 
+       appeared in 0.2.4.
 
     *) Bugfix: in the HTTPS protocol in the "proxy_pass" directive.
 
@@ -2024,11 +2049,11 @@ Changes with nginx 0.3.16                                        16 Dec 2005
     *) Bugfix: the "config timefmt" SSI command set incorrect time format.
 
     *) Bugfix: nginx did not close connection to IMAP/POP3 backend for the 
-       SSL connections; bug appeared in 0.3.13.
+       SSL connections; the bug had appeared in 0.3.13.
        Thanks to Rob Mueller.
 
-    *) Bugfix: segmentation fault may occurred in at SSL shutdown; bug 
-       appeared in 0.3.13.
+    *) Bugfix: segmentation fault may occurred in at SSL shutdown; the bug 
+       had appeared in 0.3.13.
 
 
 Changes with nginx 0.3.15                                        07 Dec 2005
@@ -2044,8 +2069,8 @@ Changes with nginx 0.3.15                                        07 Dec 2005
 
 Changes with nginx 0.3.14                                        05 Dec 2005
 
-    *) Bugfix: in the 304 response the body was transferred; bug appeared 
-       in 0.3.13.
+    *) Bugfix: in the 304 response the body was transferred; the bug had 
+       appeared in 0.3.13.
 
 
 Changes with nginx 0.3.13                                        05 Dec 2005
@@ -2061,7 +2086,7 @@ Changes with nginx 0.3.13                                        05 Dec 2005
        request body to FastCGI-server via the unix domain socket.
 
     *) Bugfix: the "auth_basic" directive did not disable the 
-       authorization; bug appeared in 0.3.11.
+       authorization; the bug had appeared in 0.3.11.
 
 
 Changes with nginx 0.3.12                                        26 Nov 2005
@@ -2082,7 +2107,7 @@ Changes with nginx 0.3.12                                        26 Nov 2005
     *) Feature: the "proxy_buffering" directive.
 
     *) Bugfix: the changes in accept mutex handling when the "rtsig" method 
-       was used; bug appeared in 0.3.0.
+       was used; the bug had appeared in 0.3.0.
 
     *) Bugfix: if the client sent the "Transfer-Encoding: chunked" header 
        line, then nginx returns the 411 error.
@@ -2093,7 +2118,7 @@ Changes with nginx 0.3.12                                        26 Nov 2005
 
     *) Bugfix: if the "combined" format was explicitly specified in the 
        "access_log" directive, then the empty lines was written to the log; 
-       bug appeared in 0.3.8.
+       the bug had appeared in 0.3.8.
 
     *) Bugfix: nginx did not run on the sparc platform under any OS except 
        Solaris.
@@ -2105,7 +2130,7 @@ Changes with nginx 0.3.12                                        26 Nov 2005
 Changes with nginx 0.3.11                                        15 Nov 2005
 
     *) Bugfix: nginx did not pass the client request headers and body while 
-       proxying; bug appeared in 0.3.10.
+       proxying; the bug had appeared in 0.3.10.
 
 
 Changes with nginx 0.3.10                                        15 Nov 2005
@@ -2144,7 +2169,7 @@ Changes with nginx 0.3.10                                        15 Nov 2005
 Changes with nginx 0.3.9                                         10 Nov 2005
 
     *) Bugfix: nginx considered URI as unsafe if two any symbols was 
-       between two slashes; bug appeared in 0.3.8.
+       between two slashes; the bug had appeared in 0.3.8.
 
 
 Changes with nginx 0.3.8                                         09 Nov 2005
@@ -2184,8 +2209,8 @@ Changes with nginx 0.3.8                                         09 Nov 2005
 
     *) Bugfix: if the request URI was changes by the "rewrite" directive 
        and the request was proxied in location given by regular expression, 
-       then the incorrect request was transferred to backend; bug appeared 
-       in 0.2.6.
+       then the incorrect request was transferred to backend; the bug had 
+       appeared in 0.2.6.
 
     *) Bugfix: the "expires" directive did not remove the previous 
        "Expires" header.
@@ -2206,7 +2231,7 @@ Changes with nginx 0.3.7                                         27 Oct 2005
     *) Feature: the "access_log" supports the "buffer=" parameter.
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
-       amd64, sparc É ppc; bug appeared in 0.3.2.
+       amd64, sparc É ppc; the bug had appeared in 0.3.2.
 
 
 Changes with nginx 0.3.6                                         24 Oct 2005
@@ -2217,7 +2242,8 @@ Changes with nginx 0.3.6                                         24 Oct 2005
     *) Feature: the "log_format" supports the variables in the $name form.
 
     *) Bugfix: if at least in one server was no the "listen" directive, 
-       then nginx did not listen on the 80 port; bug appeared in 0.3.3.
+       then nginx did not listen on the 80 port; the bug had appeared in 
+       0.3.3.
 
     *) Bugfix: if the URI part is omitted in "proxy_pass" directive, the 
        the 80 port was always used.
@@ -2226,10 +2252,10 @@ Changes with nginx 0.3.6                                         24 Oct 2005
 Changes with nginx 0.3.5                                         21 Oct 2005
 
     *) Bugfix: the segmentation fault may occurred if the IMAP/POP3 login 
-       was changed by authorization server; bug appeared in 0.2.2.
+       was changed by authorization server; the bug had appeared in 0.2.2.
 
     *) Bugfix: the accept mutex did not work and all connections were 
-       handled by one process; bug appeared in 0.3.3.
+       handled by one process; the bug had appeared in 0.3.3.
 
     *) Bugfix: the timeout did not work if the "rtsig" method and the 
        "timer_resolution" directive were used.
@@ -2237,8 +2263,8 @@ Changes with nginx 0.3.5                                         21 Oct 2005
 
 Changes with nginx 0.3.4                                         19 Oct 2005
 
-    *) Bugfix: nginx could not be built on Linux 2.4+ and MacOS X; bug 
-       appeared in 0.3.3.
+    *) Bugfix: nginx could not be built on Linux 2.4+ and MacOS X; the bug 
+       had appeared in 0.3.3.
 
 
 Changes with nginx 0.3.3                                         19 Oct 2005
@@ -2259,7 +2285,7 @@ Changes with nginx 0.3.3                                         19 Oct 2005
        the CLOSED state.
 
     *) Bugfix: the mime type may be incorrectly set to default value for 
-       index file with variable in the name; bug appeared in 0.3.0.
+       index file with variable in the name; the bug had appeared in 0.3.0.
 
     *) Feature: the "timer_resolution" directive.
 
@@ -2291,7 +2317,8 @@ Changes with nginx 0.3.2                                         12 Oct 2005
 Changes with nginx 0.3.1                                         10 Oct 2005
 
     *) Bugfix: the segmentation fault occurred when the signal queue 
-       overflowed if the "rtsig" method was used; bug appeared in 0.2.0.
+       overflowed if the "rtsig" method was used; the bug had appeared in 
+       0.2.0.
 
     *) Change: correct handling of the "\\", "\"", "\'", and "\$" pairs in 
        SSI.
@@ -2325,7 +2352,7 @@ Changes with nginx 0.2.6                                         05 Oct 2005
     *) Bugfix: if the "set" directive set the ngx_http_geo_module variable 
        in some configuration part, the this variable was not available in 
        other configuration parts and the "using uninitialized variable" 
-       error was occurred; bug appeared in 0.2.2.
+       error was occurred; the bug had appeared in 0.2.2.
 
 
 Changes with nginx 0.2.5                                         04 Oct 2005
@@ -2347,17 +2374,17 @@ Changes with nginx 0.2.4                                         03 Oct 2005
     *) Feature: the ngx_http_ssi_module supports "$var=text", "$var!=text", 
        "$var=/text/", and "$var!=/text/" expressions in the "if" command.
 
-    *) Bugfix: in proxying location without trailing slash; bug appeared in 
-       0.1.44.
+    *) Bugfix: in proxying location without trailing slash; the bug had 
+       appeared in 0.1.44.
 
     *) Bugfix: the segmentation fault may occurred if the "rtsig" method 
-       was used; bug appeared in 0.2.0.
+       was used; the bug had appeared in 0.2.0.
 
 
 Changes with nginx 0.2.3                                         30 Sep 2005
 
     *) Bugfix: nginx could not be built without the --with-debug option; 
-       bug appeared in 0.2.2.
+       the bug had appeared in 0.2.2.
 
 
 Changes with nginx 0.2.2                                         30 Sep 2005
@@ -2386,8 +2413,8 @@ Changes with nginx 0.2.2                                         30 Sep 2005
 Changes with nginx 0.2.1                                         23 Sep 2005
 
     *) Bugfix: if all backend using in load-balancing failed after one 
-       error, then nginx may got caught in an endless loop; bug appeared in 
-       0.2.0.
+       error, then nginx may got caught in an endless loop; the bug had 
+       appeared in 0.2.0.
 
 
 Changes with nginx 0.2.0                                         23 Sep 2005
@@ -2465,7 +2492,7 @@ Changes with nginx 0.1.43                                        30 Aug 2005
     *) Bugfix: the segmentation fault occurred or the worker process may 
        got caught in an endless loop if the proxied or FastCGI server sent 
        the "Cache-Control" header line and the "expires" directive was 
-       used; in the proxied mode the bug appeared in 0.1.29.
+       used; in the proxied mode the the bug had appeared in 0.1.29.
 
 
 Changes with nginx 0.1.42                                        23 Aug 2005
@@ -2475,7 +2502,7 @@ Changes with nginx 0.1.42                                        23 Aug 2005
        occurred in the ngx_http_proxy_module.
 
     *) Bugfix: the "limit_rate" directive did not work inside the "if" 
-       block; bug appeared in 0.1.38.
+       block; the bug had appeared in 0.1.38.
 
 
 Changes with nginx 0.1.41                                        25 Jul 2005
@@ -2490,7 +2517,7 @@ Changes with nginx 0.1.40                                        22 Jul 2005
        information did not logged in the error log.
 
     *) Bugfix: the "Set-Cookie" header line was not transferred when the 
-       "X-Accel-Redirect" was used; bug appeared in 0.1.39.
+       "X-Accel-Redirect" was used; the bug had appeared in 0.1.39.
 
     *) Bugfix: the "Content-Disposition" header line was not transferred 
        when the "X-Accel-Redirect" was used.
@@ -2512,8 +2539,8 @@ Changes with nginx 0.1.39                                        14 Jul 2005
        transferred while the 401 response code redirecting.
 
     *) Bugfix: the ngx_http_proxy_module and ngx_http_fastcgi_module may 
-       close a connection before anything was transferred to a client; bug 
-       appeared in 0.1.38.
+       close a connection before anything was transferred to a client; the 
+       bug had appeared in 0.1.38.
 
     *) Workaround: the Linux glibc crypt_r() initialization bug.
 
@@ -2522,17 +2549,17 @@ Changes with nginx 0.1.39                                        14 Jul 2005
 
     *) Bugfix: if the backend response had the "Location" header line and 
        nginx should not rewrite this line, then the 500 code response body 
-       was transferred; bug appeared in 0.1.29.
+       was transferred; the bug had appeared in 0.1.29.
 
     *) Bugfix: some directives of the ngx_http_proxy_module and 
        ngx_http_fastcgi_module were not inherited from the server to the 
-       location level; bug appeared in 0.1.29.
+       location level; the bug had appeared in 0.1.29.
 
     *) Bugfix: the ngx_http_ssl_module did not support the certificate 
        chain.
 
     *) Bugfix: the ngx_http_autoindex_module did not show correctly the 
-       long file names; bug appeared in 0.1.38.
+       long file names; the bug had appeared in 0.1.38.
 
     *) Bugfixes in IMAP/POP3 proxy in interaction with a backend at the 
        login state.
@@ -2560,8 +2587,8 @@ Changes with nginx 0.1.38                                        08 Jul 2005
        than one remote subrequest.
 
     *) Bugfix: nginx treated the backend response as invalid if the status 
-       line in the header was transferred in two packets; bug appeared in 
-       0.1.29.
+       line in the header was transferred in two packets; the bug had 
+       appeared in 0.1.29.
 
     *) Feature: the "ssi_types" directive.
 
@@ -2615,7 +2642,7 @@ Changes with nginx 0.1.35                                        07 Jun 2005
     *) Feature: the "port_in_redirect" directive.
 
     *) Bugfix: the segmentation fault was occurred if the backend response 
-       header was in several packets; bug appeared in 0.1.29.
+       header was in several packets; the bug had appeared in 0.1.29.
 
     *) Bugfix: if more than 10 servers were configured or some server did 
        not use the "listen" directive, then the segmentation fault was 
@@ -2625,7 +2652,8 @@ Changes with nginx 0.1.35                                        07 Jun 2005
        bigger than the temporary file.
 
     *) Bugfix: nginx returned the 400 response on requests like 
-       "GET http://www.domain.com/uri HTTP/1.0"; bug appeared in 0.1.28.
+       "GET http://www.domain.com/uri HTTP/1.0"; the bug had appeared in 
+       0.1.28.
 
 
 Changes with nginx 0.1.34                                        26 May 2005
@@ -2645,7 +2673,7 @@ Changes with nginx 0.1.34                                        26 May 2005
 Changes with nginx 0.1.33                                        23 May 2005
 
     *) Bugfix: nginx could not be built with the --without-pcre parameter; 
-       bug appeared in 0.1.29.
+       the bug had appeared in 0.1.29.
 
     *) Bugfix: 3, 4, 7, and 8 the "proxy_set_header" directives in one 
        level cause the bus fault on start up.
@@ -2659,7 +2687,7 @@ Changes with nginx 0.1.33                                        23 May 2005
 Changes with nginx 0.1.32                                        19 May 2005
 
     *) Bugfix: the arguments were omitted in the redirects, issued by the 
-       "rewrite" directive; bug appeared in 0.1.29.
+       "rewrite" directive; the bug had appeared in 0.1.29.
 
     *) Feature: the "if" directive supports the captures in regular 
        expressions.
@@ -2680,7 +2708,7 @@ Changes with nginx 0.1.31                                        16 May 2005
     *) Bugfix: errors while using SSI and gzipping.
 
     *) Bugfix: the redirect with the 301 code was transferred without 
-       response body; bug appeared in 0.1.30.
+       response body; the bug had appeared in 0.1.30.
 
 
 Changes with nginx 0.1.30                                        14 May 2005
@@ -2692,7 +2720,8 @@ Changes with nginx 0.1.30                                        14 May 2005
 
     *) Bugfix: if the length of the response part received at once from 
        proxied or FastCGI server was equal to 500, then nginx returns the 
-       500 response code; in proxy mode the bug appeared in 0.1.29 only.
+       500 response code; in proxy mode the the bug had appeared in 0.1.29 
+       only.
 
     *) Bugfix: nginx did not consider the directives with 8 or 9 parameters 
        as invalid.
@@ -2771,7 +2800,7 @@ Changes with nginx 0.1.29                                        12 May 2005
        returned the 408 response.
 
     *) Bugfix: the segmentation fault was occurred if the backend sent an 
-       invalid line in response header; bug appeared in 0.1.26.
+       invalid line in response header; the bug had appeared in 0.1.26.
 
     *) Bugfix: the segmentation fault may occurred in FastCGI fault 
        tolerance configuration.
@@ -2891,7 +2920,7 @@ Changes with nginx 0.1.23                                        01 Mar 2005
        server name of the "server_name" directive.
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
-       amd64, sparc É ppc; bug appeared in 0.1.22.
+       amd64, sparc É ppc; the bug had appeared in 0.1.22.
 
     *) Bugfix: the ngx_http_autoindex_module now shows the information not 
        about the symlink, but about file or directory it points to.
@@ -2906,7 +2935,7 @@ Changes with nginx 0.1.22                                        22 Feb 2005
        connections statistics if the proxying or FastCGI server were used.
 
     *) Bugfix: the installation paths were incorrectly quoted on Linux and 
-       Solaris; bug appeared in 0.1.21.
+       Solaris; the bug had appeared in 0.1.21.
 
 
 Changes with nginx 0.1.21                                        22 Feb 2005
@@ -2991,7 +3020,8 @@ Changes with nginx 0.1.17                                        03 Feb 2005
        static page, then the segmentation fault occurred.
 
     *) Bugfix: if in a proxied "Location" header was a relative URL, then a 
-       host name and a slash were added to them; bug appeared in 0.1.14.
+       host name and a slash were added to them; the bug had appeared in 
+       0.1.14.
 
     *) Bugfix: the system error message was not logged on Linux.
 
@@ -3016,7 +3046,7 @@ Changes with nginx 0.1.16                                        25 Jan 2005
     *) Feature: the rewrite directive supports the arguments rewriting.
 
     *) Bugfix: the response code 400 was returned for the POST request with 
-       the "Content-Length: 0" header; bug appeared in 0.1.14.
+       the "Content-Length: 0" header; the bug had appeared in 0.1.14.
 
 
 Changes with nginx 0.1.15                                        19 Jan 2005
@@ -3037,8 +3067,8 @@ Changes with nginx 0.1.15                                        19 Jan 2005
        to use the regular expressions in locations.
 
     *) Bugfix: the directive "proxy_preserve_host  on" adds port 80 to the 
-       "Host" headers, if upstream listen on port 80; bug appeared in 
-       0.1.14.
+       "Host" headers, if upstream listen on port 80; the bug had appeared 
+       in 0.1.14.
 
     *) Bugfix: the same paths in autoconfiguration parameters 
        --http-client-body-temp-path=PATH and --http-proxy-temp-path=PATH, 
@@ -3064,7 +3094,8 @@ Changes with nginx 0.1.14                                        18 Jan 2005
        fastcgi_max_temp_file_size, fastcgi_temp_file_write_size, 
        fastcgi_next_upstream, and fastcgi_x_powered_by.
 
-    *) Bugfix: the "[alert] zero size buf" error; bug appeared in 0.1.3.
+    *) Bugfix: the "[alert] zero size buf" error; the bug had appeared in 
+       0.1.3.
 
     *) Change: the URI must be specified after the host name in the 
        proxy_pass directive.
@@ -3149,7 +3180,7 @@ Changes with nginx 0.1.10                                        26 Nov 2004
 
     *) Bugfix: if the request without arguments contains "//", "/./", 
        "/../" or "%XX" then the lost character in the request line was 
-       lost; bug appeared in 0.1.9.
+       lost; the bug had appeared in 0.1.9.
 
     *) Bugfix: the fix in 0.1.9 for the files bigger than 2G on Linux did 
        not work.
@@ -3167,7 +3198,8 @@ Changes with nginx 0.1.9                                         25 Nov 2004
        does not support sendfile64().
 
     *) Bugfix: while the build configuration on Linux the 
-       --with-poll_module parameter was required; bug appeared in 0.1.8.
+       --with-poll_module parameter was required; the bug had appeared in 
+       0.1.8.
 
 
 Changes with nginx 0.1.8                                         20 Nov 2004
@@ -3183,7 +3215,7 @@ Changes with nginx 0.1.8                                         20 Nov 2004
 Changes with nginx 0.1.7                                         12 Nov 2004
 
     *) Bugfix: on FreeBSD the segmentation fault may occur if the size of 
-       the transferred file was changed; bug appeared in 0.1.5.
+       the transferred file was changed; the bug had appeared in 0.1.5.
 
 
 Changes with nginx 0.1.6                                         11 Nov 2004
@@ -3242,13 +3274,13 @@ Changes with nginx 0.1.2                                         21 Oct 2004
     *) Bugfix: the portability improvements.
 
     *) Bugfix: if configuration file was set in command line, the 
-       reconfiguration was impossible; bug appeared in 0.1.1.
+       reconfiguration was impossible; the bug had appeared in 0.1.1.
 
     *) Bugfix: proxy module may get caught in an endless loop when sendfile 
        is not used.
 
     *) Bugfix: with sendfile the response was not recoded according to the 
-       charset module directives; bug appeared in 0.1.1.
+       charset module directives; the bug had appeared in 0.1.1.
 
     *) Bugfix: very seldom bug in the kqueue processing.
 

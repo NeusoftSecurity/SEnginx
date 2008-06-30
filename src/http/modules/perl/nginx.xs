@@ -639,22 +639,23 @@ sendfile(r, filename, offset = -1, bytes = 0)
         XSRETURN_EMPTY;
     }
 
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-
-    of.test_dir = 0;
-    of.valid = clcf->open_file_cache_valid;
-    of.min_uses = clcf->open_file_cache_min_uses;
-    of.errors = clcf->open_file_cache_errors;
-    of.events = clcf->open_file_cache_events;
-
     path.len = ngx_strlen(filename);
 
-    path.data = ngx_pcalloc(r->pool, path.len + 1);
+    path.data = ngx_pnalloc(r->pool, path.len + 1);
     if (path.data == NULL) {
         XSRETURN_EMPTY;
     }
 
     (void) ngx_cpystrn(path.data, filename, path.len + 1);
+
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
+    ngx_memzero(&of, sizeof(ngx_open_file_info_t));
+
+    of.valid = clcf->open_file_cache_valid;
+    of.min_uses = clcf->open_file_cache_min_uses;
+    of.errors = clcf->open_file_cache_errors;
+    of.events = clcf->open_file_cache_events;
 
     if (ngx_open_cached_file(clcf->open_file_cache, &path, &of, r->pool)
         != NGX_OK)

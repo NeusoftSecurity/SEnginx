@@ -1,4 +1,17 @@
 
+Changes with nginx 0.7.4                                         30 Jun 2008
+
+    *) Feature: variables support in the "access_log" directive.
+
+    *) Feature: the "open_log_file_cache" directive.
+
+    *) Feature: the -g switch.
+
+    *) Feature: the "Expect" request header line support.
+
+    *) Bugfix: large SSI inclusions might be truncated.
+
+
 Changes with nginx 0.7.3                                         23 Jun 2008
 
     *) Change: the "rss" extension MIME type has been changed to 
@@ -912,13 +925,13 @@ Changes with nginx 0.5.13                                        19 Feb 2007
        send timeout only.
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
-       amd64, sparc and ppc; the bug had appeared in 0.5.8.
+       amd64, sparc, and ppc; the bug had appeared in 0.5.8.
 
 
 Changes with nginx 0.5.12                                        12 Feb 2007
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
-       amd64, sparc É ppc; the bug had appeared in 0.5.8.
+       amd64, sparc, and ppc; the bug had appeared in 0.5.8.
 
     *) Bugfix: a segmentation fault might occur in worker process if the 
        temporarily files were used while working with FastCGI server; the 
@@ -1624,7 +1637,8 @@ Changes with nginx 0.3.45                                        06 May 2006
     *) Change: the &deg; symbol codes were changed in koi-win conversion 
        table.
 
-    *) Feature: the euro É N symbols were added to koi-win conversion table.
+    *) Feature: the euro and N symbols were added to koi-win conversion 
+       table.
 
     *) Bugfix: if nginx distributed the requests among several backends and 
        some backend failed, then requests intended for this backend was 
@@ -2231,7 +2245,7 @@ Changes with nginx 0.3.7                                         27 Oct 2005
     *) Feature: the "access_log" supports the "buffer=" parameter.
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
-       amd64, sparc É ppc; the bug had appeared in 0.3.2.
+       amd64, sparc, and ppc; the bug had appeared in 0.3.2.
 
 
 Changes with nginx 0.3.6                                         24 Oct 2005
@@ -2920,7 +2934,7 @@ Changes with nginx 0.1.23                                        01 Mar 2005
        server name of the "server_name" directive.
 
     *) Bugfix: nginx could not be built on platforms different from i386, 
-       amd64, sparc É ppc; the bug had appeared in 0.1.22.
+       amd64, sparc, and ppc; the bug had appeared in 0.1.22.
 
     *) Bugfix: the ngx_http_autoindex_module now shows the information not 
        about the symlink, but about file or directory it points to.

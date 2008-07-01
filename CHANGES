@@ -1,4 +1,17 @@
 
+Changes with nginx 0.7.5                                         01 Jul 2008
+
+    *) Bugfixes in variables support in the "access_log" directive; the bug 
+       had appeared in 0.7.4.
+
+    *) Bugfix: nginx could not be built --without-http_gzip_module; the bug 
+       had appeared in 0.7.3.
+       Thanks to Kirill A. Korinskiy.
+
+    *) Bugfix: if sub_filter and SSI were used together, then responses 
+       might were transferred incorrectly.
+
+
 Changes with nginx 0.7.4                                         30 Jun 2008
 
     *) Feature: variables support in the "access_log" directive.

@@ -422,7 +422,8 @@ ngx_http_log_script_write(ngx_http_request_t *r, ngx_http_log_script_t *script,
     {
         ngx_log_error(NGX_LOG_CRIT, r->connection->log, ngx_errno,
                       ngx_open_file_n " \"%s\" failed", log.data);
-        return -1;
+        /* simulate successfull logging */
+        return len;
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -760,7 +761,8 @@ ngx_http_log_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         return NGX_CONF_OK;
     }
 
-    *conf = *prev;
+    conf->logs = prev->logs;
+    conf->off = prev->off;
 
     if (conf->logs || conf->off) {
         return NGX_CONF_OK;
@@ -781,6 +783,7 @@ ngx_http_log_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         return NGX_CONF_ERROR;
     }
 
+    log->script = NULL;
     log->disk_full_time = 0;
     log->error_log_time = 0;
 

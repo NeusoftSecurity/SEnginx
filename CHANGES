@@ -1,8 +1,17 @@
 
+Changes with nginx 0.7.6                                         07 Jul 2008
+
+    *) Bugfix: now if variables are used in the "access_log" directive a 
+       request root existence is always tested.
+
+    *) Bugfix: the ngx_http_flv_module did not support several values in a 
+       query string.
+
+
 Changes with nginx 0.7.5                                         01 Jul 2008
 
-    *) Bugfixes in variables support in the "access_log" directive; the bug 
-       had appeared in 0.7.4.
+    *) Bugfixes in variables support in the "access_log" directive; the 
+       bugs had appeared in 0.7.4.
 
     *) Bugfix: nginx could not be built --without-http_gzip_module; the bug 
        had appeared in 0.7.3.

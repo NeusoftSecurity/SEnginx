@@ -13,9 +13,9 @@ typedef ngx_int_t (*ngx_ssl_variable_handler_pt)(ngx_connection_t *c,
     ngx_pool_t *pool, ngx_str_t *s);
 
 
-#define NGX_DEFLAUT_CERTIFICATE      "cert.pem"
-#define NGX_DEFLAUT_CERTIFICATE_KEY  "cert.pem"
-#define NGX_DEFLAUT_CIPHERS  "ALL:!ADH:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP"
+#define NGX_DEFAULT_CERTIFICATE      "cert.pem"
+#define NGX_DEFAULT_CERTIFICATE_KEY  "cert.pem"
+#define NGX_DEFAULT_CIPHERS  "ALL:!ADH:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP"
 
 
 static ngx_int_t ngx_http_ssl_static_variable(ngx_http_request_t *r,
@@ -45,6 +45,14 @@ static ngx_conf_bitmask_t  ngx_http_ssl_protocols[] = {
     { ngx_string("SSLv2"), NGX_SSL_SSLv2 },
     { ngx_string("SSLv3"), NGX_SSL_SSLv3 },
     { ngx_string("TLSv1"), NGX_SSL_TLSv1 },
+    { ngx_null_string, 0 }
+};
+
+
+static ngx_conf_enum_t  ngx_http_ssl_verify[] = {
+    { ngx_string("off"), 0 },
+    { ngx_string("on"), 1 },
+    { ngx_string("ask"), 2 },
     { ngx_null_string, 0 }
 };
 
@@ -95,10 +103,10 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
 
     { ngx_string("ssl_verify_client"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_FLAG,
-      ngx_conf_set_flag_slot,
+      ngx_conf_set_enum_slot,
       NGX_HTTP_SRV_CONF_OFFSET,
       offsetof(ngx_http_ssl_srv_conf_t, verify),
-      NULL },
+      &ngx_http_ssl_verify },
 
     { ngx_string("ssl_verify_depth"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_1MORE,
@@ -184,6 +192,10 @@ static ngx_http_variable_t  ngx_http_ssl_vars[] = {
 
     { ngx_string("ssl_client_cert"), NULL, ngx_http_ssl_variable,
       (uintptr_t) ngx_ssl_get_certificate, NGX_HTTP_VAR_CHANGEABLE, 0 },
+
+    { ngx_string("ssl_client_raw_cert"), NULL, ngx_http_ssl_variable,
+      (uintptr_t) ngx_ssl_get_raw_certificate,
+      NGX_HTTP_VAR_CHANGEABLE, 0 },
 
     { ngx_string("ssl_client_s_dn"), NULL, ngx_http_ssl_variable,
       (uintptr_t) ngx_ssl_get_subject_dn, NGX_HTTP_VAR_CHANGEABLE, 0 },
@@ -307,9 +319,9 @@ ngx_http_ssl_create_srv_conf(ngx_conf_t *cf)
      */
 
     sscf->enable = NGX_CONF_UNSET;
+    sscf->prefer_server_ciphers = NGX_CONF_UNSET;
     sscf->verify = NGX_CONF_UNSET;
     sscf->verify_depth = NGX_CONF_UNSET;
-    sscf->prefer_server_ciphers = NGX_CONF_UNSET;
     sscf->builtin_session_cache = NGX_CONF_UNSET;
     sscf->session_timeout = NGX_CONF_UNSET;
 
@@ -341,21 +353,21 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
                          (NGX_CONF_BITMASK_SET
                           |NGX_SSL_SSLv2|NGX_SSL_SSLv3|NGX_SSL_TLSv1));
 
-    ngx_conf_merge_value(conf->verify, prev->verify, 0);
-    ngx_conf_merge_value(conf->verify_depth, prev->verify_depth, 1);
+    ngx_conf_merge_uint_value(conf->verify, prev->verify, 0);
+    ngx_conf_merge_uint_value(conf->verify_depth, prev->verify_depth, 1);
 
     ngx_conf_merge_str_value(conf->certificate, prev->certificate,
-                         NGX_DEFLAUT_CERTIFICATE);
+                         NGX_DEFAULT_CERTIFICATE);
 
     ngx_conf_merge_str_value(conf->certificate_key, prev->certificate_key,
-                         NGX_DEFLAUT_CERTIFICATE_KEY);
+                         NGX_DEFAULT_CERTIFICATE_KEY);
 
     ngx_conf_merge_str_value(conf->dhparam, prev->dhparam, "");
 
     ngx_conf_merge_str_value(conf->client_certificate, prev->client_certificate,
                          "");
 
-    ngx_conf_merge_str_value(conf->ciphers, prev->ciphers, NGX_DEFLAUT_CIPHERS);
+    ngx_conf_merge_str_value(conf->ciphers, prev->ciphers, NGX_DEFAULT_CIPHERS);
 
 
     conf->ssl.log = cf->log;
@@ -402,6 +414,13 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 
     if (conf->verify) {
+
+        if (conf->client_certificate.len == 0) {
+            ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
+                          "no ssl_client_certificate for ssl_client_verify");
+            return NGX_CONF_ERROR;
+        }
+
         if (ngx_ssl_client_certificate(cf, &conf->ssl,
                                        &conf->client_certificate,
                                        conf->verify_depth)

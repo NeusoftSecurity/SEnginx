@@ -19,6 +19,8 @@
 
 #ifdef __CYGWIN__
 
+#define NGX_HAVE_CASELESS_FILESYSTEM  1
+
 #define ngx_open_file(name, mode, create, access)                            \
     open((const char *) name, mode|create|O_BINARY, access)
 
@@ -103,6 +105,16 @@ ngx_int_t ngx_set_file_time(u_char *name, ngx_fd_t fd, time_t s);
 #define ngx_file_uniq(sb)        (sb)->st_ino
 
 
+#if (NGX_HAVE_CASELESS_FILESYSTEM)
+
+#define ngx_filename_cmp(s1, s2, n)  strncasecmp((char *) s1, (char *) s2, n)
+
+#else
+
+#define ngx_filename_cmp         ngx_memcmp
+
+#endif
+
 
 #define ngx_getcwd(buf, size)    (getcwd(buf, size) != NULL)
 #define ngx_getcwd_n             "getcwd()"
@@ -175,6 +187,24 @@ ngx_err_t ngx_unlock_fd(ngx_fd_t fd);
 #define ngx_trylock_fd_n         "fcntl(F_SETLK, F_WRLCK)"
 #define ngx_lock_fd_n            "fcntl(F_SETLKW, F_WRLCK)"
 #define ngx_unlock_fd_n          "fcntl(F_SETLK, F_UNLCK)"
+
+
+#if (NGX_HAVE_O_DIRECT)
+
+ngx_int_t ngx_directio(ngx_fd_t fd);
+#define ngx_directio_n           "fcntl(O_DIRECT)"
+
+#elif (NGX_HAVE_F_NOCACHE)
+
+#define ngx_directio(fd)         fcntl(fd, F_NOCACHE, 1)
+#define ngx_directio_n           "fcntl(F_NOCACHE)"
+
+#else
+
+#define ngx_directio(fd)         0
+#define ngx_directio_n           "ngx_directio_n"
+
+#endif
 
 
 #endif /* _NGX_FILES_H_INCLUDED_ */

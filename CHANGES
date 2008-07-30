@@ -1,4 +1,33 @@
 
+Changes with nginx 0.7.7                                         30 Jul 2008
+
+    *) Change: now the EAGAIN error returned by connect() is not considered 
+       as temporary error.
+
+    *) Change: now the $ssl_client_cert variable value is a certificate 
+       with TAB character intended before each line except first one; an 
+       unchanged certificate is available in the $ssl_client_raw_cert 
+       variable.
+
+    *) Feature: the "ask" parameter in the "ssl_verify_client" directive.
+
+    *) Feature: byte-range processing improvements.
+       Thanks to Maxim Dounin.
+
+    *) Feature: the "directio" directive.
+
+    *) Feature: MacOSX 1.5 sendfile() support.
+
+    *) Bugfix: now in MacOSX and Cygwin locations are tested in case 
+       insensitive mode; however, the compare is provided by single-byte 
+       locales only.
+
+    *) Bugfix: mail proxy SSL connections hanged, if select, poll, or 
+       /dev/poll methods were used.
+
+    *) Bugfix: UTF-8 encoding usage in the ngx_http_autoindex_module.
+
+
 Changes with nginx 0.7.6                                         07 Jul 2008
 
     *) Bugfix: now if variables are used in the "access_log" directive a 

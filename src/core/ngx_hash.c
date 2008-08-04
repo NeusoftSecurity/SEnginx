@@ -390,9 +390,7 @@ found:
         elt->value = names[n].value;
         elt->len = (u_char) names[n].key.len;
 
-        for (i = 0; i < names[n].key.len; i++) {
-            elt->name[i] = ngx_tolower(names[n].key.data[i]);
-        }
+        ngx_strlow(elt->name, names[n].key.data, names[n].key.len);
 
         test[key] = (u_short) (test[key] + NGX_HASH_ELT_SIZE(&names[n]));
     }
@@ -622,6 +620,24 @@ ngx_hash_key_lc(u_char *data, size_t len)
 }
 
 
+ngx_uint_t
+ngx_hash_strlow(u_char *dst, u_char *src, size_t n)
+{
+    ngx_uint_t  key;
+
+    key = 0;
+
+    while (n--) {
+        *dst = ngx_tolower(*src);
+        key = ngx_hash(key, *dst);
+        dst++;
+        src++;
+    }
+
+    return key;
+}
+
+
 ngx_int_t
 ngx_hash_keys_array_init(ngx_hash_keys_arrays_t *ha, ngx_uint_t type)
 {
@@ -796,12 +812,7 @@ wildcard:
 
     /* wildcard hash */
 
-    k = 0;
-
-    for (i = skip; i < last; i++) {
-        key->data[i] = ngx_tolower(key->data[i]);
-        k = ngx_hash(k, key->data[i]);
-    }
+    k = ngx_hash_strlow(&key->data[skip], &key->data[skip], last - skip);
 
     k %= ha->hsize;
 

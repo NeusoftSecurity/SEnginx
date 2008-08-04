@@ -1120,9 +1120,7 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
                     ngx_memcpy(h->lowcase_key, r->lowcase_header, h->key.len);
 
                 } else {
-                    for (i = 0; i < h->key.len; i++) {
-                        h->lowcase_key[i] = ngx_tolower(h->key.data[i]);
-                    }
+                    ngx_strlow(h->lowcase_key, h->key.data, h->key.len);
                 }
 
                 hh = ngx_hash_find(&umcf->headers_in_hash, h->hash,
@@ -1166,6 +1164,13 @@ ngx_http_fastcgi_process_header(ngx_http_request_t *r)
 
                     u->headers_in.status_n = status;
                     u->headers_in.status_line = *status_line;
+
+                } else if (u->headers_in.location) {
+                    u->headers_in.status_n = 302;
+                    u->headers_in.status_line.len =
+                                           sizeof("302 Moved Temporarily") - 1;
+                    u->headers_in.status_line.data =
+                                           (u_char *) "302 Moved Temporarily"; 
 
                 } else {
                     u->headers_in.status_n = 200;

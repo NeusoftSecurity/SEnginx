@@ -1,4 +1,48 @@
 
+Changes with nginx 0.7.9                                         12 Aug 2008
+
+    *) Change: now ngx_http_charset_module works by default with following 
+       MIME types: text/html, text/css, text/xml, text/plain, 
+       text/vnd.wap.wml, application/x-javascript, and application/rss+xml.
+
+    *) Feature: the "charset_types" and "addition_types" directives.
+
+    *) Feature: now the "gzip_types", "ssi_types", and "sub_filter_types" 
+       directives use hash.
+
+    *) Feature: the ngx_cpp_test_module.
+
+    *) Feature: the "expires" directive supports daily time.
+
+    *) Feature: the ngx_http_xslt_module improvements and bug fixing.
+       Thanks to Denis F. Latypoff and Maxim Dounin.
+
+    *) Bugfix: the "log_not_found" directive did not work for index files 
+       tests.
+
+    *) Bugfix: HTTPS connections might hang, if kqueue, epoll, rtsig, or 
+       eventport methods were used; the bug had appeared in 0.7.7.
+
+    *) Bugfix: if the "server_name", "valid_referers", and "map" directives 
+       used an "*.domain.tld" wildcard and exact name "domain.tld" was not 
+       set, then the exact name was matched by the wildcard; the bugs had 
+       appeared in 0.3.18.
+
+
+Changes with nginx 0.7.8                                         04 Aug 2008
+
+    *) Feature: the ngx_http_xslt_module.
+
+    *) Feature: the "$arg_..." variables.
+
+    *) Feature: Solaris directio support.
+       Thanks to Ivan Debnar.
+
+    *) Bugfix: now if FastCGI server sends a "Location" header line without 
+       status line, then nginx uses 302 status code.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.7.7                                         30 Jul 2008
 
     *) Change: now the EAGAIN error returned by connect() is not considered 
@@ -15,8 +59,9 @@ Changes with nginx 0.7.7                                         30 Jul 2008
        Thanks to Maxim Dounin.
 
     *) Feature: the "directio" directive.
+       Thanks to Jiang Hong.
 
-    *) Feature: MacOSX 1.5 sendfile() support.
+    *) Feature: MacOSX 10.5 sendfile() support.
 
     *) Bugfix: now in MacOSX and Cygwin locations are tested in case 
        insensitive mode; however, the compare is provided by single-byte 
@@ -375,8 +420,7 @@ Changes with nginx 0.6.22                                        19 Dec 2007
 Changes with nginx 0.6.21                                        03 Dec 2007
 
     *) Change: if variable values used in a "proxy_pass" directive contain 
-       IP-addresses only, then a "resolver" directive is not mandatory. 
-       resolver
+       IP-addresses only, then a "resolver" directive is not mandatory.
 
     *) Bugfix: a segmentation fault might occur in worker process if a 
        "proxy_pass" directive with URI-part was used; the bug had appeared 

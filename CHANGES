@@ -1,4 +1,23 @@
 
+Changes with nginx 0.7.11                                        18 Aug 2008
+
+    *) Change: now ngx_http_charset_module does not work by default with 
+       text/css MIME type.
+
+    *) Feature: now nginx returns the 405 status code for POST method 
+       requesting a static file only if the file exists.
+
+    *) Feature: the "proxy_ssl_session_reuse" directive.
+
+    *) Bugfix: a "proxy_pass" directive without URI part might use original 
+       request after the "X-Accel-Redirect" redirection was used;
+
+    *) Bugfix: if a directory has search only rights and the first index 
+       file was absent, then nginx returned the 500 status code.
+
+    *) Bugfix: in inclusive locations; the bugs had appeared in 0.7.1.
+
+
 Changes with nginx 0.7.10                                        13 Aug 2008
 
     *) Bugfix: in the "addition_types", "charset_types", "gzip_types", 
@@ -7,7 +26,7 @@ Changes with nginx 0.7.10                                        13 Aug 2008
 
     *) Bugfix: of recursive error_page for 500 status code.
 
-    *) Bugfix: now the ngx_http_realip_module set address not for whole 
+    *) Bugfix: now the ngx_http_realip_module sets address not for whole 
        keepalive connection, but for each request passed via the connection.
 
 

@@ -789,7 +789,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
 
     rc = ngx_http_core_find_location(r);
 
-    if (rc == NGX_HTTP_INTERNAL_SERVER_ERROR) {
+    if (rc == NGX_ERROR) {
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return NGX_OK;
     }
@@ -1117,18 +1117,41 @@ ngx_http_update_location_config(ngx_http_request_t *r)
 }
 
 
+/*
+ * NGX_OK       - exact or regex match
+ * NGX_DONE     - auto redirect
+ * NGX_AGAIN    - inclusive match
+ * NGX_ERROR    - regex error
+ * NGX_DECLINED - no match
+ */
+
 static ngx_int_t
 ngx_http_core_find_location(ngx_http_request_t *r)
 {
     ngx_int_t                  rc;
     ngx_http_core_loc_conf_t  *pclcf;
+#if (NGX_PCRE)
+    ngx_int_t                  n;
+    ngx_uint_t                 noregex;
+    ngx_http_core_loc_conf_t  *clcf, **clcfp;
+
+    noregex = 0;
+#endif
 
     pclcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     rc = ngx_http_core_find_static_location(r, pclcf->static_locations);
 
     if (rc == NGX_AGAIN) {
+
+#if (NGX_PCRE)
+        clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
+        noregex = clcf->noregex;
+#endif
+
         /* look up nested locations */
+
         rc = ngx_http_core_find_location(r);
     }
 
@@ -1139,13 +1162,8 @@ ngx_http_core_find_location(ngx_http_request_t *r)
     /* rc == NGX_DECLINED or rc == NGX_AGAIN in nested location */
 
 #if (NGX_PCRE)
-    {
-    ngx_int_t                  n;
-    ngx_http_core_loc_conf_t  *clcf, **clcfp;
 
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-
-    if (clcf->noregex == 0 && pclcf->regex_locations) {
+    if (noregex == 0 && pclcf->regex_locations) {
 
         for (clcfp = pclcf->regex_locations; *clcfp; clcfp++) {
 
@@ -1163,7 +1181,7 @@ ngx_http_core_find_location(ngx_http_request_t *r)
                               ngx_regex_exec_n
                               " failed: %d on \"%V\" using \"%V\"",
                               n, &r->uri, &(*clcfp)->name);
-                return NGX_HTTP_INTERNAL_SERVER_ERROR;
+                return NGX_ERROR;
             }
 
             /* match */
@@ -1172,9 +1190,10 @@ ngx_http_core_find_location(ngx_http_request_t *r)
 
             /* look up nested locations */
 
-            return ngx_http_core_find_location(r);
+            rc = ngx_http_core_find_location(r);
+
+            return (rc == NGX_ERROR) ? rc : NGX_OK;
         }
-    }
     }
 #endif
 

@@ -1,4 +1,10 @@
 
+Changes with nginx 0.7.13                                        26 Aug 2008
+
+    *) Bugfix: nginx could not be built on Linux and Solaris; the bug had 
+       appeared in 0.7.12.
+
+
 Changes with nginx 0.7.12                                        26 Aug 2008
 
     *) Feature: the "server_name" directive supports empty name "".

@@ -47,7 +47,7 @@ typedef struct {
     ngx_uint_t                 deferred_accept;
 #endif
 
-    u_char                     addr[INET_ADDRSTRLEN + 6];
+    u_char                     addr[NGX_INET_ADDRSTRLEN + sizeof(":65535")];
 
 } ngx_http_listen_conf_t;
 
@@ -242,6 +242,9 @@ struct ngx_http_core_loc_conf_s {
 
     unsigned      auto_redirect:1;
     unsigned      alias:1;
+#if (NGX_HTTP_GZIP)
+    unsigned      gzip_disable_msie6:2;
+#endif
 
     ngx_http_location_tree_node_t   *static_locations;
     ngx_http_core_loc_conf_t       **regex_locations;

@@ -1,4 +1,25 @@
 
+Changes with nginx 0.7.12                                        26 Aug 2008
+
+    *) Feature: the "server_name" directive supports empty name "".
+
+    *) Feature: the "gzip_disable" directive supports special "msie6" mask.
+
+    *) Bugfix: if the "max_fails=0" parameter was used in upstream with 
+       several servers, then a worker process exited on a SIGFPE signal.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: a request body was dropped while redirection via an 
+       "error_page" directive.
+
+    *) Bugfix: a full response was returned for request method HEAD while 
+       redirection via an "error_page" directive.
+
+    *) Bugfix: the $r->header_in() method did not return value of the 
+       "Host", "User-Agent", and "Connection" request header lines; the bug 
+       had appeared in 0.7.0.
+
+
 Changes with nginx 0.7.11                                        18 Aug 2008
 
     *) Change: now ngx_http_charset_module does not work by default with 

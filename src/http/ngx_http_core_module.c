@@ -1625,8 +1625,8 @@ ngx_http_server_addr(ngx_http_request_t *r, ngx_str_t *s)
         return NGX_OK;
     }
 
-    s->len = ngx_inet_ntop(c->listening->family, &r->in_addr,
-                           s->data, INET_ADDRSTRLEN);
+    s->len = ngx_sock_ntop((struct sockaddr *) &sin, s->data,
+                           NGX_INET_ADDRSTRLEN);
 
     return NGX_OK;
 }
@@ -1671,6 +1671,10 @@ ngx_http_gzip_ok(ngx_http_request_t *r)
     }
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
+    if (r->headers_in.msie6 && clcf->gzip_disable_msie6) {
+        return NGX_DECLINED;
+    }
 
     if (r->http_version < clcf->gzip_http_version) {
         return NGX_DECLINED;
@@ -2677,6 +2681,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     lcf->gzip_http_version = NGX_CONF_UNSET_UINT;
 #if (NGX_PCRE)
     lcf->gzip_disable = NGX_CONF_UNSET_PTR;
+    lcf->gzip_disable_msie6 = 3;
 #endif
 #endif
 
@@ -2914,6 +2919,11 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_ptr_value(conf->gzip_disable, prev->gzip_disable, NULL);
 #endif
 
+    if (conf->gzip_disable_msie6 == 3) {
+        conf->gzip_disable_msie6 =
+            (prev->gzip_disable_msie6 == 3) ? 0 : prev->gzip_disable_msie6;
+    }
+
 #endif
 
     return NGX_CONF_OK;
@@ -2962,7 +2972,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ngx_memzero(ls, sizeof(ngx_http_listen_t));
 
-    ls->family = AF_INET;
+    ls->family = u.family;
     ls->addr = u.addr.in_addr;
     ls->port = u.port;
     ls->file_name = cf->conf_file->file.name.data;
@@ -2971,7 +2981,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ls->conf.rcvbuf = -1;
     ls->conf.sndbuf = -1;
 
-    n = ngx_inet_ntop(AF_INET, &ls->addr, ls->conf.addr, INET_ADDRSTRLEN + 6);
+    n = ngx_inet_ntop(AF_INET, &ls->addr, ls->conf.addr, NGX_INET_ADDRSTRLEN);
     ngx_sprintf(&ls->conf.addr[n], ":%ui", ls->port);
 
     if (cf->args->nelts == 2) {
@@ -3094,17 +3104,24 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ch = value[1].data[0];
 
-    if (cscf->server_name.data == NULL && value[1].len) {
-        name = value[1];
+    if (cscf->server_name.data == NULL) {
+        if (value[1].len) {
+            name = value[1];
 
-        if (ch == '.') {
-            name.len--;
-            name.data++;
-        }
+            if (ch == '.') {
+                name.len--;
+                name.data++;
+            }
 
-        cscf->server_name.len = name.len;
-        cscf->server_name.data = ngx_pstrdup(cf->pool, &name);
-        if (cscf->server_name.data == NULL) {
+            cscf->server_name.len = name.len;
+            cscf->server_name.data = ngx_pstrdup(cf->pool, &name);
+            if (cscf->server_name.data == NULL) {
+                return NGX_CONF_ERROR;
+            }
+
+        } else {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "the first server name must not be empty");
             return NGX_CONF_ERROR;
         }
     }
@@ -3113,8 +3130,7 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         ch = value[i].data[0];
 
-        if (value[i].len == 0
-            || (ch == '*' && (value[i].len < 3 || value[i].data[1] != '.'))
+        if ((ch == '*' && (value[i].len < 3 || value[i].data[1] != '.'))
             || (ch == '.' && value[i].len < 2))
         {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -3747,8 +3763,9 @@ ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-#if (NGX_PCRE)
     ngx_http_core_loc_conf_t  *clcf = conf;
+
+#if (NGX_PCRE)
 
     ngx_str_t         err, *value;
     ngx_uint_t        i;
@@ -3770,6 +3787,11 @@ ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     for (i = 1; i < cf->args->nelts; i++) {
 
+        if (ngx_strcmp(value[1].data, "msie6") == 0) {
+            clcf->gzip_disable_msie6 = 1;
+            continue;
+        }
+
         re = ngx_array_push(clcf->gzip_disable);
         if (re == NULL) {
             return NGX_CONF_ERROR;
@@ -3789,8 +3811,18 @@ ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 
 #else
+    ngx_str_t  *value;
+
+    value = cf->args->elts;
+
+    if (cf->args->nelts == 2 && ngx_strcmp(value[1].data, "msie6") == 0) {
+        clcf->gzip_disable_msie6 = 1;
+        return NGX_CONF_OK;
+    }
+
     ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "\"gzip_disable\" requires PCRE library");
+                       "without PCRE library \"gzip_disable\" supports "
+                       "builtin \"msie6\" mask only");
 
     return NGX_CONF_ERROR;
 #endif

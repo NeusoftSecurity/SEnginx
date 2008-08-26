@@ -74,15 +74,18 @@ static char *ngx_http_client_errors[] = {
 
 
 ngx_http_header_t  ngx_http_headers_in[] = {
-    { ngx_string("Host"), 0, ngx_http_process_host },
+    { ngx_string("Host"), offsetof(ngx_http_headers_in_t, host),
+                 ngx_http_process_host },
 
-    { ngx_string("Connection"), 0, ngx_http_process_connection },
+    { ngx_string("Connection"), offsetof(ngx_http_headers_in_t, connection),
+                 ngx_http_process_connection },
 
     { ngx_string("If-Modified-Since"),
                  offsetof(ngx_http_headers_in_t, if_modified_since),
                  ngx_http_process_unique_header_line },
 
-    { ngx_string("User-Agent"), 0, ngx_http_process_user_agent },
+    { ngx_string("User-Agent"), offsetof(ngx_http_headers_in_t, user_agent),
+                 ngx_http_process_user_agent },
 
     { ngx_string("Referer"), offsetof(ngx_http_headers_in_t, referer),
                  ngx_http_process_header_line },
@@ -568,6 +571,7 @@ ngx_http_ssl_handshake_handler(ngx_connection_t *c)
 int
 ngx_http_ssl_servername(ngx_ssl_conn_t *ssl_conn, int *ad, void *arg)
 {
+    size_t                    len;
     const char               *servername;
     ngx_connection_t         *c;
     ngx_http_request_t       *r;
@@ -584,12 +588,15 @@ ngx_http_ssl_servername(ngx_ssl_conn_t *ssl_conn, int *ad, void *arg)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "SSL server name: \"%s\"", servername);
 
+    len = ngx_strlen(servername);
+
+    if (len == 0) {
+        return SSL_TLSEXT_ERR_NOACK;
+    }
+
     r = c->data;
 
-    if (ngx_http_find_virtual_server(r, (u_char *) servername,
-                                     ngx_strlen(servername))
-        != NGX_OK)
-    {
+    if (ngx_http_find_virtual_server(r, (u_char *) servername, len) != NGX_OK) {
         return SSL_TLSEXT_ERR_NOACK;
     }
 
@@ -1283,7 +1290,7 @@ static ngx_int_t
 ngx_http_process_user_agent(ngx_http_request_t *r, ngx_table_elt_t *h,
     ngx_uint_t offset)
 {
-    u_char  *ua, *user_agent;
+    u_char  *user_agent, *msie;
 
     if (r->headers_in.user_agent) {
         return NGX_OK;
@@ -1295,14 +1302,22 @@ ngx_http_process_user_agent(ngx_http_request_t *r, ngx_table_elt_t *h,
 
     user_agent = h->value.data;
 
-    ua = ngx_strstrn(user_agent, "MSIE", 4 - 1);
+    msie = ngx_strstrn(user_agent, "MSIE ", 5 - 1);
 
-    if (ua && ua + 8 < user_agent + h->value.len) {
+    if (msie && msie + 7 < user_agent + h->value.len) {
 
         r->headers_in.msie = 1;
 
-        if (ua[4] == ' ' && ua[5] == '4' && ua[6] == '.') {
-            r->headers_in.msie4 = 1;
+        if (msie[6] == '.') {
+
+            switch (msie[5]) {
+            case '4':
+                r->headers_in.msie4 = 1;
+                /* fall through */
+            case '5':
+            case '6':
+                r->headers_in.msie6 = 1;
+            }
         }
 
 #if 0
@@ -1317,6 +1332,7 @@ ngx_http_process_user_agent(ngx_http_request_t *r, ngx_table_elt_t *h,
         r->headers_in.opera = 1;
         r->headers_in.msie = 0;
         r->headers_in.msie4 = 0;
+        r->headers_in.msie6 = 0;
     }
 
     if (!r->headers_in.msie && !r->headers_in.opera) {
@@ -1556,7 +1572,7 @@ ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len)
     ngx_http_core_srv_conf_t  *cscf;
     u_char                     buf[32];
 
-    if (len == 0 || r->virtual_names == NULL) {
+    if (r->virtual_names == NULL) {
         return NGX_DECLINED;
     }
 

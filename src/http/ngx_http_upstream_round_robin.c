@@ -281,14 +281,14 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
 
     for (i = 0; i < ur->naddrs; i++) {
 
-        len = INET_ADDRSTRLEN - 1 + 1 + sizeof(":65536") - 1;
+        len = NGX_INET_ADDRSTRLEN + sizeof(":65536") - 1;
 
         p = ngx_pnalloc(r->pool, len);
         if (p == NULL) {
             return NGX_ERROR;
         }
 
-        len = ngx_inet_ntop(AF_INET, &ur->addrs[i], p, INET_ADDRSTRLEN);
+        len = ngx_inet_ntop(AF_INET, &ur->addrs[i], p, NGX_INET_ADDRSTRLEN);
         len = ngx_sprintf(&p[len], ":%d", ur->port) - p;
 
         sin = ngx_pcalloc(r->pool, sizeof(struct sockaddr_in));
@@ -645,7 +645,9 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
         peer->fails++;
         peer->accessed = now;
 
-        peer->current_weight -= peer->weight / peer->max_fails;
+        if (peer->max_fails) {
+            peer->current_weight -= peer->weight / peer->max_fails;
+        }
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0,
                        "free rr peer failed: %ui %i",

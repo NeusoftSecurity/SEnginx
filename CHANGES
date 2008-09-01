@@ -1,4 +1,24 @@
 
+Changes with nginx 0.7.14                                        01 Sep 2008
+
+    *) Change: now the ssl_certificate and ssl_certificate_key directives 
+       have not default values.
+
+    *) Feature: the "listen" directive supports the "ssl" parameter.
+
+    *) Feature: now nginx takes into account a time zone change while 
+       reconfiguration on FreeBSD and Linux.
+
+    *) Bugfix: the "listen" directive parameters such as "backlog", 
+       "rcvbuf", etc. were not set, if a default server was not the first 
+       one.
+
+    *) Bugfix: if URI part captured by a "rewrite" directive was used as a 
+       query string, then the query string was not escaped.
+
+    *) Bugfix: configuration file validity test improvements.
+
+
 Changes with nginx 0.7.13                                        26 Aug 2008
 
     *) Bugfix: nginx could not be built on Linux and Solaris; the bug had 

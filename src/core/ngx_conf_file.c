@@ -7,6 +7,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
+#define NGX_CONF_BUFFER  4096
 
 static ngx_int_t ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last);
 static ngx_int_t ngx_conf_read_token(ngx_conf_t *cf);
@@ -43,9 +44,9 @@ ngx_module_t  ngx_conf_module = {
 };
 
 
-/* The ten fixed arguments */
+/* The eight fixed arguments */
 
-static int argument_number[] = {
+static ngx_uint_t argument_number[] = {
     NGX_CONF_NOARGS,
     NGX_CONF_TAKE1,
     NGX_CONF_TAKE2,
@@ -141,14 +142,14 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 
         cf->conf_file->buffer = b;
 
-        b->start = ngx_alloc(ngx_pagesize, cf->log);
+        b->start = ngx_alloc(NGX_CONF_BUFFER, cf->log);
         if (b->start == NULL) {
             return NGX_CONF_ERROR;
         }
 
         b->pos = b->start;
         b->last = b->start;
-        b->end = b->last + ngx_pagesize;
+        b->end = b->last + NGX_CONF_BUFFER;
         b->temporary = 1;
 
         cf->conf_file->file.fd = fd;
@@ -433,10 +434,11 @@ static ngx_int_t
 ngx_conf_read_token(ngx_conf_t *cf)
 {
     u_char      *start, ch, *src, *dst;
-    int          len;
-    int          found, need_space, last_space, sharp_comment, variable;
-    int          quoted, s_quoted, d_quoted;
-    ssize_t      n;
+    off_t        file_size;
+    size_t       len;
+    ssize_t      n, size;
+    ngx_uint_t   found, need_space, last_space, sharp_comment, variable;
+    ngx_uint_t   quoted, s_quoted, d_quoted, start_line;
     ngx_str_t   *word;
     ngx_buf_t   *b;
 
@@ -450,14 +452,16 @@ ngx_conf_read_token(ngx_conf_t *cf)
     cf->args->nelts = 0;
     b = cf->conf_file->buffer;
     start = b->pos;
+    start_line = cf->conf_file->line;
+
+    file_size = ngx_file_size(&cf->conf_file->file.info);
 
     for ( ;; ) {
 
         if (b->pos >= b->last) {
 
-            if (cf->conf_file->file.offset
-                                 >= ngx_file_size(&cf->conf_file->file.info))
-            {
+            if (cf->conf_file->file.offset >= file_size) {
+
                 if (cf->args->nelts > 0) {
 
                     if (cf->conf_file->file.fd == NGX_INVALID_FILE) {
@@ -476,22 +480,58 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 return NGX_CONF_FILE_DONE;
             }
 
-            if (b->pos - start) {
-                ngx_memcpy(b->start, start, b->pos - start);
+            len = b->pos - start;
+
+            if (len == NGX_CONF_BUFFER) {
+                cf->conf_file->line = start_line;
+
+                if (d_quoted) {
+                    ch = '"';
+
+                } else if (s_quoted) {
+                    ch = '\'';
+
+                } else {
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                       "too long parameter \"%*s...\" started",
+                                       10, start);
+                    return NGX_ERROR;
+                }
+
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   "too long parameter, probably "
+                                   "missing terminating \"%c\" character", ch);
+                return NGX_ERROR;
             }
 
-            n = ngx_read_file(&cf->conf_file->file,
-                              b->start + (b->pos - start),
-                              b->end - (b->start + (b->pos - start)),
+            if (len) {
+                ngx_memcpy(b->start, start, len);
+            }
+
+            size = (ssize_t) (file_size - cf->conf_file->file.offset);
+
+            if (size > b->end - (b->start + len)) {
+                size = b->end - (b->start + len);
+            }
+
+            n = ngx_read_file(&cf->conf_file->file, b->start + len, size,
                               cf->conf_file->file.offset);
 
             if (n == NGX_ERROR) {
                 return NGX_ERROR;
             }
 
-            b->pos = b->start + (b->pos - start);
-            start = b->start;
+            if (n != size) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   ngx_read_file_n " returned "
+                                   "only %z bytes instead of %z",
+                                   n, size);
+                return NGX_ERROR;
+            }
+
+            b->pos = b->start + len;
             b->last = b->pos + n;
+            start = b->start;
         }
 
         ch = *b->pos++;
@@ -545,6 +585,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
             }
 
             start = b->pos - 1;
+            start_line = cf->conf_file->line;
 
             switch (ch) {
 

@@ -1,4 +1,18 @@
 
+Changes with nginx 0.7.15                                        08 Sep 2008
+
+    *) Feature: the ngx_http_random_index_module.
+
+    *) Feature: the "directio" directive has been optimized for file 
+       requests starting from arbitrary position.
+
+    *) Feature: the "directio" directive turns off sendfile if it is 
+       necessary.
+
+    *) Feature: now nginx allows underscores in a client request header 
+       line names.
+
+
 Changes with nginx 0.7.14                                        01 Sep 2008
 
     *) Change: now the ssl_certificate and ssl_certificate_key directives 

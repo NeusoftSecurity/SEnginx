@@ -1,4 +1,10 @@
 
+Changes with nginx 0.7.16                                        08 Sep 2008
+
+    *) Bugfix: nginx could not be built on 64-bit platforms; the bug had 
+       appeared in 0.7.15.
+
+
 Changes with nginx 0.7.15                                        08 Sep 2008
 
     *) Feature: the ngx_http_random_index_module.

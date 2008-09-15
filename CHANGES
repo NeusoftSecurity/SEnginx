@@ -1,4 +1,20 @@
 
+Changes with nginx 0.7.17                                        15 Sep 2008
+
+    *) Feature: now the "directio" directive works on Linux.
+
+    *) Feature: the $pid variable.
+
+    *) Bugfix: the "directio" optimization that had appeared in 0.7.15 did 
+       not work with open_file_cache.
+
+    *) Bugfix: the "access_log" with variables did not work on Linux; the 
+       bug had appeared in 0.7.7.
+
+    *) Bugfix: the ngx_http_charset_module did not understand quoted 
+       charset name received from backend.
+
+
 Changes with nginx 0.7.16                                        08 Sep 2008
 
     *) Bugfix: nginx could not be built on 64-bit platforms; the bug had 

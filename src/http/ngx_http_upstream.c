@@ -22,6 +22,10 @@ static void ngx_http_upstream_send_request(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static void ngx_http_upstream_send_request_handler(ngx_event_t *wev);
 static void ngx_http_upstream_process_header(ngx_event_t *rev);
+static ngx_int_t ngx_http_upstream_test_next(ngx_http_request_t *r,
+    ngx_http_upstream_t *u);
+static ngx_int_t ngx_http_upstream_intercept_errors(ngx_http_request_t *r,
+    ngx_http_upstream_t *u);
 static ngx_int_t ngx_http_upstream_test_connect(ngx_connection_t *c);
 static void ngx_http_upstream_process_body_in_memory(ngx_event_t *rev);
 static void ngx_http_upstream_send_response(ngx_http_request_t *r,
@@ -281,6 +285,15 @@ static ngx_http_variable_t  ngx_http_upstream_vars[] = {
     { ngx_null_string, NULL, NULL, 0, 0, 0 }
 };
 
+
+static ngx_http_upstream_next_t  ngx_http_upstream_next_errors[] = {
+    { 500, NGX_HTTP_UPSTREAM_FT_HTTP_500 },
+    { 502, NGX_HTTP_UPSTREAM_FT_HTTP_502 },
+    { 503, NGX_HTTP_UPSTREAM_FT_HTTP_503 },
+    { 504, NGX_HTTP_UPSTREAM_FT_HTTP_504 },
+    { 404, NGX_HTTP_UPSTREAM_FT_HTTP_404 },
+    { 0, 0 }
+};
 
 void
 ngx_http_upstream_init(ngx_http_request_t *r)
@@ -1047,8 +1060,6 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
     ngx_connection_t               *c;
     ngx_http_request_t             *r;
     ngx_http_upstream_t            *u;
-    ngx_http_err_page_t            *err_page;
-    ngx_http_core_loc_conf_t       *clcf;
     ngx_http_upstream_header_t     *hh;
     ngx_http_upstream_main_conf_t  *umcf;
 
@@ -1174,82 +1185,18 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
 
     /* rc == NGX_OK */
 
-    if (u->headers_in.status_n >= NGX_HTTP_BAD_REQUEST
-        && r->subrequest_in_memory)
-    {
-        u->buffer.last = u->buffer.pos;
-    }
+    if (u->headers_in.status_n >= NGX_HTTP_BAD_REQUEST) {
 
-    if (u->headers_in.status_n == NGX_HTTP_INTERNAL_SERVER_ERROR) {
+        if (r->subrequest_in_memory) {
+            u->buffer.last = u->buffer.pos;
+        }
 
-        if (u->peer.tries > 1
-            && (u->conf->next_upstream & NGX_HTTP_UPSTREAM_FT_HTTP_500))
-        {
-            ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_HTTP_500);
+        if (ngx_http_upstream_test_next(r, u) == NGX_OK) {
             return;
         }
 
-#if (NGX_HTTP_CACHE)
-
-        if (u->peer.tries == 0
-            && u->stale
-            && (u->conf->use_stale & NGX_HTTP_UPSTREAM_FT_HTTP_500))
-        {
-            ngx_http_upstream_finalize_request(r, u,
-                                              ngx_http_send_cached_response(r));
+        if (ngx_http_upstream_intercept_errors(r, u) == NGX_OK) {
             return;
-        }
-
-#endif
-    }
-
-    if (u->headers_in.status_n == NGX_HTTP_NOT_FOUND) {
-
-        if (u->peer.tries > 1
-            && u->conf->next_upstream & NGX_HTTP_UPSTREAM_FT_HTTP_404)
-        {
-            ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_HTTP_404);
-            return;
-        }
-
-        if (u->conf->intercept_404) {
-            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_NOT_FOUND);
-            return;
-        }
-    }
-
-
-    if (u->headers_in.status_n >= NGX_HTTP_BAD_REQUEST
-        && u->conf->intercept_errors)
-    {
-        clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-
-        if (clcf->error_pages) {
-
-            err_page = clcf->error_pages->elts;
-            for (i = 0; i < clcf->error_pages->nelts; i++) {
-                if (err_page[i].status == (ngx_int_t) u->headers_in.status_n) {
-
-                    if (u->headers_in.status_n == NGX_HTTP_UNAUTHORIZED) {
-
-                        r->headers_out.www_authenticate =
-                                        ngx_list_push(&r->headers_out.headers);
-
-                        if (r->headers_out.www_authenticate == NULL) {
-                            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
-                            return;
-                        }
-
-                        *r->headers_out.www_authenticate =
-                                               *u->headers_in.www_authenticate;
-                    }
-
-                    ngx_http_upstream_finalize_request(r, u,
-                                                       u->headers_in.status_n);
-                    return;
-                }
-            }
         }
     }
 
@@ -1403,6 +1350,101 @@ ngx_http_upstream_process_header(ngx_event_t *rev)
     rev->handler = ngx_http_upstream_process_body_in_memory;
 
     ngx_http_upstream_process_body_in_memory(rev);
+}
+
+
+static ngx_int_t
+ngx_http_upstream_test_next(ngx_http_request_t *r, ngx_http_upstream_t *u)
+{
+    ngx_uint_t                 status;
+    ngx_http_upstream_next_t  *un;
+
+    if (!(u->conf->next_upstream & NGX_HTTP_UPSTREAM_FT_STATUS)) {
+        return NGX_DECLINED;
+    }
+
+    status = u->headers_in.status_n;
+
+    for (un = ngx_http_upstream_next_errors; un->status; un++) {
+
+        if (status != un->status) {
+            continue;
+        }
+
+        if (u->peer.tries > 1 && (u->conf->next_upstream & un->mask)) {
+            ngx_http_upstream_next(r, u, un->mask);
+            return NGX_OK;
+        }
+
+        if (status == NGX_HTTP_NOT_FOUND && u->conf->intercept_404) {
+            ngx_http_upstream_finalize_request(r, u, NGX_HTTP_NOT_FOUND);
+            return NGX_OK;
+        }
+
+#if (NGX_HTTP_CACHE)
+
+        if (u->peer.tries == 0 && u->stale && (u->conf->use_stale & un->mask)) {
+            ngx_http_upstream_finalize_request(r, u,
+                                              ngx_http_send_cached_response(r));
+            return NGX_OK;
+        }
+
+#endif
+    }
+
+    return NGX_DECLINED;
+}
+
+
+static ngx_int_t
+ngx_http_upstream_intercept_errors(ngx_http_request_t *r,
+    ngx_http_upstream_t *u)
+{
+    ngx_int_t                  status;
+    ngx_uint_t                 i;
+    ngx_table_elt_t           *h;
+    ngx_http_err_page_t       *err_page;
+    ngx_http_core_loc_conf_t  *clcf;
+
+    if (!u->conf->intercept_errors) {
+        return NGX_DECLINED;
+    }
+
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
+    if (clcf->error_pages == NULL) {
+        return NGX_DECLINED;
+    }
+
+    status = u->headers_in.status_n;
+
+    err_page = clcf->error_pages->elts;
+    for (i = 0; i < clcf->error_pages->nelts; i++) {
+
+        if (err_page[i].status == status) {
+
+            if (status == NGX_HTTP_UNAUTHORIZED) {
+
+                h = ngx_list_push(&r->headers_out.headers);
+
+                if (h == NULL) {
+                    ngx_http_upstream_finalize_request(r, u,
+                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+                    return NGX_OK;
+                }
+
+                *h = *u->headers_in.www_authenticate;
+
+                r->headers_out.www_authenticate = h;
+            }
+
+            ngx_http_upstream_finalize_request(r, u, status);
+
+            return NGX_OK;
+        }
+    }
+
+    return NGX_DECLINED;
 }
 
 

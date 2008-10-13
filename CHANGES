@@ -1,4 +1,29 @@
 
+Changes with nginx 0.7.18                                        13 Oct 2008
+
+    *) Change: the "underscores_in_headers" directive; now nginx does not 
+       allows underscores in a client request header line names.
+
+    *) Feature: the ngx_http_secure_link_module.
+
+    *) Feature: the "real_ip_header" directive supports any header.
+
+    *) Feature: the "log_subrequest" directive.
+
+    *) Feature: the $realpath_root variable.
+
+    *) Feature: the "http_502" and "http_504" parameters of the 
+       "proxy_next_upstream" directive.
+
+    *) Bugfix: the "http_503" parameter of the "proxy_next_upstream" or 
+       "fastcgi_next_upstream" directives did not work.
+
+    *) Bugfix: nginx might send a "Transfer-Encoding: chunked" heaer line 
+       for HEAD requests.
+
+    *) Bugfix: now accept threshold depends on worker_connections.
+
+
 Changes with nginx 0.7.17                                        15 Sep 2008
 
     *) Feature: now the "directio" directive works on Linux.

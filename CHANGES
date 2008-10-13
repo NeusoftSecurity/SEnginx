@@ -1,4 +1,9 @@
 
+Changes with nginx 0.7.19                                        13 Oct 2008
+
+    *) Bugfix: version number update.
+
+
 Changes with nginx 0.7.18                                        13 Oct 2008
 
     *) Change: the "underscores_in_headers" directive; now nginx does not 

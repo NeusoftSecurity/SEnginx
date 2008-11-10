@@ -1,4 +1,26 @@
 
+Changes with nginx 0.7.20                                        10 Nov 2008
+
+    *) Changes in the ngx_http_gzip_filter_module.
+
+    *) Feature: the ngx_http_limit_req_module.
+
+    *) Bugfix: worker processes might exit on a SIGBUS signal on sparc and 
+       ppc platforms; the bug had appeared in 0.7.3.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: the "proxy_pass http://host/some:uri" directives did not 
+       work; the bug had appeared in 0.7.12.
+
+    *) Bugfix: in HTTPS mode requests might fail with the "bad write retry" 
+       error.
+
+    *) Bugfix: the ngx_http_secure_link_module did not work inside 
+       locations, whose names are less than 3 characters.
+
+    *) Bugfix: $server_addr variable might have no value.
+
+
 Changes with nginx 0.7.19                                        13 Oct 2008
 
     *) Bugfix: version number update.

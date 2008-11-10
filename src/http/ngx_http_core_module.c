@@ -1631,6 +1631,10 @@ ngx_http_server_addr(ngx_http_request_t *r, ngx_str_t *s)
         }
 
         r->in_addr = sin.sin_addr.s_addr;
+
+    } else {
+        sin.sin_family = c->sockaddr->sa_family;
+        sin.sin_addr.s_addr = r->in_addr;
     }
 
     if (s == NULL) {
@@ -3470,7 +3474,7 @@ ngx_http_core_directio(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     if (ngx_strcmp(value[1].data, "off") == 0) {
-        clcf->directio = NGX_MAX_OFF_T_VALUE;
+        clcf->directio = NGX_OPEN_FILE_DIRECTIO_OFF;
         return NGX_CONF_OK;
     }
 

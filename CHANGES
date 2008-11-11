@@ -1,4 +1,18 @@
 
+Changes with nginx 0.7.21                                        11 Nov 2008
+
+    *) Changes in the ngx_http_limit_req_module.
+
+    *) Feature: the EXSLT support in the ngx_http_xslt_module.
+       Thanks to Denis F. Latypoff.
+
+    *) Workaround: compatibility with glibc 2.3.
+       Thanks to Eric Benson and Maxim Dounin.
+
+    *) Bugfix: nginx could not run on MacOSX 10.4 and earlier; the bug had 
+       appeared in 0.7.6.
+
+
 Changes with nginx 0.7.20                                        10 Nov 2008
 
     *) Changes in the ngx_http_gzip_filter_module.

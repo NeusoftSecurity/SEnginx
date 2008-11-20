@@ -1,4 +1,17 @@
 
+Changes with nginx 0.7.22                                        20 Nov 2008
+
+    *) Feature: the "none" parameter in the "smtp_auth" directive.
+       Thanks to Maxim Dounin.
+
+    *) Feature: the "$cookie_..." variables.
+
+    *) Bugfix: the "directio" directive did not work in XFS filesystem.
+
+    *) Bugfix: the resolver did not understand big DNS responses.
+       Thanks to Zyb.
+
+
 Changes with nginx 0.7.21                                        11 Nov 2008
 
     *) Changes in the ngx_http_limit_req_module.

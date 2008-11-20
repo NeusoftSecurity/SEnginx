@@ -40,7 +40,6 @@ struct ngx_mail_auth_http_ctx_s {
     ngx_mail_auth_http_handler_pt   handler;
 
     ngx_uint_t                      state;
-    ngx_uint_t                      hash;   /* no needed ? */
 
     u_char                         *header_name_start;
     u_char                         *header_name_end;
@@ -141,7 +140,8 @@ static ngx_str_t   ngx_mail_auth_http_method[] = {
     ngx_string("plain"),
     ngx_string("plain"),
     ngx_string("apop"),
-    ngx_string("cram-md5")
+    ngx_string("cram-md5"),
+    ngx_string("none")
 };
 
 static ngx_str_t   ngx_mail_smtp_errcode = ngx_string("535 5.7.0");
@@ -914,7 +914,6 @@ ngx_mail_auth_http_parse_header_line(ngx_mail_session_t *s,
     ngx_mail_auth_http_ctx_t *ctx)
 {
     u_char      c, ch, *p;
-    ngx_uint_t  hash;
     enum {
         sw_start = 0,
         sw_name,
@@ -926,7 +925,6 @@ ngx_mail_auth_http_parse_header_line(ngx_mail_session_t *s,
     } state;
 
     state = ctx->state;
-    hash = ctx->hash;
 
     for (p = ctx->response->pos; p < ctx->response->last; p++) {
         ch = *p;
@@ -950,12 +948,10 @@ ngx_mail_auth_http_parse_header_line(ngx_mail_session_t *s,
 
                 c = (u_char) (ch | 0x20);
                 if (c >= 'a' && c <= 'z') {
-                    hash = c;
                     break;
                 }
 
                 if (ch >= '0' && ch <= '9') {
-                    hash = ch;
                     break;
                 }
 
@@ -967,7 +963,6 @@ ngx_mail_auth_http_parse_header_line(ngx_mail_session_t *s,
         case sw_name:
             c = (u_char) (ch | 0x20);
             if (c >= 'a' && c <= 'z') {
-                hash += c;
                 break;
             }
 
@@ -978,12 +973,10 @@ ngx_mail_auth_http_parse_header_line(ngx_mail_session_t *s,
             }
 
             if (ch == '-') {
-                hash += ch;
                 break;
             }
 
             if (ch >= '0' && ch <= '9') {
-                hash += ch;
                 break;
             }
 
@@ -1080,7 +1073,6 @@ ngx_mail_auth_http_parse_header_line(ngx_mail_session_t *s,
 
     ctx->response->pos = p;
     ctx->state = state;
-    ctx->hash = hash;
 
     return NGX_AGAIN;
 
@@ -1088,7 +1080,6 @@ done:
 
     ctx->response->pos = p + 1;
     ctx->state = sw_start;
-    ctx->hash = hash;
 
     return NGX_OK;
 
@@ -1165,6 +1156,10 @@ ngx_mail_auth_http_create_request(ngx_mail_session_t *s, ngx_pool_t *pool,
                 + sizeof(CRLF) - 1
           + sizeof("Client-IP: ") - 1 + s->connection->addr_text.len
                 + sizeof(CRLF) - 1
+          + sizeof("Client-Host: ") - 1 + s->host.len + sizeof(CRLF) - 1
+          + sizeof("Auth-SMTP-Helo: ") - 1 + s->smtp_helo.len
+          + sizeof("Auth-SMTP-From: ") - 1 + s->smtp_from.len
+          + sizeof("Auth-SMTP-To: ") - 1 + s->smtp_to.len
           + ahcf->header.len
           + sizeof(CRLF) - 1;
 
@@ -1216,8 +1211,36 @@ ngx_mail_auth_http_create_request(ngx_mail_session_t *s, ngx_pool_t *pool,
 
     b->last = ngx_cpymem(b->last, "Client-IP: ", sizeof("Client-IP: ") - 1);
     b->last = ngx_copy(b->last, s->connection->addr_text.data,
-                         s->connection->addr_text.len);
+                       s->connection->addr_text.len);
     *b->last++ = CR; *b->last++ = LF;
+
+    if (s->host.len) {
+        b->last = ngx_cpymem(b->last, "Client-Host: ",
+                             sizeof("Client-Host: ") - 1);
+        b->last = ngx_copy(b->last, s->host.data, s->host.len);
+        *b->last++ = CR; *b->last++ = LF;
+    }
+
+    if (s->auth_method == NGX_MAIL_AUTH_NONE) {
+
+        /* HELO, MAIL FROM, and RCPT TO can't contain CRLF, no need to escape */
+
+        b->last = ngx_cpymem(b->last, "Auth-SMTP-Helo: ",
+                             sizeof("Auth-SMTP-Helo: ") - 1);
+        b->last = ngx_copy(b->last, s->smtp_helo.data, s->smtp_helo.len);
+        *b->last++ = CR; *b->last++ = LF;
+
+        b->last = ngx_cpymem(b->last, "Auth-SMTP-From: ",
+                             sizeof("Auth-SMTP-From: ") - 1);
+        b->last = ngx_copy(b->last, s->smtp_from.data, s->smtp_from.len);
+        *b->last++ = CR; *b->last++ = LF;
+
+        b->last = ngx_cpymem(b->last, "Auth-SMTP-To: ",
+                             sizeof("Auth-SMTP-To: ") - 1);
+        b->last = ngx_copy(b->last, s->smtp_to.data, s->smtp_to.len);
+        *b->last++ = CR; *b->last++ = LF;
+
+    }
 
     if (ahcf->header.len) {
         b->last = ngx_copy(b->last, ahcf->header.data, ahcf->header.len);

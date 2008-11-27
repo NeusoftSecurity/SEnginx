@@ -1,4 +1,13 @@
 
+Changes with nginx 0.7.23                                        27 Nov 2008
+
+    *) Feature: the "delete" and "ranges" parameters in the "geo" directive.
+
+    *) Feature: speeding up loading of geo base with large number of values.
+
+    *) Feature: decrease of memory required for geo base load.
+
+
 Changes with nginx 0.7.22                                        20 Nov 2008
 
     *) Feature: the "none" parameter in the "smtp_auth" directive.
@@ -1765,7 +1774,7 @@ Changes with nginx 0.3.55                                        28 Jul 2006
     *) Bugfix: if the request contained "//" or "/./" and escaped symbols 
        after them, then the proxied request was sent unescaped.
 
-    *) Bugfix: the $r->headers_in("Cookie") of the ngx_http_perl_module now 
+    *) Bugfix: the $r->header_in("Cookie") of the ngx_http_perl_module now 
        returns all "Cookie" header lines.
 
     *) Bugfix: a segmentation fault occurred if 

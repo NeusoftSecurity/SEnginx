@@ -1,4 +1,15 @@
 
+Changes with nginx 0.7.24                                        01 Dec 2008
+
+    *) Feature: the "if_modified_since" directive.
+
+    *) Bugfix: nginx did not process a FastCGI server response, if the 
+       server send too many messages to stderr before response.
+
+    *) Bugfix: the "$cookie_..." variables did not work in the SSI and the 
+       perl module.
+
+
 Changes with nginx 0.7.23                                        27 Nov 2008
 
     *) Feature: the "delete" and "ranges" parameters in the "geo" directive.

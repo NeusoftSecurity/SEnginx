@@ -1,4 +1,9 @@
 
+Changes with nginx 0.7.26                                        08 Dec 2008
+
+    *) Bugfix: in subrequest processing; the bug had appeared in 0.7.25.
+
+
 Changes with nginx 0.7.25                                        08 Dec 2008
 
     *) Change: in subrequest processing.

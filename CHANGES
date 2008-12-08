@@ -1,4 +1,16 @@
 
+Changes with nginx 0.7.25                                        08 Dec 2008
+
+    *) Change: in subrequest processing.
+
+    *) Change: now POSTs without "Content-Length" header line are allowed.
+
+    *) Bugfix: now the "limit_req" and "limit_conn" directives log a 
+       prohibition reason.
+
+    *) Bugfix: in the "delete" parameter of the "geo" directive.
+
+
 Changes with nginx 0.7.24                                        01 Dec 2008
 
     *) Feature: the "if_modified_since" directive.

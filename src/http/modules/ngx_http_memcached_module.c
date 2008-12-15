@@ -183,7 +183,8 @@ ngx_http_memcached_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    u->schema = mlcf->upstream.schema;
+    u->schema.len = sizeof("memcached://") - 1;
+    u->schema.data = (u_char *) "memcached://";
 
     u->peer.log = r->connection->log;
     u->peer.log_error = NGX_ERROR_ERR;
@@ -521,7 +522,6 @@ ngx_http_memcached_create_loc_conf(ngx_conf_t *cf)
      *     conf->upstream.bufs.num = 0;
      *     conf->upstream.next_upstream = 0;
      *     conf->upstream.temp_path = NULL;
-     *     conf->upstream.schema = { 0, NULL };
      *     conf->upstream.uri = { 0, NULL };
      *     conf->upstream.location = NULL;
      */
@@ -584,7 +584,6 @@ ngx_http_memcached_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     if (conf->upstream.upstream == NULL) {
         conf->upstream.upstream = prev->upstream.upstream;
-        conf->upstream.schema = prev->upstream.schema;
     }
 
     if (conf->index == NGX_CONF_UNSET) {
@@ -598,13 +597,13 @@ ngx_http_memcached_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 static char *
 ngx_http_memcached_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_http_memcached_loc_conf_t *lcf = conf;
+    ngx_http_memcached_loc_conf_t *mlcf = conf;
 
     ngx_str_t                 *value;
     ngx_url_t                  u;
     ngx_http_core_loc_conf_t  *clcf;
 
-    if (lcf->upstream.schema.len) {
+    if (mlcf->upstream.upstream) {
         return "is duplicate";
     }
 
@@ -615,13 +614,10 @@ ngx_http_memcached_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     u.url = value[1];
     u.no_resolve = 1;
 
-    lcf->upstream.upstream = ngx_http_upstream_add(cf, &u, 0);
-    if (lcf->upstream.upstream == NULL) {
+    mlcf->upstream.upstream = ngx_http_upstream_add(cf, &u, 0);
+    if (mlcf->upstream.upstream == NULL) {
         return NGX_CONF_ERROR;
     }
-
-    lcf->upstream.schema.len = sizeof("memcached://") - 1;
-    lcf->upstream.schema.data = (u_char *) "memcached://";
 
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
 
@@ -631,9 +627,9 @@ ngx_http_memcached_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         clcf->auto_redirect = 1;
     }
 
-    lcf->index = ngx_http_get_variable_index(cf, &ngx_http_memcached_key);
+    mlcf->index = ngx_http_get_variable_index(cf, &ngx_http_memcached_key);
 
-    if (lcf->index == NGX_ERROR) {
+    if (mlcf->index == NGX_ERROR) {
         return NGX_CONF_ERROR;
     }
 

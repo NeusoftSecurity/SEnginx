@@ -39,6 +39,8 @@ static char *ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd,
     void *dummy);
 static char *ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd,
     void *dummy);
+static ngx_int_t ngx_http_core_regex_location(ngx_conf_t *cf,
+    ngx_http_core_loc_conf_t *clcf, ngx_str_t *regex, ngx_uint_t caseless);
 
 static char *ngx_http_core_types(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
@@ -55,6 +57,8 @@ static char *ngx_http_core_limit_except(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *ngx_http_core_directio(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+static char *ngx_http_core_try_files(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_http_core_open_file_cache(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
@@ -533,6 +537,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
                         |NGX_CONF_2MORE,
       ngx_http_core_error_page,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("try_files"),
+      NGX_HTTP_LOC_CONF|NGX_CONF_2MORE,
+      ngx_http_core_try_files,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
@@ -1026,6 +1037,177 @@ ngx_http_core_post_access_phase(ngx_http_request_t *r,
 
     r->phase_handler++;
     return NGX_AGAIN;
+}
+
+
+ngx_int_t
+ngx_http_core_try_files_phase(ngx_http_request_t *r,
+    ngx_http_phase_handler_t *ph)
+{
+    size_t                        len, root, alias;
+    ssize_t                       reserve, allocated;
+    u_char                       *p, *name;
+    ngx_str_t                     path;
+    ngx_http_try_file_t          *tf;
+    ngx_open_file_info_t          of;
+    ngx_http_script_code_pt       code;
+    ngx_http_script_engine_t      e;
+    ngx_http_core_loc_conf_t     *clcf;
+    ngx_http_script_len_code_pt   lcode;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "try files phase: %ui", r->phase_handler);
+
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
+    if (clcf->try_files == NULL) {
+        r->phase_handler++;
+        return NGX_AGAIN;
+    }
+
+    allocated = 0;
+    root = 0;
+    name = NULL;
+    path.len = 0;
+    path.data = NULL;
+
+    tf = clcf->try_files;
+
+    alias = clcf->alias ? clcf->name.len : 0;
+
+    for ( ;; ) {
+
+        if (tf->lengths) {
+            ngx_memzero(&e, sizeof(ngx_http_script_engine_t));
+
+            e.ip = tf->lengths->elts;
+            e.request = r;
+            e.flushed = 1;
+
+            /* 1 is for terminating '\0' as in static names */
+            len = 1;
+
+            while (*(uintptr_t *) e.ip) {
+                lcode = *(ngx_http_script_len_code_pt *) e.ip;
+                len += lcode(&e);
+            }
+
+        } else {
+            len = tf->name.len;
+        }
+
+        reserve = len - r->uri.len;
+
+        /* 16 bytes are preallocation */
+        reserve = reserve < 16 ? 16 : reserve + 16;
+
+        reserve += alias;
+
+        if (reserve > allocated) {
+
+            /* we just need to allocate path and to copy a root */
+
+            if (ngx_http_map_uri_to_path(r, &path, &root, reserve) == NULL) {
+                ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+                return NGX_OK;
+            }
+
+            name = path.data + root;
+            allocated = path.len - root - (r->uri.len - alias);
+         }
+
+        if (tf->values == NULL) {
+
+            /* tf->name.len includes the terminating '\0' */
+
+            ngx_memcpy(name, tf->name.data, tf->name.len);
+
+            path.len = (name + tf->name.len - 1) - path.data;
+
+        } else {
+            e.ip = tf->values->elts;
+            e.pos = name;
+
+            while (*(uintptr_t *) e.ip) {
+                code = *(ngx_http_script_code_pt *) e.ip;
+                code((ngx_http_script_engine_t *) &e);
+            }
+
+            path.len = e.pos - path.data;
+
+            *e.pos++ = '\0';
+
+            if (alias && ngx_strncmp(name, clcf->name.data, alias) == 0) {
+                ngx_memcpy(name, name + alias, len - alias);
+                path.len -= alias;
+            }
+        }
+
+        tf++;
+
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "try to use file: \"%s\"", name);
+
+        if (tf->lengths == NULL && tf->name.len == 0) {
+
+            path.len -= root;
+            path.data += root;
+
+            if (path.data[0] == '@') {
+                (void) ngx_http_named_location(r, &path);
+
+            } else {
+                (void) ngx_http_internal_redirect(r, &path, NULL);
+            }
+
+            return NGX_OK;
+        }
+
+        ngx_memzero(&of, sizeof(ngx_open_file_info_t));
+
+        of.directio = clcf->directio;
+        of.valid = clcf->open_file_cache_valid;
+        of.min_uses = clcf->open_file_cache_min_uses;
+        of.errors = clcf->open_file_cache_errors;
+        of.events = clcf->open_file_cache_events;
+
+        if (ngx_open_cached_file(clcf->open_file_cache, &path, &of, r->pool)
+            != NGX_OK)
+        {
+            if (of.err != NGX_ENOENT && of.err != NGX_ENOTDIR) {
+                ngx_log_error(NGX_LOG_CRIT, r->connection->log, of.err,
+                              ngx_open_file_n " \"%s\" failed", path.data);
+            }
+
+            continue;
+        }
+
+        path.len -= root;
+        path.data += root;
+
+        if (!alias) {
+            r->uri = path;
+
+        } else {
+            r->uri.len = alias + path.len;
+            r->uri.data = ngx_pnalloc(r->pool, r->uri.len);
+            if (r->uri.data == NULL) {
+                ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+                return NGX_OK;
+            }
+
+            p = ngx_copy(r->uri.data, clcf->name.data, alias);
+            ngx_memcpy(p, name, path.len);
+        }
+
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "try file uri: \"%V\"", &r->uri);
+
+        r->phase_handler++;
+        return NGX_AGAIN;
+    }
+
+    /* not reached */
 }
 
 
@@ -2015,33 +2197,37 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
 
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
-    for (clcfp = cscf->named_locations; *clcfp; clcfp++) {
+    if (cscf->named_locations) {
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "test location: \"%V\"", &(*clcfp)->name);
+        for (clcfp = cscf->named_locations; *clcfp; clcfp++) {
 
-        if (name->len != (*clcfp)->name.len
-            || ngx_strncmp(name->data, (*clcfp)->name.data, name->len) != 0)
-        {
-            continue;
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "test location: \"%V\"", &(*clcfp)->name);
+
+            if (name->len != (*clcfp)->name.len
+                || ngx_strncmp(name->data, (*clcfp)->name.data, name->len) != 0)
+            {
+                continue;
+            }
+
+            ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "using location: %V \"%V?%V\"",
+                           name, &r->uri, &r->args);
+
+            r->internal = 1;
+            r->content_handler = NULL;
+            r->loc_conf = (*clcfp)->loc_conf;
+
+            ngx_http_update_location_config(r);
+
+            cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
+
+            r->phase_handler = cmcf->phase_engine.location_rewrite_index;
+
+            ngx_http_core_run_phases(r);
+
+            return NGX_DONE;
         }
-
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "using location: %V \"%V?%V\"", name, &r->uri, &r->args);
-
-        r->internal = 1;
-        r->content_handler = NULL;
-        r->loc_conf = (*clcfp)->loc_conf;
-
-        ngx_http_update_location_config(r);
-
-        cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
-
-        r->phase_handler = cmcf->phase_engine.location_rewrite_index;
-
-        ngx_http_core_run_phases(r);
-
-        return NGX_DONE;
     }
 
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
@@ -2182,8 +2368,10 @@ static char *
 ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 {
     char                      *rv;
+    u_char                    *mod;
+    size_t                     len;
+    ngx_str_t                 *value, *name;
     ngx_uint_t                 i;
-    ngx_str_t                 *value;
     ngx_conf_t                 save;
     ngx_http_module_t         *module;
     ngx_http_conf_ctx_t       *ctx, *pctx;
@@ -2225,45 +2413,32 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     value = cf->args->elts;
 
     if (cf->args->nelts == 3) {
-        if (value[1].len == 1 && value[1].data[0] == '=') {
-            clcf->name = value[2];
+
+        len = value[1].len;
+        mod = value[1].data;
+        name = &value[2];
+
+        if (len == 1 && mod[0] == '=') {
+
+            clcf->name = *name;
             clcf->exact_match = 1;
 
-        } else if (value[1].len == 2
-                   && value[1].data[0] == '^'
-                   && value[1].data[1] == '~')
-        {
-            clcf->name = value[2];
+        } else if (len == 2 && mod[0] == '^' && mod[1] == '~') {
+
+            clcf->name = *name;
             clcf->noregex = 1;
 
-        } else if ((value[1].len == 1 && value[1].data[0] == '~')
-                   || (value[1].len == 2
-                       && value[1].data[0] == '~'
-                       && value[1].data[1] == '*'))
-        {
-#if (NGX_PCRE)
-            ngx_str_t  err;
-            u_char     errstr[NGX_MAX_CONF_ERRSTR];
+        } else if (len == 1 && mod[0] == '~') {
 
-            err.len = NGX_MAX_CONF_ERRSTR;
-            err.data = errstr;
-
-            clcf->regex = ngx_regex_compile(&value[2],
-                                     value[1].len == 2 ? NGX_REGEX_CASELESS: 0,
-                                     cf->pool, &err);
-
-            if (clcf->regex == NULL) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s", err.data);
+            if (ngx_http_core_regex_location(cf, clcf, name, 0) != NGX_OK) {
                 return NGX_CONF_ERROR;
             }
 
-            clcf->name = value[2];
-#else
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "the using of the regex \"%V\" "
-                               "requires PCRE library", &value[2]);
-            return NGX_CONF_ERROR;
-#endif
+        } else if (len == 2 && mod[0] == '~' && mod[1] == '*') {
+
+            if (ngx_http_core_regex_location(cf, clcf, name, 1) != NGX_OK) {
+                return NGX_CONF_ERROR;
+            }
 
         } else {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -2273,10 +2448,47 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 
     } else {
 
-        clcf->name = value[1];
+        name = &value[1];
 
-        if (value[1].data[0] == '@') {
-            clcf->named = 1;
+        if (name->data[0] == '=') {
+
+            clcf->name.len = name->len - 1;
+            clcf->name.data = name->data + 1;
+            clcf->exact_match = 1;
+
+        } else if (name->data[0] == '^' && name->data[1] == '~') {
+
+            clcf->name.len = name->len - 2;
+            clcf->name.data = name->data + 2;
+            clcf->noregex = 1;
+
+        } else if (name->data[0] == '~') {
+
+            name->len--;
+            name->data++;
+
+            if (name->data[0] == '*') {
+
+                name->len--;
+                name->data++;
+
+                if (ngx_http_core_regex_location(cf, clcf, name, 1) != NGX_OK) {
+                    return NGX_CONF_ERROR;
+                }
+
+            } else {
+                if (ngx_http_core_regex_location(cf, clcf, name, 0) != NGX_OK) {
+                    return NGX_CONF_ERROR;
+                }
+            }
+
+        } else {
+
+            clcf->name = *name;
+
+            if (name->data[0] == '@') {
+                clcf->named = 1;
+            }
         }
     }
 
@@ -2314,13 +2526,13 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
             return NGX_CONF_ERROR;
         }
 
+        len = pclcf->name.len;
+
 #if (NGX_PCRE)
         if (clcf->regex == NULL
-            && ngx_strncmp(clcf->name.data, pclcf->name.data, pclcf->name.len)
-               != 0)
+            && ngx_strncmp(clcf->name.data, pclcf->name.data, len) != 0)
 #else
-        if (ngx_strncmp(clcf->name.data, pclcf->name.data, pclcf->name.len)
-            != 0)
+        if (ngx_strncmp(clcf->name.data, pclcf->name.data, len) != 0)
 #endif
         {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -2343,6 +2555,40 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     *cf = save;
 
     return rv;
+}
+
+
+static ngx_int_t
+ngx_http_core_regex_location(ngx_conf_t *cf, ngx_http_core_loc_conf_t *clcf,
+    ngx_str_t *regex, ngx_uint_t caseless)
+{
+#if (NGX_PCRE)
+    ngx_str_t  err;
+    u_char     errstr[NGX_MAX_CONF_ERRSTR];
+
+    err.len = NGX_MAX_CONF_ERRSTR;
+    err.data = errstr;
+
+    clcf->regex = ngx_regex_compile(regex, caseless ? NGX_REGEX_CASELESS: 0,
+                                    cf->pool, &err);
+
+    if (clcf->regex == NULL) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "%s", err.data);
+        return NGX_ERROR;
+    }
+
+    clcf->name = *regex;
+
+    return NGX_OK;
+
+#else
+
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                       "the using of the regex \"%V\" requires PCRE library",
+                       regex);
+    return NGX_ERROR;
+
+#endif
 }
 
 
@@ -2644,6 +2890,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
      *     lcf->default_type = { 0, NULL };
      *     lcf->err_log = NULL;
      *     lcf->error_pages = NULL;
+     *     lcf->try_files = NULL;
      *     lcf->client_body_path = NULL;
      *     lcf->regex = NULL;
      *     lcf->exact_match = 0;
@@ -3612,6 +3859,65 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         err->uri_lengths = uri_lengths;
         err->uri_values = uri_values;
+    }
+
+    return NGX_CONF_OK;
+}
+
+
+static char *
+ngx_http_core_try_files(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_core_loc_conf_t *clcf = conf;
+
+    ngx_str_t                  *value;
+    ngx_uint_t                  i, n;
+    ngx_http_try_file_t        *tf;
+    ngx_http_script_compile_t   sc;
+    ngx_http_core_main_conf_t  *cmcf;
+
+    if (clcf->try_files) {
+        return "is duplicate";
+    }
+
+    cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
+
+    cmcf->try_files = 1;
+
+    tf = ngx_pcalloc(cf->pool, cf->args->nelts * sizeof(ngx_http_try_file_t));
+    if (tf == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    clcf->try_files = tf;
+
+    value = cf->args->elts;
+
+    for (i = 0; i < cf->args->nelts - 1; i++) {
+
+        tf[i].name = value[i + 1];
+
+        n = ngx_http_script_variables_count(&tf[i].name);
+
+        if (n) {
+            ngx_memzero(&sc, sizeof(ngx_http_script_compile_t));
+
+            sc.cf = cf;
+            sc.source = &tf[i].name;
+            sc.lengths = &tf[i].lengths;
+            sc.values = &tf[i].values;
+            sc.variables = n;
+            sc.complete_lengths = 1;
+            sc.complete_values = 1;
+
+            if (ngx_http_script_compile(&sc) != NGX_OK) {
+                return NGX_CONF_ERROR;
+            }
+
+        } else {
+            /* add trailing '\0' to length */
+            tf[i].name.len++;
+        }
     }
 
     return NGX_CONF_OK;

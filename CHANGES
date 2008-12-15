@@ -1,4 +1,32 @@
 
+Changes with nginx 0.7.27                                        15 Dec 2008
+
+    *) Feature: the "try_files" directive.
+
+    *) Feature: variables support in the "fastcgi_pass" directive.
+
+    *) Feature: now the $geo variable may get an address from a 
+       variable.
+       Thanks to Andrei Nigmatulin.
+
+    *) Feature: now a location's modifier may be used without space before 
+       name.
+
+    *) Feature: the $upstream_response_length variable.
+
+    *) Bugfix: now a "add_header" directive does not add an empty value.
+
+    *) Bugfix: if zero length static file was requested, then nginx just 
+       closed connection; the bug had appeared in 0.7.25.
+
+    *) Bugfix: a MOVE method could not move file in non-existent directory.
+
+    *) Bugfix: a segmentation fault occurred in worker process, if no one 
+       named location was defined in server, but some one was used in an 
+       error_page directive.
+       Thanks to Sergey Bochenkov.
+
+
 Changes with nginx 0.7.26                                        08 Dec 2008
 
     *) Bugfix: in subrequest processing; the bug had appeared in 0.7.25.

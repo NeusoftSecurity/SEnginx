@@ -45,6 +45,7 @@ typedef struct {
     ngx_uint_t                      status;
     time_t                          response_sec;
     ngx_uint_t                      response_msec;
+    off_t                           response_length;
 
     ngx_str_t                      *peer;
 } ngx_http_upstream_state_t;
@@ -144,8 +145,6 @@ typedef struct {
     ngx_array_t                    *hide_headers;
     ngx_array_t                    *pass_headers;
 
-    ngx_str_t                       schema;
-
     ngx_array_t                    *store_lengths;
     ngx_array_t                    *store_values;
 
@@ -216,9 +215,13 @@ typedef struct {
 } ngx_http_upstream_resolved_t;
 
 
+typedef void (*ngx_http_upstream_handler_pt)(ngx_http_request_t *r,
+    ngx_http_upstream_t *u);
+
+
 struct ngx_http_upstream_s {
-    ngx_event_handler_pt            read_event_handler;
-    ngx_event_handler_pt            write_event_handler;
+    ngx_http_upstream_handler_pt    read_event_handler;
+    ngx_http_upstream_handler_pt    write_event_handler;
 
     ngx_peer_connection_t           peer;
 

@@ -1,4 +1,12 @@
 
+Changes with nginx 0.7.28                                        22 Dec 2008
+
+    *) Change: in memory allocation in the ngx_http_gzip_filter_module.
+
+    *) Change: the default "gzip_buffers" directive values have been 
+       changed to 32 4k or 16 8k from 4 4k/8k.
+
+
 Changes with nginx 0.7.27                                        15 Dec 2008
 
     *) Feature: the "try_files" directive.

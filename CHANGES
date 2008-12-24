@@ -1,4 +1,12 @@
 
+Changes with nginx 0.7.30                                        24 Dec 2008
+
+    *) Bugfix: a segmentation fault occurred in worker process, if 
+       variables were used in the "fastcgi_pass" and "proxy_pass" 
+       directives and host name must be resolved; the bug had appeared in 
+       0.7.29.
+
+
 Changes with nginx 0.7.29                                        24 Dec 2008
 
     *) Bugfix: the "fastcgi_pass" and "proxy_pass" directives did not 

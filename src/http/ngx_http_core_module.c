@@ -862,7 +862,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (r->headers_in.expect) {
+    if (r->headers_in.expect && r->http_version > NGX_HTTP_VERSION_10) {
         expect = ngx_http_core_send_continue(r);
 
         if (expect != NGX_OK) {
@@ -1082,7 +1082,6 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
 
             e.ip = tf->lengths->elts;
             e.request = r;
-            e.flushed = 1;
 
             /* 1 is for terminating '\0' as in static names */
             len = 1;
@@ -1127,6 +1126,7 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
         } else {
             e.ip = tf->values->elts;
             e.pos = name;
+            e.flushed = 1;
 
             while (*(uintptr_t *) e.ip) {
                 code = *(ngx_http_script_code_pt *) e.ip;
@@ -2093,7 +2093,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
     sr->read_event_handler = ngx_http_request_empty_handler;
     sr->write_event_handler = ngx_http_handler;
 
-    if (c->data == r) {
+    if (c->data == r && r->postponed == NULL) {
         c->data = sr;
     }
 

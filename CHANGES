@@ -1,4 +1,18 @@
 
+Changes with nginx 0.7.29                                        24 Dec 2008
+
+    *) Bugfix: the "fastcgi_pass" and "proxy_pass" directives did not 
+       support variables if unix domain sockets were used.
+
+    *) Bugfixes in subrequest processing; the bugs had appeared in 0.7.25.
+
+    *) Bugfix: a "100 Continue" response was issued for HTTP/1.0 requests; 
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: in memory allocation in the ngx_http_gzip_filter_module on 
+       Cygwin.
+
+
 Changes with nginx 0.7.28                                        22 Dec 2008
 
     *) Change: in memory allocation in the ngx_http_gzip_filter_module.

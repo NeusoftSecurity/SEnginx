@@ -518,10 +518,15 @@ ngx_http_geo_add_range(ngx_conf_t *cf, ngx_http_geo_conf_ctx_t *ctx,
     ngx_array_t           *a;
     ngx_http_geo_range_t  *range;
 
-    for (n = start; n < end; n += 0x10000) {
+    for (n = start; n <= end; n += 0x10000) {
 
         h = n >> 16;
-        s = n & 0xffff;
+
+        if (n == start) {
+            s = n & 0xffff;
+        } else {
+            s = 0;
+        }
 
         if ((n | 0xffff) > end) {
             e = end & 0xffff;
@@ -567,7 +572,9 @@ ngx_http_geo_add_range(ngx_conf_t *cf, ngx_http_geo_conf_ctx_t *ctx,
                 ngx_memcpy(&range[i + 2], &range[i + 1],
                            (a->nelts - 2 - i) * sizeof(ngx_http_geo_range_t));
 
-                range = &range[i + 1];
+                range[i + 1].start = (u_short) s;
+                range[i + 1].end = (u_short) e;
+                range[i + 1].value = ctx->value;
 
                 goto next;
             }
@@ -578,11 +585,101 @@ ngx_http_geo_add_range(ngx_conf_t *cf, ngx_http_geo_conf_ctx_t *ctx,
                 ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
                     "duplicate range \"%V\", value: \"%v\", old value: \"%v\"",
                     ctx->net, ctx->value, range[i].value);
-                continue;
+
+                range[i].value = ctx->value;
+
+                goto next;
             }
 
+            if (s > (ngx_uint_t) range[i].start
+                && e < (ngx_uint_t) range[i].end)
+            {
+                /* split the range and insert the new one */
+
+                range = ngx_array_push(a);
+                if (range == NULL) {
+                    return NGX_CONF_ERROR;
+                }
+
+                range = ngx_array_push(a);
+                if (range == NULL) {
+                    return NGX_CONF_ERROR;
+                }
+
+                range = a->elts;
+
+                ngx_memcpy(&range[i + 3], &range[i + 1],
+                           (a->nelts - 3 - i) * sizeof(ngx_http_geo_range_t));
+
+                range[i + 2].start = (u_short) (e + 1);
+                range[i + 2].end = range[i].end;
+                range[i + 2].value = range[i].value;
+
+                range[i + 1].start = (u_short) s;
+                range[i + 1].end = (u_short) e;
+                range[i + 1].value = ctx->value;
+
+                range[i].end = (u_short) (s - 1);
+
+                goto next;
+            }
+
+            if (s == (ngx_uint_t) range[i].start
+                && e < (ngx_uint_t) range[i].end)
+            {
+                /* shift the range start and insert the new range */
+
+                range = ngx_array_push(a);
+                if (range == NULL) {
+                    return NGX_CONF_ERROR;
+                }
+
+                range = a->elts;
+
+                ngx_memcpy(&range[i + 2], &range[i + 1],
+                           (a->nelts - 2 - i) * sizeof(ngx_http_geo_range_t));
+
+                range[i + 1].start = (u_short) (e + 1);
+
+                range[i].start = (u_short) s;
+                range[i].end = (u_short) e;
+                range[i].value = ctx->value;
+
+                goto next;
+            }
+
+            if (s > (ngx_uint_t) range[i].start
+                && e == (ngx_uint_t) range[i].end)
+            {
+                /* shift the range end and insert the new range */
+
+                range = ngx_array_push(a);
+                if (range == NULL) {
+                    return NGX_CONF_ERROR;
+                }
+
+                range = a->elts;
+
+                ngx_memcpy(&range[i + 2], &range[i + 1],
+                           (a->nelts - 2 - i) * sizeof(ngx_http_geo_range_t));
+
+                range[i + 1].start = (u_short) s;
+                range[i + 1].end = (u_short) e;
+                range[i + 1].value = ctx->value;
+
+                range[i].end = (u_short) (s - 1);
+
+                goto next;
+            }
+
+            s = (ngx_uint_t) range[i].start;
+            e = (ngx_uint_t) range[i].end;
+
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "overlapped range \"%V\"", ctx->net);
+                         "range \"%V\" overlaps \"%d.%d.%d.%d-%d.%d.%d.%d\"",
+                         ctx->net,
+                         h >> 8, h & 0xff, s >> 8, s & 0xff,
+                         h >> 8, h & 0xff, e >> 8, e & 0xff);
 
             return NGX_CONF_ERROR;
         }
@@ -594,11 +691,13 @@ ngx_http_geo_add_range(ngx_conf_t *cf, ngx_http_geo_conf_ctx_t *ctx,
             return NGX_CONF_ERROR;
         }
 
-    next:
-
         range->start = (u_short) s;
         range->end = (u_short) e;
         range->value = ctx->value;
+
+    next:
+
+        continue;
     }
 
     return NGX_CONF_OK;
@@ -616,10 +715,15 @@ ngx_http_geo_delete_range(ngx_conf_t *cf, ngx_http_geo_conf_ctx_t *ctx,
 
     warn = 0;
 
-    for (n = start; n < end; n += 0x10000) {
+    for (n = start; n <= end; n += 0x10000) {
 
         h = n >> 16;
-        s = n & 0xffff;
+
+        if (n == start) {
+            s = n & 0xffff;
+        } else {
+            s = 0;
+        }
 
         if ((n | 0xffff) > end) {
             e = end & 0xffff;
@@ -643,6 +747,9 @@ ngx_http_geo_delete_range(ngx_conf_t *cf, ngx_http_geo_conf_ctx_t *ctx,
             {
                 ngx_memcpy(&range[i], &range[i + 1],
                            (a->nelts - 1 - i) * sizeof(ngx_http_geo_range_t));
+
+                a->nelts--;
+
                 break;
             }
 

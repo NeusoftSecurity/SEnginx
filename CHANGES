@@ -1,10 +1,30 @@
 
+Changes with nginx 0.7.31                                        19 Jan 2009
+
+    *) Change: now the "try_files" directive tests files only and ignores 
+       directories.
+
+    *) Feature: the "fastcgi_split_path_info" directive.
+
+    *) Bugfixes in an "Expect" request header line support.
+
+    *) Bugfixes in geo ranges.
+
+    *) Bugfix: in a miss case ngx_http_memcached_module returned the "END" 
+       line as response body instead of default 404 page body; the bug had 
+       appeared in 0.7.18.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: while SMTP proxying nginx issued message "250 2.0.0 OK" 
+       instead of "235 2.0.0 OK"; the bug had appeared in 0.7.22.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.7.30                                        24 Dec 2008
 
     *) Bugfix: a segmentation fault occurred in worker process, if 
-       variables were used in the "fastcgi_pass" and "proxy_pass" 
-       directives and host name must be resolved; the bug had appeared in 
-       0.7.29.
+       variables were used in the "fastcgi_pass" or "proxy_pass" directives 
+       and host name must be resolved; the bug had appeared in 0.7.29.
 
 
 Changes with nginx 0.7.29                                        24 Dec 2008

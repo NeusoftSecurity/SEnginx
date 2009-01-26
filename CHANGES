@@ -1,4 +1,18 @@
 
+Changes with nginx 0.7.32                                        26 Jan 2009
+
+    *) Feature: now a directory existence testing can be set explicitly in 
+       the "try_files" directive.
+
+    *) Bugfix: fastcgi_store stored files not always.
+
+    *) Bugfix: in geo ranges.
+
+    *) Bugfix: in shared memory allocations if nginx was built without 
+       debugging.
+       Thanks to Andrey Kvasov.
+
+
 Changes with nginx 0.7.31                                        19 Jan 2009
 
     *) Change: now the "try_files" directive tests files only and ignores 

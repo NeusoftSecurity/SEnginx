@@ -1,4 +1,18 @@
 
+Changes with nginx 0.7.33                                        02 Feb 2009
+
+    *) Bugfix: a double response might be returned if the epoll or rtsig 
+       methods are used and a redirect was returned to a request with 
+       body.
+       Thanks to Eden Li.
+
+    *) Bugfix: the $sent_http_location variable was empty for some 
+       redirects types.
+
+    *) Bugfix: a segmentation fault might occur in worker process if 
+       "resolver" directive was used in SMTP proxy.
+
+
 Changes with nginx 0.7.32                                        26 Jan 2009
 
     *) Feature: now a directory existence testing can be set explicitly in 

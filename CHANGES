@@ -1,4 +1,24 @@
 
+Changes with nginx 0.7.34                                        10 Feb 2009
+
+    *) Feature: the "off" parameter of the "if_modified_since" directive.
+
+    *) Feature: now nginx sends an HELO/EHLO command after a XCLIENT 
+       command.
+       Thanks to Maxim Dounin.
+
+    *) Feature: Microsoft specific "AUTH LOGIN with User Name" mode support 
+       in mail proxy server.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: in a redirect rewrite directive original arguments were 
+       concatenated with new arguments by an "?" rather than an "&";
+       the bug had appeared in 0.1.18.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: nginx could not be built on AIX.
+
+
 Changes with nginx 0.7.33                                        02 Feb 2009
 
     *) Bugfix: a double response might be returned if the epoll or rtsig 
@@ -62,7 +82,8 @@ Changes with nginx 0.7.29                                        24 Dec 2008
 
     *) Bugfixes in subrequest processing; the bugs had appeared in 0.7.25.
 
-    *) Bugfix: a "100 Continue" response was issued for HTTP/1.0 requests; 
+    *) Bugfix: a "100 Continue" response was issued for HTTP/1.0 
+       requests;
        Thanks to Maxim Dounin.
 
     *) Bugfix: in memory allocation in the ngx_http_gzip_filter_module on 
@@ -3422,8 +3443,8 @@ Changes with nginx 0.1.18                                        09 Feb 2005
     *) Bugfix: the proxy_set_x_var and fastcgi_set_var directives were not 
        inherited.
 
-    *) Bugfix: in the redirect rewrite directive the arguments were 
-       concatenated with URI by the "&" rather than the "?".
+    *) Bugfix: in a redirect rewrite directive arguments were concatenated 
+       with URI by an "&" rather than an "?".
 
     *) Bugfix: the lines without trailing ";" in the file being included by 
        the ngx_http_geo_module were silently ignored.

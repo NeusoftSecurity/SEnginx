@@ -140,6 +140,7 @@ typedef enum {
     ngx_smtp_helo_from,
     ngx_smtp_xclient,
     ngx_smtp_xclient_from,
+    ngx_smtp_xclient_helo,
     ngx_smtp_from,
     ngx_smtp_to
 } ngx_smtp_state_e;
@@ -258,11 +259,12 @@ typedef struct {
 #define NGX_SMTP_STARTTLS      13
 
 
-#define NGX_MAIL_AUTH_PLAIN     0
-#define NGX_MAIL_AUTH_LOGIN     1
-#define NGX_MAIL_AUTH_APOP      2
-#define NGX_MAIL_AUTH_CRAM_MD5  3
-#define NGX_MAIL_AUTH_NONE      4
+#define NGX_MAIL_AUTH_PLAIN             0
+#define NGX_MAIL_AUTH_LOGIN             1
+#define NGX_MAIL_AUTH_LOGIN_USERNAME    2
+#define NGX_MAIL_AUTH_APOP              3
+#define NGX_MAIL_AUTH_CRAM_MD5          4
+#define NGX_MAIL_AUTH_NONE              5
 
 
 #define NGX_MAIL_AUTH_PLAIN_ENABLED     0x0002
@@ -346,7 +348,7 @@ ngx_int_t ngx_mail_salt(ngx_mail_session_t *s, ngx_connection_t *c,
 ngx_int_t ngx_mail_auth_plain(ngx_mail_session_t *s, ngx_connection_t *c,
     ngx_uint_t n);
 ngx_int_t ngx_mail_auth_login_username(ngx_mail_session_t *s,
-    ngx_connection_t *c);
+    ngx_connection_t *c, ngx_uint_t n);
 ngx_int_t ngx_mail_auth_login_password(ngx_mail_session_t *s,
     ngx_connection_t *c);
 ngx_int_t ngx_mail_auth_cram_md5_salt(ngx_mail_session_t *s,

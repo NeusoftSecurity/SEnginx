@@ -1,4 +1,19 @@
 
+Changes with nginx 0.7.35                                        16 Feb 2009
+
+    *) Bugfix: a "ssl_engine" directive did not use a SSL-accelerator for 
+       asymmetric ciphers.
+       Thanks to Marcin Gozdalik.
+
+    *) Bugfix: a "try_files" directive set MIME type depending on an 
+       original request extension.
+
+    *) Bugfix: "*domain.tld" names were handled incorrectly in 
+       "server_name", "valid_referers", and "map" directives, if an 
+       ".domain.tld" and ".subdomain.domain.tld" wildcards were used; 
+       the bug had appeared in 0.7.9.
+
+
 Changes with nginx 0.7.34                                        10 Feb 2009
 
     *) Feature: the "off" parameter of the "if_modified_since" directive.
@@ -382,7 +397,7 @@ Changes with nginx 0.7.9                                         12 Aug 2008
 
     *) Bugfix: if the "server_name", "valid_referers", and "map" directives 
        used an "*.domain.tld" wildcard and exact name "domain.tld" was not 
-       set, then the exact name was matched by the wildcard; the bugs had 
+       set, then the exact name was matched by the wildcard; the bug had 
        appeared in 0.3.18.
 
 

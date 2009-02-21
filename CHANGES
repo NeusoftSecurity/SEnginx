@@ -1,4 +1,10 @@
 
+Changes with nginx 0.7.37                                        21 Feb 2009
+
+    *) Bugfix: directive using upstreams did not work; the bug had appeared 
+       in 0.7.36.
+
+
 Changes with nginx 0.7.36                                        21 Feb 2009
 
     *) Feature: a preliminary IPv6 support; the "listen" directive of the 

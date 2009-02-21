@@ -318,6 +318,10 @@ ngx_http_browser(ngx_http_request_t *r, ngx_http_browser_conf_t *cf)
                 if (c == '.') {
                     version += ver * scale;
 
+                    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                                   "version: \"%ui\" \"%ui\"",
+                                   modern[i].version, version);
+
                     if (version > modern[i].version) {
                         return NGX_HTTP_MODERN_BROWSER;
                     }
@@ -339,6 +343,8 @@ ngx_http_browser(ngx_http_request_t *r, ngx_http_browser_conf_t *cf)
             if (version >= modern[i].version) {
                 return NGX_HTTP_MODERN_BROWSER;
             }
+
+            return NGX_HTTP_ANCIENT_BROWSER;
         }
 
         if (!cf->modern_unlisted_browsers) {

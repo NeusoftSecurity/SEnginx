@@ -1,4 +1,13 @@
 
+Changes with nginx 0.7.36                                        21 Feb 2009
+
+    *) Feature: a preliminary IPv6 support; the "listen" directive of the 
+       HTTP module supports IPv6.
+
+    *) Bugfix: the $ancient_browser variable did not work for browsers 
+       preset by a "modern_browser" directives.
+
+
 Changes with nginx 0.7.35                                        16 Feb 2009
 
     *) Bugfix: a "ssl_engine" directive did not use a SSL-accelerator for 

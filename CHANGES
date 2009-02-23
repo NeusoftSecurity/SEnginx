@@ -1,8 +1,20 @@
 
+Changes with nginx 0.7.38                                        23 Feb 2009
+
+    *) Feature: authentication failures logging.
+
+    *) Bugfix: name/password in auth_basic_user_file were ignored after odd 
+       number of empty lines.
+       Thanks to Alexander Zagrebin.
+
+    *) Bugfix: a segmentation fault occurred in a master process, if long 
+       path was used in unix domain socket; the bug had appeared in 0.7.36.
+
+
 Changes with nginx 0.7.37                                        21 Feb 2009
 
-    *) Bugfix: directive using upstreams did not work; the bug had appeared 
-       in 0.7.36.
+    *) Bugfix: directives using upstreams did not work; the bug had 
+       appeared in 0.7.36.
 
 
 Changes with nginx 0.7.36                                        21 Feb 2009

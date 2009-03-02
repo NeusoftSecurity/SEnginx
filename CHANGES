@@ -1,4 +1,14 @@
 
+Changes with nginx 0.7.39                                        02 Mar 2009
+
+    *) Bugfix: large response with SSI might hang, if gzipping was enabled; 
+       the bug had appeared in 0.7.28.
+       Thanks to Artem Bokhan.
+
+    *) Bugfix: a segmentation fault might occur in worker process, if short 
+       static variants are used in a "try_files" directive.
+
+
 Changes with nginx 0.7.38                                        23 Feb 2009
 
     *) Feature: authentication failures logging.

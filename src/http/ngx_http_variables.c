@@ -332,7 +332,8 @@ ngx_http_get_variable_index(ngx_conf_t *cf, ngx_str_t *name)
 
     if (v == NULL) {
         if (ngx_array_init(&cmcf->variables, cf->pool, 4,
-                           sizeof(ngx_http_variable_t)) == NGX_ERROR)
+                           sizeof(ngx_http_variable_t))
+            != NGX_OK)
         {
             return NGX_ERROR;
         }
@@ -956,11 +957,44 @@ static ngx_int_t
 ngx_http_variable_server_port(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    v->len = r->port_text->len - 1;
+    ngx_uint_t            port;
+    struct sockaddr_in   *sin;
+#if (NGX_HAVE_INET6)
+    struct sockaddr_in6  *sin6;
+#endif
+
+    v->len = 0;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
-    v->data = r->port_text->data + 1;
+
+    if (ngx_http_server_addr(r, NULL) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    v->data = ngx_pnalloc(r->pool, sizeof("65535") - 1);
+    if (v->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    switch (r->connection->local_sockaddr->sa_family) {
+
+#if (NGX_HAVE_INET6)
+    case AF_INET6:
+        sin6 = (struct sockaddr_in6 *) r->connection->local_sockaddr;
+        port = ntohs(sin6->sin6_port);
+        break;
+#endif
+
+    default: /* AF_INET */
+        sin = (struct sockaddr_in *) r->connection->local_sockaddr;
+        port = ntohs(sin->sin_port);
+        break;
+    }
+
+    if (port > 0 && port < 65536) {
+        v->len = ngx_sprintf(v->data, "%ui", port) - v->data;
+    }
 
     return NGX_OK;
 }
@@ -1039,9 +1073,7 @@ ngx_http_variable_document_root(ngx_http_request_t *r,
             return NGX_ERROR;
         }
 
-        if (ngx_conf_full_name((ngx_cycle_t *) ngx_cycle, &path, 0)
-            == NGX_ERROR)
-        {
+        if (ngx_conf_full_name((ngx_cycle_t *) ngx_cycle, &path, 0) != NGX_OK) {
             return NGX_ERROR;
         }
 
@@ -1080,9 +1112,7 @@ ngx_http_variable_realpath_root(ngx_http_request_t *r,
 
         path.data[path.len - 1] = '\0';
 
-        if (ngx_conf_full_name((ngx_cycle_t *) ngx_cycle, &path, 0)
-            == NGX_ERROR)
-        {
+        if (ngx_conf_full_name((ngx_cycle_t *) ngx_cycle, &path, 0) != NGX_OK) {
             return NGX_ERROR;
         }
     }
@@ -1286,6 +1316,8 @@ static ngx_int_t
 ngx_http_variable_sent_location(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
+    ngx_str_t  name;
+
     if (r->headers_out.location) {
         v->len = r->headers_out.location->value.len;
         v->valid = 1;
@@ -1296,7 +1328,10 @@ ngx_http_variable_sent_location(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    return ngx_http_variable_unknown_header(v, (ngx_str_t *) data,
+    name.len = sizeof("sent_http_location") - 1;
+    name.data = (u_char *) "sent_http_location";
+
+    return ngx_http_variable_unknown_header(v, &name,
                                             &r->headers_out.headers.part,
                                             sizeof("sent_http_") - 1);
 }

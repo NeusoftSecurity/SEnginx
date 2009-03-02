@@ -1086,12 +1086,8 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
             len = tf->name.len;
         }
 
-        reserve = len - r->uri.len;
-
         /* 16 bytes are preallocation */
-        reserve = reserve < 16 ? 16 : reserve + 16;
-
-        reserve += alias;
+        reserve = ngx_abs((ssize_t) (len - r->uri.len)) + alias + 16;
 
         if (reserve > allocated) {
 
@@ -1555,7 +1551,7 @@ ngx_http_set_content_type(ngx_http_request_t *r)
 
                 exten = ngx_pnalloc(r->pool, r->exten.len);
                 if (exten == NULL) {
-                    return NGX_HTTP_INTERNAL_SERVER_ERROR;
+                    return NGX_ERROR;
                 }
 
                 hash = ngx_hash_strlow(exten, r->exten.data, r->exten.len);
@@ -1684,8 +1680,7 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
             return NULL;
         }
 
-        if (ngx_conf_full_name((ngx_cycle_t *) ngx_cycle, path, 0)== NGX_ERROR)
-        {
+        if (ngx_conf_full_name((ngx_cycle_t *) ngx_cycle, path, 0) != NGX_OK) {
             return NULL;
         }
 
@@ -1776,7 +1771,6 @@ ngx_http_server_addr(ngx_http_request_t *r, ngx_str_t *s)
 {
     socklen_t            len;
     ngx_connection_t    *c;
-    struct sockaddr_in  *sin;
     u_char               sa[NGX_SOCKADDRLEN];
 
     c = r->connection;
@@ -1798,9 +1792,6 @@ ngx_http_server_addr(ngx_http_request_t *r, ngx_str_t *s)
         c->local_socklen = len;
         ngx_memcpy(c->local_sockaddr, &sa, len);
     }
-
-    sin = (struct sockaddr_in *) c->local_sockaddr;
-    r->in_addr = sin->sin_addr.s_addr;
 
     if (s == NULL) {
         return NGX_OK;
@@ -2010,7 +2001,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
 
     if (ngx_list_init(&sr->headers_out.headers, r->pool, 20,
                       sizeof(ngx_table_elt_t))
-        == NGX_ERROR)
+        != NGX_OK)
     {
         return NGX_ERROR;
     }
@@ -2064,10 +2055,6 @@ ngx_http_subrequest(ngx_http_request_t *r,
     if (c->data == r && r->postponed == NULL) {
         c->data = sr;
     }
-
-    sr->in_addr = r->in_addr;
-    sr->port = r->port;
-    sr->port_text = r->port_text;
 
     sr->variables = r->variables;
 
@@ -2602,7 +2589,7 @@ ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
     if (ngx_strcmp(value[0].data, "include") == 0) {
         file = value[1];
 
-        if (ngx_conf_full_name(cf->cycle, &file, 1) == NGX_ERROR){
+        if (ngx_conf_full_name(cf->cycle, &file, 1) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
 
@@ -2736,14 +2723,14 @@ ngx_http_core_create_srv_conf(ngx_conf_t *cf)
 
     if (ngx_array_init(&cscf->listen, cf->temp_pool, 4,
                        sizeof(ngx_http_listen_t))
-        == NGX_ERROR)
+        != NGX_OK)
     {
         return NGX_CONF_ERROR;
     }
 
     if (ngx_array_init(&cscf->server_names, cf->temp_pool, 4,
                        sizeof(ngx_http_server_name_t))
-        == NGX_ERROR)
+        != NGX_OK)
     {
         return NGX_CONF_ERROR;
     }
@@ -2962,7 +2949,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
             conf->root.len = sizeof("html") - 1;
             conf->root.data = (u_char *) "html";
 
-            if (ngx_conf_full_name(cf->cycle, &conf->root, 0) == NGX_ERROR) {
+            if (ngx_conf_full_name(cf->cycle, &conf->root, 0) != NGX_OK) {
                 return NGX_CONF_ERROR;
             }
         }
@@ -3534,7 +3521,7 @@ ngx_http_core_root(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (lcf->root.data[0] != '$') {
-        if (ngx_conf_full_name(cf->cycle, &lcf->root, 0) == NGX_ERROR) {
+        if (ngx_conf_full_name(cf->cycle, &lcf->root, 0) != NGX_OK) {
             return NGX_CONF_ERROR;
         }
     }

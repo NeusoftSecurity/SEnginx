@@ -245,6 +245,7 @@ typedef struct {
 struct ngx_http_server_name_s {
 #if (NGX_PCRE)
     ngx_regex_t               *regex;
+    ngx_uint_t                 captures;      /* unsigned  captures:1; */
 #endif
     ngx_http_core_srv_conf_t  *core_srv_conf; /* virtual name server conf */
     ngx_str_t                  name;
@@ -274,6 +275,8 @@ struct ngx_http_core_loc_conf_s {
 
 #if (NGX_PCRE)
     ngx_regex_t  *regex;
+
+    unsigned      captures:1;
 #endif
 
     unsigned      noname:1;   /* "if () {}" block or limit_except */
@@ -289,7 +292,9 @@ struct ngx_http_core_loc_conf_s {
 #endif
 
     ngx_http_location_tree_node_t   *static_locations;
+#if (NGX_PCRE)
     ngx_http_core_loc_conf_t       **regex_locations;
+#endif
 
     /* pointer to the modules' loc_conf */
     void        **loc_conf;

@@ -1,4 +1,21 @@
 
+Changes with nginx 0.7.40                                        09 Mar 2009
+
+    *) Feature: the "location" directive supports captures in regular 
+       expressions.
+
+    *) Feature: an "alias" directive with capture references may be used 
+       inside a location given by a regular expression with captures.
+
+    *) Feature: the "server_name" directive supports captures in regular 
+       expressions.
+
+    *) Workaround: the ngx_http_autoindex_module did not show the trailing 
+       slash in directories on XFS filesystem; the issue had appeared in 
+       0.7.15.
+       Thanks to Dmitry Kuzmenko.
+
+
 Changes with nginx 0.7.39                                        02 Mar 2009
 
     *) Bugfix: large response with SSI might hang, if gzipping was enabled; 

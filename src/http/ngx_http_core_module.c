@@ -1122,7 +1122,7 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
 
             path.len = e.pos - path.data;
 
-            *e.pos++ = '\0';
+            *e.pos = '\0';
 
             if (alias && ngx_strncmp(name, clcf->name.data, alias) == 0) {
                 ngx_memcpy(name, name + alias, len - alias);
@@ -1378,13 +1378,15 @@ ngx_http_core_find_location(ngx_http_request_t *r)
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                            "test location: ~ \"%V\"", &(*clcfp)->name);
 
-            if ((*clcfp)->captures && r->captures == NULL) {
+            if ((*clcfp)->captures) {
 
                 len = (NGX_HTTP_MAX_CAPTURES + 1) * 3;
 
-                r->captures = ngx_palloc(r->pool, len * sizeof(int));
                 if (r->captures == NULL) {
-                    return NGX_ERROR;
+                    r->captures = ngx_palloc(r->pool, len * sizeof(int));
+                    if (r->captures == NULL) {
+                        return NGX_ERROR;
+                    }
                 }
             }
 
@@ -1672,13 +1674,11 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
         return NULL;
     }
 
-    reserved += r->uri.len - alias + 1;
-
     if (clcf->root_lengths == NULL) {
 
         *root_length = clcf->root.len;
 
-        path->len = clcf->root.len + reserved;
+        path->len = clcf->root.len + reserved + r->uri.len - alias + 1;
 
         path->data = ngx_pnalloc(r->pool, path->len);
         if (path->data == NULL) {
@@ -1688,7 +1688,7 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
         last = ngx_copy(path->data, clcf->root.data, clcf->root.len);
 
     } else {
-        if (ngx_http_script_run(r, path, clcf->root_lengths->elts, reserved,
+        if (ngx_http_script_run(r, path, clcf->root_lengths->elts, ++reserved,
                                 clcf->root_values->elts)
             == NULL)
         {
@@ -3330,6 +3330,45 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                                "on this platform, ignored");
 #endif
             continue;
+        }
+
+        if (ngx_strncmp(value[n].data, "ipv6only=o", 10) == 0) {
+#if (NGX_HAVE_INET6 && defined IPV6_V6ONLY)
+            struct sockaddr  *sa;
+
+            sa = (struct sockaddr *) ls->sockaddr;
+
+            if (sa->sa_family == AF_INET6) {
+
+                if (ngx_strcmp(&value[n].data[10], "n") == 0) {
+                    ls->conf.ipv6only = 1;
+
+                } else if (ngx_strcmp(&value[n].data[10], "ff") == 0) {
+                    ls->conf.ipv6only = 2;
+
+                } else {
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                       "invalid ipv6only flags \"%s\"",
+                                       &value[n].data[9]);
+                    return NGX_CONF_ERROR;
+                }
+
+                ls->conf.bind = 1;
+
+            } else {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   "ipv6only is not supported "
+                                   "on addr \"%s\", ignored",
+                                   ls->conf.addr);
+            }
+
+            continue;
+#else
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "bind ipv6only is not supported "
+                               "on this platform");
+            return NGX_CONF_ERROR;
+#endif
         }
 
         if (ngx_strcmp(value[n].data, "ssl") == 0) {

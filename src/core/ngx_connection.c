@@ -282,6 +282,23 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 return NGX_ERROR;
             }
 
+#if (NGX_HAVE_INET6 && defined IPV6_V6ONLY)
+
+            if (ls[i].sockaddr->sa_family == AF_INET6 && ls[i].ipv6only) {
+                int  ipv6only;
+
+                ipv6only = (ls[i].ipv6only == 1);
+
+                if (setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY,
+                               (const void *) &ipv6only, sizeof(int))
+                    == -1)
+                {
+                    ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_socket_errno,
+                                  "setsockopt(IPV6_V6ONLY) %V failed, ignored",
+                                  &ls[i].addr_text);
+                }
+            }
+#endif
             /* TODO: close on exit */
 
             if (!(ngx_event_flags & NGX_USE_AIO_EVENT)) {
@@ -782,11 +799,15 @@ ngx_connection_error(ngx_connection_t *c, ngx_err_t err, char *text)
 {
     ngx_uint_t  level;
 
-    if (err == NGX_ECONNRESET
-        && c->log_error == NGX_ERROR_IGNORE_ECONNRESET)
-    {
+    if (err == NGX_ECONNRESET && c->log_error == NGX_ERROR_IGNORE_ECONNRESET) {
         return 0;
     }
+
+#if (NGX_SOLARIS)
+    if (err == NGX_EINVAL && c->log_error == NGX_ERROR_IGNORE_EINVAL) {
+        return 0;
+    }
+#endif
 
     if (err == 0
         || err == NGX_ECONNRESET
@@ -803,6 +824,7 @@ ngx_connection_error(ngx_connection_t *c, ngx_err_t err, char *text)
     {
         switch (c->log_error) {
 
+        case NGX_ERROR_IGNORE_EINVAL:
         case NGX_ERROR_IGNORE_ECONNRESET:
         case NGX_ERROR_INFO:
             level = NGX_LOG_INFO;

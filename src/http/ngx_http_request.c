@@ -1611,7 +1611,6 @@ static ngx_int_t
 ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len)
 {
     u_char                    *server;
-    size_t                     ncaptures;
     ngx_uint_t                 hash;
     ngx_http_virtual_names_t  *vn;
     ngx_http_core_loc_conf_t  *clcf;
@@ -1646,6 +1645,7 @@ ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len)
 #if (NGX_PCRE)
 
     if (vn->nregex) {
+        size_t                   ncaptures;
         ngx_int_t                n;
         ngx_uint_t               i;
         ngx_str_t                name;
@@ -2421,8 +2421,15 @@ ngx_http_set_keepalive(ngx_http_request_t *r)
                        (const void *) &tcp_nodelay, sizeof(int))
             == -1)
         {
+#if (NGX_SOLARIS)
+            /* Solaris returns EINVAL if a socket has been shut down */
+            c->log_error = NGX_ERROR_IGNORE_EINVAL;
+#endif
+
             ngx_connection_error(c, ngx_socket_errno,
                                  "setsockopt(TCP_NODELAY) failed");
+
+            c->log_error = NGX_ERROR_INFO;
             ngx_http_close_connection(c);
             return;
         }

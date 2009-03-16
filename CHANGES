@@ -1,4 +1,29 @@
 
+Changes with nginx 0.7.42                                        16 Mar 2009
+
+    *) Change: now the "Invalid argument" error returned by 
+       setsockopt(TCP_NODELAY) on Solaris, is ignored.
+
+    *) Change: now if a file specified in a "auth_basic_user_file" 
+       directive is absent, then the 405 error is returned instead of the 
+       500 one.
+
+    *) Feature: the "auth_basic_user_file" directive supports variables.
+       Thanks to Kirill A. Korinskiy.
+
+    *) Feature: the "listen" directive supports the "ipv6only" parameter. 
+       Thanks to Zhang Hua.
+
+    *) Bugfix: in an "alias" directive with references to captures of 
+       regular expressions; the bug had appeared in 0.7.40.
+
+    *) Bugfix: compatibility with Tru64 UNIX.
+       Thanks to Dustin Marquess.
+
+    *) Bugfix: nginx could not be built without PCRE library; the bug had 
+       appeared in 0.7.41.
+
+
 Changes with nginx 0.7.41                                        11 Mar 2009
 
     *) Bugfix: a segmentation fault might occur in worker process, if a 

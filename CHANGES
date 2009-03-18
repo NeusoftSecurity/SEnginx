@@ -1,11 +1,21 @@
 
+Changes with nginx 0.7.43                                        18 Mar 2009
+
+    *) Bugfix: a request was handled incorrectly, if a "root" directive 
+       used variables; the bug had appeared in 0.7.42.
+
+    *) Bugfix: if a server listened on wildcard address, then the 
+       $server_addr variable value was "0.0.0.0"; the bug had appeared in 
+       0.7.36.
+
+
 Changes with nginx 0.7.42                                        16 Mar 2009
 
     *) Change: now the "Invalid argument" error returned by 
        setsockopt(TCP_NODELAY) on Solaris, is ignored.
 
     *) Change: now if a file specified in a "auth_basic_user_file" 
-       directive is absent, then the 405 error is returned instead of the 
+       directive is absent, then the 403 error is returned instead of the 
        500 one.
 
     *) Feature: the "auth_basic_user_file" directive supports variables.

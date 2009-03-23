@@ -119,6 +119,11 @@ static ngx_conf_enum_t  ngx_http_core_if_modified_since[] = {
 };
 
 
+static ngx_path_init_t  ngx_http_client_temp_path = {
+    ngx_string(NGX_HTTP_CLIENT_TEMP_PATH), { 0, 0, 0 }
+};
+
+
 #if (NGX_HTTP_GZIP)
 
 static ngx_conf_enum_t  ngx_http_gzip_http_version[] = {
@@ -347,7 +352,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
       ngx_conf_set_path_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, client_body_temp_path),
-      (void *) ngx_garbage_collector_temp_handler },
+      NULL },
 
     { ngx_string("client_body_in_file_only"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
@@ -542,7 +547,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NULL },
 
     { ngx_string("try_files"),
-      NGX_HTTP_LOC_CONF|NGX_CONF_2MORE,
+      NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_2MORE,
       ngx_http_core_try_files,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -1037,7 +1042,7 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
 {
     size_t                        len, root, alias, reserve, allocated;
     u_char                       *p, *name;
-    ngx_str_t                     path;
+    ngx_str_t                     path, args;
     ngx_uint_t                    test_dir;
     ngx_http_try_file_t          *tf;
     ngx_open_file_info_t          of;
@@ -1134,8 +1139,8 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
 
         tf++;
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "try to use file: \"%s\"", name);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "try to use file: \"%s\" \"%s\"", name, path.data);
 
         if (tf->lengths == NULL && tf->name.len == 0) {
 
@@ -1146,7 +1151,9 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
                 (void) ngx_http_named_location(r, &path);
 
             } else {
-                (void) ngx_http_internal_redirect(r, &path, NULL);
+                ngx_http_split_args(r, &path, &args);
+
+                (void) ngx_http_internal_redirect(r, &path, &args);
             }
 
             return NGX_OK;
@@ -2183,6 +2190,10 @@ ngx_http_internal_redirect(ngx_http_request_t *r,
 
     ngx_http_update_location_config(r);
 
+#if (NGX_HTTP_CACHE)
+    r->cache = NULL;
+#endif
+
     r->internal = 1;
 
     ngx_http_handler(r);
@@ -3154,10 +3165,13 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->resolver = prev->resolver;
     }
 
-    ngx_conf_merge_path_value(conf->client_body_temp_path,
+    if (ngx_conf_merge_path_value(cf, &conf->client_body_temp_path,
                               prev->client_body_temp_path,
-                              NGX_HTTP_CLIENT_TEMP_PATH, 0, 0, 0,
-                              ngx_garbage_collector_temp_handler, cf);
+                              &ngx_http_client_temp_path)
+        != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
 
     ngx_conf_merge_value(conf->reset_timedout_connection,
                               prev->reset_timedout_connection, 0);
@@ -3789,13 +3803,13 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_core_loc_conf_t *lcf = conf;
 
-    u_char                     *args;
-    ngx_int_t                   overwrite;
-    ngx_str_t                  *value, uri;
-    ngx_uint_t                  i, n, nvar;
-    ngx_array_t                *uri_lengths, *uri_values;
-    ngx_http_err_page_t        *err;
-    ngx_http_script_compile_t   sc;
+    u_char                            *p;
+    ngx_int_t                          overwrite;
+    ngx_str_t                         *value, uri, args;
+    ngx_uint_t                         i, n;
+    ngx_http_err_page_t               *err;
+    ngx_http_complex_value_t           cv;
+    ngx_http_compile_complex_value_t   ccv;
 
     if (lcf->error_pages == NULL) {
         lcf->error_pages = ngx_array_create(cf->pool, 4,
@@ -3837,28 +3851,31 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     uri = value[cf->args->nelts - 1];
-    uri_lengths = NULL;
-    uri_values = NULL;
 
-    nvar = ngx_http_script_variables_count(&uri);
+    ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
-    if (nvar) {
-        ngx_memzero(&sc, sizeof(ngx_http_script_compile_t));
+    ccv.cf = cf;
+    ccv.value = &uri;
+    ccv.complex_value = &cv;
 
-        sc.cf = cf;
-        sc.source = &uri;
-        sc.lengths = &uri_lengths;
-        sc.values = &uri_values;
-        sc.variables = nvar;
-        sc.complete_lengths = 1;
-        sc.complete_values = 1;
-
-        if (ngx_http_script_compile(&sc) != NGX_OK) {
-            return NGX_CONF_ERROR;
-        }
+    if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
     }
 
-    args = (u_char *) ngx_strchr(uri.data, '?');
+    args.len = 0;
+    args.data = NULL;
+
+    if (cv.lengths == NULL) {
+        p = (u_char *) ngx_strchr(uri.data, '?');
+
+        if (p) {
+            cv.value.len = p - uri.data;
+            cv.value.data = uri.data;
+            p++;
+            args.len = (uri.data + uri.len) - p;
+            args.data = p;
+        }
+    }
 
     for (i = 1; i < cf->args->nelts - n; i++) {
         err = ngx_array_push(lcf->error_pages);
@@ -3898,21 +3915,8 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
         }
 
-        if (args) {
-            err->uri.len = args - uri.data;
-            err->uri.data = uri.data;
-            args++;
-            err->args.len = (uri.data + uri.len) - args;
-            err->args.data = args;
-
-        } else {
-            err->uri = uri;
-            err->args.len = 0;
-            err->args.data = NULL;
-        }
-
-        err->uri_lengths = uri_lengths;
-        err->uri_values = uri_values;
+        err->value = cv;
+        err->args = args;
     }
 
     return NGX_CONF_OK;
@@ -3954,6 +3958,7 @@ ngx_http_core_try_files(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         if (tf[i].name.data[tf[i].name.len - 1] == '/') {
             tf[i].test_dir = 1;
             tf[i].name.len--;
+            tf[i].name.data[tf[i].name.len] = '\0';
         }
 
         n = ngx_http_script_variables_count(&tf[i].name);

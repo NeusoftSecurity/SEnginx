@@ -1,4 +1,23 @@
 
+Changes with nginx 0.7.44                                        23 Mar 2009
+
+    *) Feature: the ngx_http_proxy_module preliminary cache support.
+
+    *) Feature: the --with-pcre option in the configure.
+
+    *) Feature: the "try_files" directive is now allowed on the server 
+       block level.
+
+    *) Bugfix: the "try_files" directive handled incorrectly a query string 
+       in a fallback parameter.
+
+    *) Bugfix: the "try_files" directive might test incorrectly directories.
+
+    *) Bugfix: if there is the single server for given address:port pair, 
+       then captures in regular expressions in a "server_name" directive 
+       did not work.
+
+
 Changes with nginx 0.7.43                                        18 Mar 2009
 
     *) Bugfix: a request was handled incorrectly, if a "root" directive 

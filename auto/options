@@ -52,6 +52,7 @@ NGX_HTTP_CLIENT_TEMP_PATH=
 NGX_HTTP_PROXY_TEMP_PATH=
 NGX_HTTP_FASTCGI_TEMP_PATH=
 
+HTTP_CACHE=YES
 HTTP_CHARSET=YES
 HTTP_GZIP=YES
 HTTP_SSL=NO
@@ -165,6 +166,8 @@ do
         --with-ipv6)                     NGX_IPV6=YES               ;;
 
         --without-http)                  HTTP=NO                    ;;
+        --without-http-cache)            HTTP_CACHE=NO              ;;
+
         --http-log-path=*)               NGX_HTTP_LOG_PATH="$value" ;;
         --http-client-body-temp-path=*)  NGX_HTTP_CLIENT_TEMP_PATH="$value" ;;
         --http-proxy-temp-path=*)        NGX_HTTP_PROXY_TEMP_PATH="$value" ;;
@@ -231,6 +234,7 @@ do
         --with-debug)                    NGX_DEBUG=YES              ;;
 
         --without-pcre)                  USE_PCRE=DISABLED          ;;
+        --with-pcre)                     USE_PCRE=YES               ;;
         --with-pcre=*)                   PCRE="$value"              ;;
         --with-pcre-opt=*)               PCRE_OPT="$value"          ;;
 
@@ -336,6 +340,7 @@ cat << END
                                      files
 
   --without-http                     disable HTTP server
+  --without-http-cache               disable HTTP cache
 
   --with-mail                        enable POP3/IMAP4/SMTP proxy module
   --with-mail_ssl_module             enable ngx_mail_ssl_module
@@ -356,7 +361,8 @@ cat << END
                                      pentium, pentiumpro, pentium3, pentium4,
                                      athlon, opteron, sparc32, sparc64, ppc64
 
-  --without-pcre                     disable PCRE libarary usage
+  --without-pcre                     disable PCRE library usage
+  --with-pcre                        force PCRE library usage
   --with-pcre=DIR                    set path to PCRE library sources
   --with-pcre-opt=OPTIONS            set additional options for PCRE building
 

@@ -324,7 +324,7 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_http_proxy_cache,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_proxy_loc_conf_t, upstream.cache),
+      0,
       NULL },
 
     { ngx_string("proxy_cache_path"),
@@ -2067,10 +2067,6 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_ptr_value(conf->upstream.cache_valid,
                              prev->upstream.cache_valid, NULL);
-
-    if (conf->upstream.cache_valid == NULL) {
-        conf->upstream.cache = NULL;
-    }
 
 #endif
 

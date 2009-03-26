@@ -251,6 +251,7 @@ ngx_http_file_cache_open(ngx_http_request_t *r)
                    "http file cache fd: %d", of.fd);
 
     c->file.fd = of.fd;
+    c->file.log = r->connection->log;
 
     c->buf = ngx_create_temp_buf(r->pool, c->body_start);
     if (c->buf == NULL) {
@@ -355,10 +356,7 @@ ngx_http_file_cache_exists(ngx_http_request_t *r, ngx_http_file_cache_t *cache)
         if (fcn->uses >= r->cache->min_uses) {
 
             r->cache->exists = fcn->exists;
-
-            if (fcn->body_start) {
-                r->cache->body_start = fcn->body_start;
-            }
+            r->cache->body_start = fcn->body_start;
 
             rc = NGX_OK;
 
@@ -816,8 +814,8 @@ ngx_http_file_cache_expire(ngx_http_file_cache_t *cache, ngx_uint_t forced)
                 ngx_rbtree_delete(cache->rbtree, &fcn->node);
 
                 ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
-                              "ignore long locked inactive cache entry %*s",
-                              NGX_HTTP_CACHE_KEY_LEN, key);
+                       "ignore long locked inactive cache entry %*s, count:%d",
+                       2 * NGX_HTTP_CACHE_KEY_LEN, key, fcn->count);
             }
 
             if (tries++ < 10) {
@@ -895,8 +893,9 @@ ngx_http_file_cache_cleaner(void *data)
 
     now = ngx_time();
 
-    if (now >= cache->next_clean_time) {
-
+    if (now >= cache->next_clean_time
+        && now >= cache->created + cache->inactive)
+    {
         ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0,
                       "clean unused cache files");
 

@@ -1,4 +1,38 @@
 
+Changes with nginx 0.7.46                                        30 Mar 2009
+
+    *) Bugfix: the previous release tarball was incorrect.
+
+
+Changes with nginx 0.7.45                                        30 Mar 2009
+
+    *) Change: now the "proxy_cache" and the "proxy_cache_valid" can be set 
+       on different levels.
+
+    *) Change: the "clean_time" parameter of the "proxy_cache_path" 
+       directive is canceled.
+
+    *) Feature: the "max_size" parameter of the "proxy_cache_path" 
+       directive.
+
+    *) Feature: the ngx_http_fastcgi_module preliminary cache support.
+
+    *) Feature: now on shared memory allocation errors directive and zone 
+       names are logged.
+
+    *) Bugfix: the directive "add_header last-modified ''" did not delete a 
+       "Last-Modified" response header line; the bug had appeared in 0.7.44.
+
+    *) Bugfix: a relative path in the "auth_basic_user_file" directive 
+       given without variables did not work; the bug had appeared in 
+       0.7.44.
+       Thanks to Jerome Loyet.
+
+    *) Bugfix: in an "alias" directive given using variables without 
+       references to captures of regular expressions; the bug had appeared 
+       in 0.7.42.
+
+
 Changes with nginx 0.7.44                                        23 Mar 2009
 
     *) Feature: the ngx_http_proxy_module preliminary cache support.

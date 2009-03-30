@@ -224,11 +224,6 @@ ngx_http_limit_req_handler(ngx_http_request_t *r)
         node = ngx_slab_alloc_locked(ctx->shpool, n);
         if (node == NULL) {
             ngx_shmtx_unlock(&ctx->shpool->mutex);
-
-            ngx_log_error(NGX_LOG_CRIT, r->connection->log, 0,
-                          "could not allocate memory in zone \"%V\"",
-                          &lrcf->shm_zone->name);
-
             return NGX_HTTP_SERVICE_UNAVAILABLE;
         }
     }
@@ -457,6 +452,7 @@ ngx_http_limit_req_init_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
     ngx_http_limit_req_ctx_t  *octx = data;
 
+    size_t                     len;
     ngx_rbtree_node_t         *sentinel;
     ngx_http_limit_req_ctx_t  *ctx;
 
@@ -499,6 +495,16 @@ ngx_http_limit_req_init_zone(ngx_shm_zone_t *shm_zone, void *data)
     }
 
     ngx_queue_init(ctx->queue);
+
+    len = sizeof(" in limit_req zone \"\"") + shm_zone->name.len;
+
+    ctx->shpool->log_ctx = ngx_slab_alloc(ctx->shpool, len);
+    if (ctx->shpool->log_ctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_sprintf(ctx->shpool->log_ctx, " in limit_req zone \"%V\"%Z",
+                &shm_zone->name);
 
     return NGX_OK;
 }

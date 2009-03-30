@@ -32,7 +32,7 @@ static uintptr_t ngx_http_script_exit_code = (uintptr_t) NULL;
 
 
 void
-ngx_http_scrip_flush_complex_value(ngx_http_request_t *r,
+ngx_http_script_flush_complex_value(ngx_http_request_t *r,
     ngx_http_complex_value_t *val)
 {
     ngx_uint_t *index;
@@ -67,7 +67,7 @@ ngx_http_complex_value(ngx_http_request_t *r, ngx_http_complex_value_t *val,
         return NGX_OK;
     }
 
-    ngx_http_scrip_flush_complex_value(r, val);
+    ngx_http_script_flush_complex_value(r, val);
 
     ngx_memzero(&e, sizeof(ngx_http_script_engine_t));
 
@@ -118,11 +118,6 @@ ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
         return NGX_ERROR;
     }
 
-    ccv->complex_value->value = *v;
-    ccv->complex_value->flushes = NULL;
-    ccv->complex_value->lengths = NULL;
-    ccv->complex_value->values = NULL;
-
     nv = 0;
     nc = 0;
 
@@ -146,6 +141,11 @@ ngx_http_compile_complex_value(ngx_http_compile_complex_value_t *ccv)
         ccv->conf_prefix = 0;
         ccv->root_prefix = 0;
     }
+
+    ccv->complex_value->value = *v;
+    ccv->complex_value->flushes = NULL;
+    ccv->complex_value->lengths = NULL;
+    ccv->complex_value->values = NULL;
 
     if (nv == 0 && nc == 0) {
         return NGX_OK;

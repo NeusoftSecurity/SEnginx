@@ -448,6 +448,7 @@ renew:
     fcn->valid_sec = 0;
     fcn->uniq = 0;
     fcn->body_start = 0;
+    fcn->length = 0;
 
 done:
 
@@ -1065,6 +1066,9 @@ ngx_http_file_cache_manager(void *data)
 
         ngx_shmtx_unlock(&cache->shpool->mutex);
 
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
+                       "http file cache size: %O", size);
+
         if (size < cache->max_size) {
             return next;
         }
@@ -1289,6 +1293,10 @@ ngx_http_file_cache_valid(ngx_array_t *cache_valid, ngx_uint_t status)
 {
     ngx_uint_t               i;
     ngx_http_cache_valid_t  *valid;
+
+    if (cache_valid == NULL) {
+        return 0;
+    }
 
     valid = cache_valid->elts;
     for (i = 0; i < cache_valid->nelts; i++) {

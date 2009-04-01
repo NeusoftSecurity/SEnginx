@@ -1,4 +1,25 @@
 
+Changes with nginx 0.7.47                                        01 Apr 2009
+
+    *) Bugfix: nginx could not be built on FreeBSD 6 and early versions; 
+       the bug had appeared in 0.7.46.
+
+    *) Bugfix: nginx could not be built on MacOSX; the bug had 
+       appeared in 0.7.46.
+
+    *) Bugfix: if the "max_size" parameter was set, then the cache manager 
+       might purge a whole cache; the bug had appeared in 0.7.46.
+
+    *) Change: a segmentation fault might occur in worker process, if the 
+       "proxy_cache"/"fastcgi_cache" and the "proxy_cache_valid"/ 
+       "fastcgi_cache_valid" were set on different levels; the bug had 
+       appeared in 0.7.46.
+
+    *) Bugfix: a segmentation fault might occur in worker process, if a 
+       request was redirected to a proxied or FastCGI server via error_page 
+       or try_files; the bug had appeared in 0.7.44.
+
+
 Changes with nginx 0.7.46                                        30 Mar 2009
 
     *) Bugfix: the previous release tarball was incorrect.
@@ -6,8 +27,8 @@ Changes with nginx 0.7.46                                        30 Mar 2009
 
 Changes with nginx 0.7.45                                        30 Mar 2009
 
-    *) Change: now the "proxy_cache" and the "proxy_cache_valid" can be set 
-       on different levels.
+    *) Change: now the "proxy_cache" and the "proxy_cache_valid" directives 
+       can be set on different levels.
 
     *) Change: the "clean_time" parameter of the "proxy_cache_path" 
        directive is canceled.

@@ -1,4 +1,25 @@
 
+Changes with nginx 0.7.48                                        06 Apr 2009
+
+    *) Feature: the "proxy_cache_key" directive.
+
+    *) Bugfix: now nginx takes into account the "X-Accel-Expires", 
+       "Expires", and "Cache-Control" header lines in a backend response.
+
+    *) Bugfix: now nginx caches responses for the GET requests only.
+
+    *) Bugfix: the "fastcgi_cache_key" directive was not inherited.
+
+    *) Bugfix: the $arg_... variables did not work with SSI subrequests.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: nginx could not be built with uclibc library.
+       Thanks to Timothy Redaelli.
+
+    *) Bugfix: nginx could not be built on OpenBSD; the bug had 
+       appeared in 0.7.46.
+
+
 Changes with nginx 0.7.47                                        01 Apr 2009
 
     *) Bugfix: nginx could not be built on FreeBSD 6 and early versions; 
@@ -198,7 +219,7 @@ Changes with nginx 0.7.34                                        10 Feb 2009
        Thanks to Maxim Dounin.
 
     *) Bugfix: in a redirect rewrite directive original arguments were 
-       concatenated with new arguments by an "?" rather than an "&";
+       concatenated with new arguments by a "?" rather than an "&";
        the bug had appeared in 0.1.18.
        Thanks to Maxim Dounin.
 
@@ -3630,7 +3651,7 @@ Changes with nginx 0.1.18                                        09 Feb 2005
        inherited.
 
     *) Bugfix: in a redirect rewrite directive arguments were concatenated 
-       with URI by an "&" rather than an "?".
+       with URI by an "&" rather than a "?".
 
     *) Bugfix: the lines without trailing ";" in the file being included by 
        the ngx_http_geo_module were silently ignored.

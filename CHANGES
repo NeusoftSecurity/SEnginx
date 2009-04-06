@@ -1,4 +1,10 @@
 
+Changes with nginx 0.7.50                                        06 Apr 2009
+
+    *) Change: a segmentation fault might occur in worker process, if the 
+       $arg_... variables were used; the bug had appeared in 0.7.48.
+
+
 Changes with nginx 0.7.49                                        06 Apr 2009
 
     *) Change: a segmentation fault might occur in worker process, if the 

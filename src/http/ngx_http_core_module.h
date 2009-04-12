@@ -153,8 +153,6 @@ typedef struct {
     /* server ctx */
     ngx_http_conf_ctx_t        *ctx;
 
-    ngx_http_virtual_names_t   *virtual_names;
-
     ngx_str_t                   server_name;
 
     size_t                      connection_pool_size;
@@ -179,6 +177,8 @@ typedef struct {
 typedef struct {
     /* the default server configuration for this address:port */
     ngx_http_core_srv_conf_t  *core_srv_conf;
+
+    ngx_http_virtual_names_t  *virtual_names;
 
 #if (NGX_HTTP_SSL)
     ngx_uint_t                 ssl;   /* unsigned  ssl:1; */
@@ -267,7 +267,9 @@ typedef struct {
     ngx_array_t               *lengths;
     ngx_array_t               *values;
     ngx_str_t                  name;
-    ngx_uint_t                 test_dir;   /* unsigned  test_dir:1; */
+
+    unsigned                   code:10;
+    unsigned                   test_dir:1;
 } ngx_http_try_file_t;
 
 

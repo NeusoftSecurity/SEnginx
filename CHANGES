@@ -1,13 +1,27 @@
 
+Changes with nginx 0.7.51                                        12 Apr 2009
+
+    *) Feature: the "try_files" directive supports a response code in the 
+       fallback parameter.
+
+    *) Feature: now any response code can be used in the "return" directive.
+
+    *) Bugfix: the "error_page" directive made an external redirect without 
+       query string; the bug had appeared in 0.7.44.
+
+    *) Bugfix: if servers listened on several defined explicitly addresses, 
+       then virtual servers might not work; the bug had appeared in 0.7.39.
+
+
 Changes with nginx 0.7.50                                        06 Apr 2009
 
-    *) Change: a segmentation fault might occur in worker process, if the 
-       $arg_... variables were used; the bug had appeared in 0.7.48.
+    *) Bugfix: the $arg_... variables did not work; the bug had appeared in 
+       0.7.49.
 
 
 Changes with nginx 0.7.49                                        06 Apr 2009
 
-    *) Change: a segmentation fault might occur in worker process, if the 
+    *) Bugfix: a segmentation fault might occur in worker process, if the 
        $arg_... variables were used; the bug had appeared in 0.7.48.
 
 
@@ -213,7 +227,7 @@ Changes with nginx 0.7.35                                        16 Feb 2009
        original request extension.
 
     *) Bugfix: "*domain.tld" names were handled incorrectly in 
-       "server_name", "valid_referers", and "map" directives, if an 
+       "server_name", "valid_referers", and "map" directives, if 
        ".domain.tld" and ".subdomain.domain.tld" wildcards were used; 
        the bug had appeared in 0.7.9.
 

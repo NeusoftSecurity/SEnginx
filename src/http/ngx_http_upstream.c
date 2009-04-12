@@ -1945,6 +1945,9 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
         }
     }
 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "http cacheable: %d", u->cacheable);
+
 #endif
 
     p = u->pipe;
@@ -2746,7 +2749,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
 
 #if (NGX_HTTP_CACHE)
 
-    if (r->cache) {
+    if (u->cacheable) {
         time_t  valid;
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -2768,7 +2771,8 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
 
 #endif
 
-    if (u->header_sent && (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE))
+    if (u->header_sent
+        && (rc == NGX_ERROR || rc >= NGX_HTTP_SPECIAL_RESPONSE))
     {
         rc = 0;
     }

@@ -375,14 +375,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
             goto failed;
         }
 
-#if (NGX_WIN32)
-        if (ngx_file_append_mode(file[i].fd) != NGX_OK) {
-            ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
-                          ngx_file_append_mode_n " \"%s\" failed",
-                          file[i].name.data);
-            goto failed;
-        }
-#else
+#if !(NGX_WIN32)
         if (fcntl(file[i].fd, F_SETFD, FD_CLOEXEC) == -1) {
             ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
                           "fcntl(FD_CLOEXEC) \"%s\" failed",
@@ -929,21 +922,20 @@ ngx_cmp_sockaddr(struct sockaddr *sa1, struct sockaddr *sa2)
 ngx_int_t
 ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
 {
-    size_t            len;
-    ngx_uint_t        trunc;
-    ngx_file_t        file;
-    u_char            pid[NGX_INT64_LEN + 2];
+    size_t      len;
+    ngx_uint_t  create;
+    ngx_file_t  file;
+    u_char      pid[NGX_INT64_LEN + 2];
 
     ngx_memzero(&file, sizeof(ngx_file_t));
 
     file.name = *name;
     file.log = log;
 
-    trunc = ngx_test_config ? 0 : NGX_FILE_TRUNCATE;
+    create = ngx_test_config ? NGX_FILE_CREATE_OR_OPEN : NGX_FILE_TRUNCATE;
 
     file.fd = ngx_open_file(file.name.data, NGX_FILE_RDWR,
-                            NGX_FILE_CREATE_OR_OPEN|trunc,
-                            NGX_FILE_DEFAULT_ACCESS);
+                            create, NGX_FILE_DEFAULT_ACCESS);
 
     if (file.fd == NGX_INVALID_FILE) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
@@ -1078,21 +1070,7 @@ ngx_reopen_files(ngx_cycle_t *cycle, ngx_uid_t user)
             continue;
         }
 
-#if (NGX_WIN32)
-        if (ngx_file_append_mode(fd) == NGX_ERROR) {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                          ngx_file_append_mode_n " \"%s\" failed",
-                          file[i].name.data);
-
-            if (ngx_close_file(fd) == NGX_FILE_ERROR) {
-                ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                              ngx_close_file_n " \"%s\" failed",
-                              file[i].name.data);
-            }
-
-            continue;
-        }
-#else
+#if !(NGX_WIN32)
         if (user != (ngx_uid_t) NGX_CONF_UNSET_UINT) {
             ngx_file_info_t  fi;
 

@@ -497,6 +497,40 @@ static ngx_str_t  ngx_http_proxy_hide_headers[] = {
 };
 
 
+#if (NGX_HTTP_CACHE)
+
+static ngx_keyval_t  ngx_http_proxy_cache_headers[] = {
+    { ngx_string("Host"), ngx_string("$proxy_host") },
+    { ngx_string("Connection"), ngx_string("close") },
+    { ngx_string("Keep-Alive"), ngx_string("") },
+    { ngx_string("Expect"), ngx_string("") },
+    { ngx_string("If-Modified-Since"), ngx_string("") },
+    { ngx_string("If-Unmodified-Since"), ngx_string("") },
+    { ngx_string("If-Match-None"), ngx_string("") },
+    { ngx_string("If-Match"), ngx_string("") },
+    { ngx_string("Range"), ngx_string("") },
+    { ngx_string("If-Range"), ngx_string("") },
+    { ngx_null_string, ngx_null_string }
+};
+
+
+static ngx_str_t  ngx_http_proxy_hide_cache_headers[] = {
+    ngx_string("Date"),
+    ngx_string("Server"),
+    ngx_string("X-Pad"),
+    ngx_string("X-Accel-Expires"),
+    ngx_string("X-Accel-Redirect"),
+    ngx_string("X-Accel-Limit-Rate"),
+    ngx_string("X-Accel-Buffering"),
+    ngx_string("X-Accel-Charset"),
+    ngx_string("Set-Cookie"),
+    ngx_string("P3P"),
+    ngx_null_string
+};
+
+#endif
+
+
 static ngx_http_variable_t  ngx_http_proxy_vars[] = {
 
     { ngx_string("proxy_host"), NULL, ngx_http_proxy_host_variable, 0,
@@ -1906,6 +1940,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_proxy_loc_conf_t *conf = child;
 
     size_t                      size;
+    ngx_str_t                  *h;
     ngx_keyval_t               *s;
     ngx_hash_init_t             hash;
     ngx_http_proxy_redirect_t  *pr;
@@ -2069,7 +2104,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "\"proxy_cache\" zone \"%V\" is unknown",
-                           &shm_zone->name);
+                           &shm_zone->shm.name);
 
         return NGX_CONF_ERROR;
     }
@@ -2170,9 +2205,18 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     hash.bucket_size = conf->headers_hash_bucket_size;
     hash.name = "proxy_headers_hash";
 
+#if (NGX_HTTP_CACHE)
+
+    h = conf->upstream.cache ? ngx_http_proxy_hide_cache_headers:
+                               ngx_http_proxy_hide_headers;
+#else
+
+    h = ngx_http_proxy_hide_headers;
+
+#endif
+
     if (ngx_http_upstream_hide_headers_hash(cf, &conf->upstream,
-                                            &prev->upstream,
-                                            ngx_http_proxy_hide_headers, &hash)
+                                            &prev->upstream, h, &hash)
         != NGX_OK)
     {
         return NGX_CONF_ERROR;
@@ -2286,7 +2330,17 @@ ngx_http_proxy_merge_headers(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *conf,
 
     src = conf->headers_source->elts;
 
-    for (h = ngx_http_proxy_headers; h->key.len; h++) {
+#if (NGX_HTTP_CACHE)
+
+    h = conf->upstream.cache ? ngx_http_proxy_cache_headers:
+                               ngx_http_proxy_headers;
+#else
+
+    h = ngx_http_proxy_headers;
+
+#endif
+
+    while (h->key.len) {
 
         for (i = 0; i < conf->headers_source->nelts; i++) {
             if (ngx_strcasecmp(h->key.data, src[i].key.data) == 0) {
@@ -2305,7 +2359,7 @@ ngx_http_proxy_merge_headers(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *conf,
 
     next:
 
-        continue;
+        h++;
     }
 
 

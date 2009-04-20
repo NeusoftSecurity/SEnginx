@@ -9,9 +9,11 @@
 #include <ngx_event.h>
 
 
-static ngx_int_t ngx_test_lockfile(u_char *file, ngx_log_t *log);
 static void ngx_destroy_cycle_pools(ngx_conf_t *conf);
 static ngx_int_t ngx_cmp_sockaddr(struct sockaddr *sa1, struct sockaddr *sa2);
+static ngx_int_t ngx_init_zone_pool(ngx_cycle_t *cycle,
+    ngx_shm_zone_t *shm_zone);
+static ngx_int_t ngx_test_lockfile(u_char *file, ngx_log_t *log);
 static void ngx_clean_old_cycles(ngx_event_t *ev);
 
 
@@ -44,7 +46,6 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 {
     void                *rv;
     char               **senv, **env;
-    u_char              *lock_file;
     ngx_uint_t           i, n;
     ngx_log_t           *log;
     ngx_time_t          *tp;
@@ -52,7 +53,6 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_pool_t          *pool;
     ngx_cycle_t         *cycle, **old;
     ngx_shm_zone_t      *shm_zone, *oshm_zone;
-    ngx_slab_pool_t     *shpool;
     ngx_list_part_t     *part, *opart;
     ngx_open_file_t     *file;
     ngx_listening_t     *ls, *nls;
@@ -270,9 +270,8 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
     if (ngx_test_config) {
-        ngx_log_error(NGX_LOG_INFO, log, 0,
-                      "the configuration file %s syntax is ok",
-                      cycle->conf_file.data);
+        ngx_log_stderr("the configuration file %s syntax is ok",
+                       cycle->conf_file.data);
     }
 
 
@@ -295,8 +294,6 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
-
-#if !(NGX_WIN32)
 
     if (ngx_test_config) {
 
@@ -325,8 +322,6 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
             ngx_delete_pidfile(old_cycle);
         }
     }
-
-#endif
 
 
     if (ngx_test_lockfile(cycle->lock_file.data, log) != NGX_OK) {
@@ -412,7 +407,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         if (shm_zone[i].shm.size == 0) {
             ngx_log_error(NGX_LOG_EMERG, log, 0,
                           "zero size shared memory zone \"%V\"",
-                          &shm_zone[i].name);
+                          &shm_zone[i].shm.name);
             goto failed;
         }
 
@@ -437,12 +432,13 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                 n = 0;
             }
 
-            if (shm_zone[i].name.len != oshm_zone[n].name.len) {
+            if (shm_zone[i].shm.name.len != oshm_zone[n].shm.name.len) {
                 continue;
             }
 
-            if (ngx_strncmp(shm_zone[i].name.data, oshm_zone[n].name.data,
-                            shm_zone[i].name.len)
+            if (ngx_strncmp(shm_zone[i].shm.name.data,
+                            oshm_zone[n].shm.name.data,
+                            shm_zone[i].shm.name.len)
                 != 0)
             {
                 continue;
@@ -469,37 +465,12 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
             goto failed;
         }
 
-        shpool = (ngx_slab_pool_t *) shm_zone[i].shm.addr;
+        if (!shm_zone[i].shm.exists) {
 
-        shpool->end = shm_zone[i].shm.addr + shm_zone[i].shm.size;
-        shpool->min_shift = 3;
-
-#if (NGX_HAVE_ATOMIC_OPS)
-
-        lock_file = NULL;
-
-#else
-
-        lock_file = ngx_pnalloc(cycle->pool,
-                                cycle->lock_file.len + shm_zone[i].name.len);
-
-        if (lock_file == NULL) {
-            goto failed;
+	    if (ngx_init_zone_pool(cycle, &shm_zone[i]) != NGX_OK) {
+		goto failed;
+	    }
         }
-
-        (void) ngx_cpystrn(ngx_cpymem(lock_file, cycle->lock_file.data,
-                                      cycle->lock_file.len),
-                           shm_zone[i].name.data, shm_zone[i].name.len + 1);
-
-#endif
-
-        if (ngx_shmtx_create(&shpool->mutex, (void *) &shpool->lock, lock_file)
-            != NGX_OK)
-        {
-            goto failed;
-        }
-
-        ngx_slab_init(shpool);
 
         if (shm_zone[i].init(&shm_zone[i], NULL) != NGX_OK) {
             goto failed;
@@ -672,10 +643,10 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                 n = 0;
             }
 
-            if (oshm_zone[i].name.len == shm_zone[n].name.len
-                && ngx_strncmp(oshm_zone[i].name.data,
-                               shm_zone[n].name.data,
-                               oshm_zone[i].name.len)
+            if (oshm_zone[i].shm.name.len == shm_zone[n].shm.name.len
+                && ngx_strncmp(oshm_zone[i].shm.name.data,
+                               shm_zone[n].shm.name.data,
+                               oshm_zone[i].shm.name.len)
                 == 0)
             {
                 goto live_shm_zone;
@@ -917,7 +888,41 @@ ngx_cmp_sockaddr(struct sockaddr *sa1, struct sockaddr *sa2)
 }
 
 
-#if !(NGX_WIN32)
+static ngx_int_t
+ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *zn)
+{
+    u_char           *file;
+    ngx_slab_pool_t  *sp;
+
+    sp = (ngx_slab_pool_t *) zn->shm.addr;
+
+    sp->end = zn->shm.addr + zn->shm.size;
+    sp->min_shift = 3;
+
+#if (NGX_HAVE_ATOMIC_OPS)
+
+    file = NULL;
+
+#else
+
+    file = ngx_pnalloc(cycle->pool, cycle->lock_file.len + zn->shm.name.len);
+    if (file == NULL) {
+	return NGX_ERROR;
+    }
+
+    (void) ngx_sprintf(file, "%V%V%Z", &cycle->lock_file, &zn->shm.name);
+
+#endif
+
+    if (ngx_shmtx_create(&sp->mutex, (void *) &sp->lock, file) != NGX_OK) {
+	return NGX_ERROR;
+    }
+
+    ngx_slab_init(sp);
+
+    return NGX_OK;
+}
+
 
 ngx_int_t
 ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
@@ -926,6 +931,10 @@ ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
     ngx_uint_t  create;
     ngx_file_t  file;
     u_char      pid[NGX_INT64_LEN + 2];
+
+    if (ngx_process > NGX_PROCESS_MASTER) {
+        return NGX_OK;
+    }
 
     ngx_memzero(&file, sizeof(ngx_file_t));
 
@@ -975,8 +984,6 @@ ngx_delete_pidfile(ngx_cycle_t *cycle)
                       ngx_delete_file_n " \"%s\" failed", name);
     }
 }
-
-#endif
 
 
 static ngx_int_t
@@ -1175,27 +1182,29 @@ ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
             i = 0;
         }
 
-        if (name->len != shm_zone[i].name.len) {
+        if (name->len != shm_zone[i].shm.name.len) {
             continue;
         }
 
-        if (ngx_strncmp(name->data, shm_zone[i].name.data, name->len) != 0) {
+        if (ngx_strncmp(name->data, shm_zone[i].shm.name.data, name->len)
+            != 0)
+        {
             continue;
         }
 
         if (size && size != shm_zone[i].shm.size) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "the size %uz of shared memory zone \"%V\" "
-                               "conflicts with already declared size %uz",
-                               size, &shm_zone[i].name, shm_zone[i].shm.size);
+                            "the size %uz of shared memory zone \"%V\" "
+                            "conflicts with already declared size %uz",
+                            size, &shm_zone[i].shm.name, shm_zone[i].shm.size);
             return NULL;
         }
 
         if (tag != shm_zone[i].tag) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "the shared memory zone \"%V\" is "
-                               "already declared for a different use",
-                               &shm_zone[i].name);
+                            "the shared memory zone \"%V\" is "
+                            "already declared for a different use",
+                            &shm_zone[i].shm.name);
             return NULL;
         }
 
@@ -1211,8 +1220,9 @@ ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
     shm_zone->data = NULL;
     shm_zone->shm.log = cf->cycle->log;
     shm_zone->shm.size = size;
+    shm_zone->shm.name = *name;
+    shm_zone->shm.exists = 0;
     shm_zone->init = NULL;
-    shm_zone->name = *name;
     shm_zone->tag = tag;
 
     return shm_zone;

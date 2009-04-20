@@ -320,8 +320,8 @@ ngx_http_ssl_create_srv_conf(ngx_conf_t *cf)
 
     sscf->enable = NGX_CONF_UNSET;
     sscf->prefer_server_ciphers = NGX_CONF_UNSET;
-    sscf->verify = NGX_CONF_UNSET;
-    sscf->verify_depth = NGX_CONF_UNSET;
+    sscf->verify = NGX_CONF_UNSET_UINT;
+    sscf->verify_depth = NGX_CONF_UNSET_UINT;
     sscf->builtin_session_cache = NGX_CONF_UNSET;
     sscf->session_timeout = NGX_CONF_UNSET;
 
@@ -564,6 +564,7 @@ ngx_http_ssl_session_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             for (j = sizeof("shared:") - 1; j < value[i].len; j++) {
                 if (value[i].data[j] == ':') {
+                    value[i].data[j] = '\0';
                     break;
                 }
 

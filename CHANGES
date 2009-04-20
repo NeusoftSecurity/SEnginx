@@ -1,4 +1,27 @@
 
+Changes with nginx 0.7.52                                        20 Apr 2009
+
+    *) Feature: the first native Windows binary release.
+
+    *) Bugfix: in processing HEAD method while caching.
+
+    *) Bugfix: in processing the "If-Modified-Since", "If-Range", etc. 
+       client request header lines while caching.
+
+    *) Bugfix: now the "Set-Cookie" and "P3P" header lines are hidden in 
+       cacheable responses.
+
+    *) Bugfix: if nginx was built with the ngx_http_perl_module and with a 
+       perl which supports threads, then during a master process exit the 
+       message "panic: MUTEX_LOCK" might be issued.
+
+    *) Bugfix: nginx could not be built --without-http-cache; the bug had 
+       appeared in 0.7.48.
+
+    *) Bugfix: nginx could not be built on platforms different from i386, 
+       amd64, sparc, and ppc; the bug had appeared in 0.7.42.
+
+
 Changes with nginx 0.7.51                                        12 Apr 2009
 
     *) Feature: the "try_files" directive supports a response code in the 

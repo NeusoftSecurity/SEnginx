@@ -191,7 +191,7 @@ ngx_http_limit_zone_handler(ngx_http_request_t *r)
 
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                               "limiting connections by zone \"%V\"",
-                              &lzcf->shm_zone->name);
+                              &lzcf->shm_zone->shm.name);
 
                 return NGX_HTTP_SERVICE_UNAVAILABLE;
             }
@@ -328,7 +328,7 @@ ngx_http_limit_zone_init_zone(ngx_shm_zone_t *shm_zone, void *data)
             ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
                           "limit_zone \"%V\" uses the \"%V\" variable "
                           "while previously it used the \"%V\" variable",
-                          &shm_zone->name, &ctx->var, &octx->var);
+                          &shm_zone->shm.name, &ctx->var, &octx->var);
             return NGX_ERROR;
         }
 
@@ -339,10 +339,18 @@ ngx_http_limit_zone_init_zone(ngx_shm_zone_t *shm_zone, void *data)
 
     shpool = (ngx_slab_pool_t *) shm_zone->shm.addr;
 
+    if (shm_zone->shm.exists) {
+        ctx->rbtree = shpool->data;
+
+        return NGX_OK;
+    }
+
     ctx->rbtree = ngx_slab_alloc(shpool, sizeof(ngx_rbtree_t));
     if (ctx->rbtree == NULL) {
         return NGX_ERROR;
     }
+
+    shpool->data = ctx->rbtree;
 
     sentinel = ngx_slab_alloc(shpool, sizeof(ngx_rbtree_node_t));
     if (sentinel == NULL) {
@@ -352,14 +360,15 @@ ngx_http_limit_zone_init_zone(ngx_shm_zone_t *shm_zone, void *data)
     ngx_rbtree_init(ctx->rbtree, sentinel,
                     ngx_http_limit_zone_rbtree_insert_value);
 
-    len = sizeof(" in limit_zone \"\"") + shm_zone->name.len;
+    len = sizeof(" in limit_zone \"\"") + shm_zone->shm.name.len;
 
     shpool->log_ctx = ngx_slab_alloc(shpool, len);
     if (shpool->log_ctx == NULL) {
         return NGX_ERROR;
     }
 
-    ngx_sprintf(shpool->log_ctx, " in limit_zone \"%V\"%Z", &shm_zone->name);
+    ngx_sprintf(shpool->log_ctx, " in limit_zone \"%V\"%Z",
+                &shm_zone->shm.name);
 
     return NGX_OK;
 }

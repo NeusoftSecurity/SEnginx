@@ -24,7 +24,7 @@ esac
 # __stdcall
 #CPU_OPT="$CPU_OPT -ps"
 # __fastcall
-CPU_OPT="$CPU_OPT -pr"
+#CPU_OPT="$CPU_OPT -pr"
 
 CFLAGS="$CFLAGS $CPU_OPT"
 
@@ -46,7 +46,7 @@ NGX_USE_PCH="-Hu -H=$NGX_OBJS/ngx_config.csm"
 
 
 # Win32 GUI mode application
-LINK="\$(CC) -laa"
+#LINK="\$(CC) -laa"
 
 
 # the resource file

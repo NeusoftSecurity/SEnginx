@@ -184,9 +184,30 @@ ngx_log_debug_core(ngx_log_t *log, ngx_err_t err, const char *fmt, ...)
 
 
 void
-ngx_log_abort(ngx_err_t err, const char *text)
+ngx_log_abort(ngx_err_t err, const char *text, void *param)
 {
-    ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, err, text);
+    ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, err, text, param);
+}
+
+
+void ngx_cdecl
+ngx_log_stderr(const char *fmt, ...)
+{
+    u_char   *p;
+    va_list   args;
+    u_char    errstr[NGX_MAX_ERROR_STR];
+
+    va_start(args, fmt);
+    p = ngx_vsnprintf(errstr, NGX_MAX_ERROR_STR, fmt, args);
+    va_end(args);
+
+    if (p > errstr + NGX_MAX_ERROR_STR - NGX_LINEFEED_SIZE) {
+        p = errstr + NGX_MAX_ERROR_STR - NGX_LINEFEED_SIZE;
+    }
+
+    ngx_linefeed(p);
+
+    (void) ngx_write_fd(ngx_stderr_fileno, errstr, p - errstr);
 }
 
 
@@ -206,9 +227,9 @@ ngx_log_init(void)
                                   NGX_FILE_DEFAULT_ACCESS);
 
     if (ngx_stderr.fd == NGX_INVALID_FILE) {
-        ngx_message_box("nginx", MB_OK, ngx_errno,
-                        "Could not open error log file: "
-                        ngx_open_file_n " \"" NGX_ERROR_LOG_PATH "\" failed");
+        ngx_event_log(ngx_errno, 
+                      "Could not open error log file: "
+                      ngx_open_file_n " \"" NGX_ERROR_LOG_PATH "\" failed");
         return NULL;
     }
 

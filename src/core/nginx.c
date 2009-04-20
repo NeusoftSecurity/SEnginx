@@ -180,10 +180,14 @@ ngx_module_t  ngx_core_module = {
 };
 
 
-ngx_uint_t  ngx_max_module;
+ngx_uint_t          ngx_max_module;
 
-static ngx_uint_t  ngx_show_version;
-static ngx_uint_t  ngx_show_configure;
+static ngx_uint_t   ngx_show_version;
+static ngx_uint_t   ngx_show_configure;
+#if (NGX_WIN32)
+static char        *ngx_signal;
+#endif
+
 
 static char **ngx_os_environ;
 
@@ -191,8 +195,6 @@ static char **ngx_os_environ;
 int ngx_cdecl
 main(int argc, char *const *argv)
 {
-    char             *p;
-    ssize_t           n;
     ngx_int_t         i;
     ngx_log_t        *log;
     ngx_cycle_t      *cycle, init_cycle;
@@ -243,29 +245,14 @@ main(int argc, char *const *argv)
 
     if (ngx_show_version) {
 
-        p = "nginx version: " NGINX_VER CRLF;
-        n = sizeof("nginx version: " NGINX_VER CRLF) - 1;
-
-        if (ngx_write_fd(ngx_stderr_fileno, p, n) != n) {
-            return 1;
-        }
+        ngx_log_stderr("nginx version: " NGINX_VER);
 
         if (ngx_show_configure) {
 #ifdef NGX_COMPILER
-            p = "built by " NGX_COMPILER CRLF;
-            n = sizeof("built by " NGX_COMPILER CRLF) - 1;
-
-            if (ngx_write_fd(ngx_stderr_fileno, p, n) != n) {
-                return 1;
-            }
+            ngx_log_stderr("built by " NGX_COMPILER);
 #endif
 
-            p = "configure arguments: " NGX_CONFIGURE CRLF;
-            n = sizeof("configure arguments :" NGX_CONFIGURE CRLF) - 1;
-
-            if (ngx_write_fd(ngx_stderr_fileno, p, n) != n) {
-                return 1;
-            }
+            ngx_log_stderr("configure arguments: " NGX_CONFIGURE);
         }
 
         if (!ngx_test_config) {
@@ -301,18 +288,16 @@ main(int argc, char *const *argv)
     cycle = ngx_init_cycle(&init_cycle);
     if (cycle == NULL) {
         if (ngx_test_config) {
-            ngx_log_error(NGX_LOG_EMERG, log, 0,
-                          "the configuration file %s test failed",
-                          init_cycle.conf_file.data);
+            ngx_log_stderr("the configuration file %s test failed",
+                           init_cycle.conf_file.data);
         }
 
         return 1;
     }
 
     if (ngx_test_config) {
-        ngx_log_error(NGX_LOG_INFO, log, 0,
-                      "the configuration file %s was tested successfully",
-                      cycle->conf_file.data);
+        ngx_log_stderr("the configuration file %s was tested successfully",
+                       cycle->conf_file.data);
         return 0;
     }
 
@@ -322,22 +307,15 @@ main(int argc, char *const *argv)
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
-    ngx_process = ccf->master ? NGX_PROCESS_MASTER : NGX_PROCESS_SINGLE;
+    if (ccf->master && ngx_process == NGX_PROCESS_SINGLE) {
+        ngx_process = NGX_PROCESS_MASTER;
+    }
 
 #if (NGX_WIN32)
 
-#if 0
-
-    TODO:
-
-    if (ccf->run_as_service) {
-        if (ngx_service(cycle->log) != NGX_OK) {
-            return 1;
-        }
-
-        return 0;
+    if (ngx_signal) {
+        return ngx_signal_process(cycle, ngx_signal);
     }
-#endif
 
 #else
 
@@ -353,17 +331,17 @@ main(int argc, char *const *argv)
         ngx_daemonized = 1;
     }
 
+#endif
+
     if (ngx_create_pidfile(&ccf->pid, cycle->log) != NGX_OK) {
         return 1;
     }
 
-#endif
-
-    if (ngx_process == NGX_PROCESS_MASTER) {
-        ngx_master_process_cycle(cycle);
+    if (ngx_process == NGX_PROCESS_SINGLE) {
+        ngx_single_process_cycle(cycle);
 
     } else {
-        ngx_single_process_cycle(cycle);
+        ngx_master_process_cycle(cycle);
     }
 
     return 0;
@@ -664,6 +642,29 @@ ngx_getopt(ngx_cycle_t *cycle, int argc, char *const *argv)
             cycle->conf_param.len = ngx_strlen(cycle->conf_param.data);
             break;
 
+#if (NGX_WIN32)
+        case 's':
+            if (argv[++i] == NULL) {
+                ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
+                              "the option \"-s\" requires parameter");
+                return NGX_ERROR;
+            }
+
+            if (ngx_strcmp(argv[i], "stop") == 0
+                || ngx_strcmp(argv[i], "quit") == 0
+                || ngx_strcmp(argv[i], "reopen") == 0
+                || ngx_strcmp(argv[i], "reload") == 0)
+            {
+                ngx_process = NGX_PROCESS_SIGNALLER;
+                ngx_signal = argv[i];
+                break;
+            }
+
+            ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
+                          "invalid option: \"-s %s\"", argv[i]);
+            return NGX_ERROR;
+#endif
+
         default:
             ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
                           "invalid option: \"%s\"", argv[i]);
@@ -805,6 +806,27 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
 
 #endif
 
+
+    if (ccf->pid.len == 0) {
+        ccf->pid.len = sizeof(NGX_PID_PATH) - 1;
+        ccf->pid.data = (u_char *) NGX_PID_PATH;
+    }
+
+    if (ngx_conf_full_name(cycle, &ccf->pid, 0) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    ccf->oldpid.len = ccf->pid.len + sizeof(NGX_OLDPID_EXT);
+
+    ccf->oldpid.data = ngx_pnalloc(cycle->pool, ccf->oldpid.len);
+    if (ccf->oldpid.data == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    ngx_memcpy(ngx_cpymem(ccf->oldpid.data, ccf->pid.data, ccf->pid.len),
+               NGX_OLDPID_EXT, sizeof(NGX_OLDPID_EXT));
+
+
 #if !(NGX_WIN32)
 
     if (ccf->user == (uid_t) NGX_CONF_UNSET_UINT && geteuid() == 0) {
@@ -832,25 +854,6 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
 
         ccf->group = grp->gr_gid;
     }
-
-    if (ccf->pid.len == 0) {
-        ccf->pid.len = sizeof(NGX_PID_PATH) - 1;
-        ccf->pid.data = (u_char *) NGX_PID_PATH;
-    }
-
-    if (ngx_conf_full_name(cycle, &ccf->pid, 0) != NGX_OK) {
-        return NGX_CONF_ERROR;
-    }
-
-    ccf->oldpid.len = ccf->pid.len + sizeof(NGX_OLDPID_EXT);
-
-    ccf->oldpid.data = ngx_pnalloc(cycle->pool, ccf->oldpid.len);
-    if (ccf->oldpid.data == NULL) {
-        return NGX_CONF_ERROR;
-    }
-
-    ngx_memcpy(ngx_cpymem(ccf->oldpid.data, ccf->pid.data, ccf->pid.len),
-               NGX_OLDPID_EXT, sizeof(NGX_OLDPID_EXT));
 
 
     if (ccf->lock_file.len == 0) {

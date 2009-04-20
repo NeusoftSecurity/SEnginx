@@ -51,12 +51,12 @@ case $CPU in
     ;;
 esac
 
-# __cdecl, use with OpenSSL, md5 asm, and sha1 asm
+# __cdecl, default, must be used with OpenSSL, md5 asm, and sha1 asm
 #CPU_OPT="$CPU_OPT -Gd"
 # __stdcall
 #CPU_OPT="$CPU_OPT -Gz"
 # __fastcall
-CPU_OPT="$CPU_OPT -Gr"
+#CPU_OPT="$CPU_OPT -Gr"
 
 
 CFLAGS="$CFLAGS $CPU_OPT"
@@ -86,14 +86,23 @@ LIBC="-MT"
 
 CFLAGS="$CFLAGS $LIBC"
 
-# Win32 GUI mode application
 CORE_LIBS="$CORE_LIBS kernel32.lib user32.lib"
-CORE_LINK="$CORE_LINK -subsystem:windows -entry:mainCRTStartup"
+
+# Win32 GUI mode application
+#CORE_LINK="$CORE_LINK -subsystem:windows -entry:mainCRTStartup"
 
 # debug
+# msvc8 under Wine issues
+#     Program database manager mismatch; please check your installation
 if [ $NGX_CC_NAME != msvc8 ]; then
    CFLAGS="$CFLAGS -Zi"
    CORE_LINK="$CORE_LINK -debug"
+fi
+
+
+# MSVC 2005 supports C99 variadic macros
+if [ $NGX_CC_NAME = msvc8 ]; then
+   have=NGX_HAVE_C99_VARIADIC_MACROS . auto/have
 fi
 
 

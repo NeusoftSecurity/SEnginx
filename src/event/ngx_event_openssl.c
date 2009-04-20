@@ -1387,7 +1387,7 @@ ngx_ssl_session_cache(ngx_ssl_t *ssl, ngx_str_t *sess_ctx,
         }
     }
 
-    SSL_CTX_set_timeout(ssl->ctx, timeout);
+    SSL_CTX_set_timeout(ssl->ctx, (long) timeout);
 
     if (shm_zone) {
         shm_zone->init = ngx_ssl_session_cache_init;
@@ -1421,6 +1421,11 @@ ngx_ssl_session_cache_init(ngx_shm_zone_t *shm_zone, void *data)
         return NGX_OK;
     }
 
+    if (shm_zone->shm.exists) {
+        shm_zone->data = data;
+        return NGX_OK;
+    }
+
     shpool = (ngx_slab_pool_t *) shm_zone->shm.addr;
 
     cache = ngx_slab_alloc(shpool, sizeof(ngx_ssl_session_cache_t));
@@ -1428,12 +1433,15 @@ ngx_ssl_session_cache_init(ngx_shm_zone_t *shm_zone, void *data)
         return NGX_ERROR;
     }
 
+    shpool->data = cache;
+    shm_zone->data = cache;
+
     ngx_rbtree_init(&cache->session_rbtree, &cache->sentinel,
                     ngx_ssl_session_rbtree_insert_value);
 
     ngx_queue_init(&cache->expire_queue);
 
-    len = sizeof(" in SSL session shared cache \"\"") + shm_zone->name.len;
+    len = sizeof(" in SSL session shared cache \"\"") + shm_zone->shm.name.len;
 
     shpool->log_ctx = ngx_slab_alloc(shpool, len);
     if (shpool->log_ctx == NULL) {
@@ -1441,9 +1449,7 @@ ngx_ssl_session_cache_init(ngx_shm_zone_t *shm_zone, void *data)
     }
 
     ngx_sprintf(shpool->log_ctx, " in SSL session shared cache \"%V\"%Z",
-                &shm_zone->name);
-
-    shm_zone->data = cache;
+                &shm_zone->shm.name);
 
     return NGX_OK;
 }

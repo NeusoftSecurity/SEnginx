@@ -532,8 +532,12 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
     ngx_int_t          rc;
     ngx_http_cache_t  *c;
 
-    if (!(r->method & NGX_HTTP_GET)) {
+    if (!(r->method & (NGX_HTTP_GET|NGX_HTTP_HEAD))) {
         return NGX_DECLINED;
+    }
+
+    if (r->method & NGX_HTTP_HEAD) {
+        u->method = ngx_http_core_get_method;
     }
 
     c = ngx_pcalloc(r->pool, sizeof(ngx_http_cache_t));
@@ -1821,9 +1825,30 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     rc = ngx_http_send_header(r);
 
-    if (rc == NGX_ERROR || rc > NGX_OK || r->post_action || r->header_only) {
+    if (rc == NGX_ERROR || rc > NGX_OK || r->post_action) {
         ngx_http_upstream_finalize_request(r, u, rc);
         return;
+    }
+
+    c = r->connection;
+
+    if (r->header_only) {
+
+        if (u->cacheable || u->store) {
+
+            if (ngx_shutdown_socket(c->fd, NGX_WRITE_SHUTDOWN) == -1) {
+                ngx_connection_error(c, ngx_socket_errno,
+                                     ngx_shutdown_socket_n " failed");
+            }
+
+            r->read_event_handler = ngx_http_request_empty_handler;
+            r->write_event_handler = ngx_http_request_empty_handler;
+            c->error = 1;
+
+        } else {
+            ngx_http_upstream_finalize_request(r, u, rc);
+            return;
+        }
     }
 
     u->header_sent = 1;
@@ -1832,8 +1857,6 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
         ngx_pool_run_cleanup_file(r->pool, r->request_body->temp_file->file.fd);
         r->request_body->temp_file->file.fd = NGX_INVALID_FILE;
     }
-
-    c = r->connection;
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
@@ -1942,6 +1965,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
         } else {
             u->cacheable = 0;
+            r->headers_out.last_modified_time = -1;
         }
     }
 
@@ -2819,8 +2843,6 @@ static ngx_int_t
 ngx_http_upstream_process_cache_control(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset)
 {
-    u_char            *p, *last;
-    ngx_int_t          n;
     ngx_array_t       *pa;
     ngx_table_elt_t  **ph;
 
@@ -2839,6 +2861,11 @@ ngx_http_upstream_process_cache_control(ngx_http_request_t *r,
     }
 
     *ph = h;
+
+#if (NGX_HTTP_CACHE)
+    {
+    u_char     *p, *last;
+    ngx_int_t   n;
 
     if (r->cache == NULL) {
         return NGX_OK;
@@ -2885,6 +2912,9 @@ ngx_http_upstream_process_cache_control(ngx_http_request_t *r,
     }
 
     r->cache->valid_sec = ngx_time() + n;
+    }
+#endif
+
     return NGX_OK;
 }
 
@@ -2893,9 +2923,11 @@ static ngx_int_t
 ngx_http_upstream_process_expires(ngx_http_request_t *r, ngx_table_elt_t *h,
     ngx_uint_t offset)
 {
-    time_t  expires;
-
     r->upstream->headers_in.expires = h;
+
+#if (NGX_HTTP_CACHE)
+    {
+    time_t  expires;
 
     if (r->cache == NULL) {
         return NGX_OK;
@@ -2913,6 +2945,8 @@ ngx_http_upstream_process_expires(ngx_http_request_t *r, ngx_table_elt_t *h,
     }
 
     r->cache->valid_sec = expires;
+    }
+#endif
 
     return NGX_OK;
 }
@@ -2922,11 +2956,13 @@ static ngx_int_t
 ngx_http_upstream_process_accel_expires(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset)
 {
+    r->upstream->headers_in.x_accel_expires = h;
+
+#if (NGX_HTTP_CACHE)
+    {
     u_char     *p;
     size_t      len;
     ngx_int_t   n;
-
-    r->upstream->headers_in.x_accel_expires = h;
 
     if (r->cache == NULL) {
         return NGX_OK;
@@ -2958,6 +2994,8 @@ ngx_http_upstream_process_accel_expires(ngx_http_request_t *r,
     if (n != NGX_ERROR) {
         r->cache->valid_sec = n;
     }
+    }
+#endif
 
     return NGX_OK;
 }
@@ -3163,7 +3201,7 @@ ngx_http_upstream_copy_last_modified(ngx_http_request_t *r, ngx_table_elt_t *h,
 
 #if (NGX_HTTP_CACHE)
 
-    if (r->cached) {
+    if (r->cached || r->upstream->cacheable) {
         r->headers_out.last_modified = ho;
         r->headers_out.last_modified_time = ngx_http_parse_time(h->value.data,
                                                                 h->value.len);

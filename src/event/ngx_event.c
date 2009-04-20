@@ -442,7 +442,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
     ecf = (*cf)[ngx_event_core_module.ctx_index];
 
-    if (!ngx_test_config) {
+    if (!ngx_test_config && ngx_process <= NGX_PROCESS_MASTER) {
         ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
                       "using the \"%s\" event method", ecf->name);
     }
@@ -506,6 +506,8 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 #endif
 
     shm.size = size;
+    shm.name.len = sizeof("nginx_shared_zone");
+    shm.name.data = (u_char *) "nginx_shared_zone";
     shm.log = cycle->log;
 
     if (ngx_shm_alloc(&shm) != NGX_OK) {
@@ -535,7 +537,7 @@ ngx_event_module_init(ngx_cycle_t *cycle)
 
 #endif
 
-    *ngx_connection_counter = 1;
+    (void) ngx_atomic_cmp_set(ngx_connection_counter, 0, 1);
 
     ngx_log_debug2(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "counter: %p, %d",

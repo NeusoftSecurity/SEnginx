@@ -158,8 +158,10 @@ ngx_int_t ngx_set_file_time(u_char *name, ngx_fd_t fd, time_t s);
 
 #define ngx_realpath(p, r)       realpath((char *) p, (char *) r)
 #define ngx_realpath_n           "realpath()"
-#define ngx_getcwd(buf, size)    (getcwd(buf, size) != NULL)
+#define ngx_getcwd(buf, size)    (getcwd((char *) buf, size) != NULL)
 #define ngx_getcwd_n             "getcwd()"
+#define ngx_path_separator(c)    ((c) == '/')
+
 #define NGX_MAX_PATH             PATH_MAX
 
 #define NGX_DIR_MASK_LEN         0
@@ -273,8 +275,12 @@ ngx_int_t ngx_directio_off(ngx_fd_t fd);
 
 #endif
 
-
 size_t ngx_fs_bsize(u_char *name);
+
+
+#define ngx_stderr               STDERR_FILENO
+#define ngx_set_stderr(fd)       dup2(fd, STDERR_FILENO)
+#define ngx_set_stderr_n         "dup2(STDERR_FILENO)"
 
 
 #endif /* _NGX_FILES_H_INCLUDED_ */

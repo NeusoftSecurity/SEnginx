@@ -1213,7 +1213,7 @@ ngx_http_script_add_full_name_code(ngx_http_script_compile_t *sc)
     }
 
     code->code = (ngx_http_script_code_pt) ngx_http_script_full_name_len_code;
-    code->prefix = sc->conf_prefix;
+    code->conf_prefix = sc->conf_prefix;
 
     code = ngx_http_script_add_code(*sc->values,
                                     sizeof(ngx_http_script_full_name_code_t),
@@ -1223,7 +1223,7 @@ ngx_http_script_add_full_name_code(ngx_http_script_compile_t *sc)
     }
 
     code->code = ngx_http_script_full_name_code;
-    code->prefix = sc->conf_prefix;
+    code->conf_prefix = sc->conf_prefix;
 
     return NGX_OK;
 }
@@ -1238,7 +1238,8 @@ ngx_http_script_full_name_len_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(ngx_http_script_full_name_code_t);
 
-    return code->prefix ? sizeof(NGX_CONF_PREFIX) : ngx_cycle->root.len;
+    return code->conf_prefix ? ngx_cycle->conf_prefix.len:
+                               ngx_cycle->prefix.len;
 }
 
 
@@ -1254,7 +1255,7 @@ ngx_http_script_full_name_code(ngx_http_script_engine_t *e)
     value.data = e->buf.data;
     value.len = e->pos - e->buf.data;
 
-    if (ngx_conf_full_name((ngx_cycle_t *) ngx_cycle, &value, code->prefix)
+    if (ngx_conf_full_name((ngx_cycle_t *) ngx_cycle, &value, code->conf_prefix)
         != NGX_OK)
     {
         e->ip = ngx_http_script_exit;
@@ -1413,6 +1414,7 @@ ngx_http_script_file_code(ngx_http_script_engine_t *e)
     of.directio = clcf->directio;
     of.valid = clcf->open_file_cache_valid;
     of.min_uses = clcf->open_file_cache_min_uses;
+    of.test_only = 1;
     of.errors = clcf->open_file_cache_errors;
     of.events = clcf->open_file_cache_events;
 
@@ -1421,7 +1423,7 @@ ngx_http_script_file_code(ngx_http_script_engine_t *e)
     {
         if (of.err != NGX_ENOENT && of.err != NGX_ENOTDIR) {
             ngx_log_error(NGX_LOG_CRIT, r->connection->log, of.err,
-                          ngx_file_info_n " \"%s\" failed", value->data);
+                          "%s \"%s\" failed", of.failed, value->data);
         }
 
         switch (code->op) {

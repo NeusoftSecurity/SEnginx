@@ -1169,6 +1169,7 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
         of.directio = clcf->directio;
         of.valid = clcf->open_file_cache_valid;
         of.min_uses = clcf->open_file_cache_min_uses;
+        of.test_only = 1;
         of.errors = clcf->open_file_cache_errors;
         of.events = clcf->open_file_cache_events;
 
@@ -1177,7 +1178,7 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
         {
             if (of.err != NGX_ENOENT && of.err != NGX_ENOTDIR) {
                 ngx_log_error(NGX_LOG_CRIT, r->connection->log, of.err,
-                              ngx_open_file_n " \"%s\" failed", path.data);
+                              "%s \"%s\" failed", of.failed, path.data);
             }
 
             continue;
@@ -4101,7 +4102,11 @@ ngx_http_core_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_core_loc_conf_t *lcf = conf;
 
-    lcf->err_log = ngx_log_create_errlog(cf->cycle, cf->args);
+    ngx_str_t  *value;
+
+    value = cf->args->elts;
+
+    lcf->err_log = ngx_log_create_errlog(cf->cycle, &value[1]);
     if (lcf->err_log == NULL) {
         return NGX_CONF_ERROR;
     }

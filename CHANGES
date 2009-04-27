@@ -1,4 +1,43 @@
 
+Changes with nginx 0.7.53                                        27 Apr 2009
+
+    *) Change: now a log set by --error-log-path is created from the very 
+       start-up.
+
+    *) Feature: now the start up errors and warnings are outputted to an 
+       error_log and stderr.
+
+    *) Feature: the empty --prefix= configure parameter forces nginx to use 
+       a directory where it was run as prefix.
+
+    *) Feature: the -p switch.
+
+    *) Feature: the -s switch on Unix platforms.
+
+    *) Feature: the -? and -h switches.
+       Thanks to Jerome Loyet.
+
+    *) Feature: now switches may be set in condensed form.
+
+    *) Bugfix: nginx/Windows did not work if configuration file was given 
+       by the -c switch.
+
+    *) Bugfix: temporary files might be not removed if the "proxy_store", 
+       "fastcgi_store", "proxy_cache", or "fastcgi_cache" were used.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: an incorrect value was passed to mail proxy authentication 
+       server in "Auth-Method" header line; the bug had appeared
+       in 0.7.34.
+       Thanks to Simon Lecaille.
+
+    *) Bugfix: system error text descriptions were not logged on Linux;
+       the bug had appeared in 0.7.45.
+
+    *) Bugfix: the "fastcgi_cache_min_uses" directive did not work.
+       Thanks to Andrew Vorobyoff.
+
+
 Changes with nginx 0.7.52                                        20 Apr 2009
 
     *) Feature: the first native Windows binary release.

@@ -61,6 +61,7 @@ static ngx_uint_t argument_number[] = {
 char *
 ngx_conf_param(ngx_conf_t *cf)
 {
+    char             *rv;
     ngx_str_t        *param;
     ngx_buf_t         b;
     ngx_conf_file_t   conf_file;
@@ -82,13 +83,17 @@ ngx_conf_param(ngx_conf_t *cf)
     b.temporary = 1;
 
     conf_file.file.fd = NGX_INVALID_FILE;
-    conf_file.file.name.data = (u_char *) "command line";
-    conf_file.line = 1;
+    conf_file.file.name.data = NULL;
+    conf_file.line = 0;
 
     cf->conf_file = &conf_file;
     cf->conf_file->buffer = &b;
 
-    return ngx_conf_parse(cf, NULL);
+    rv = ngx_conf_parse(cf, NULL);
+
+    cf->conf_file = NULL;
+
+    return rv;
 }
 
 
@@ -853,7 +858,7 @@ ngx_conf_open_file(ngx_cycle_t *cycle, ngx_str_t *name)
     full.data = NULL;
 #endif
 
-    if (name && name->len) {
+    if (name->len) {
         full = *name;
 
         if (ngx_conf_full_name(cycle, &full, 0) != NGX_OK) {
@@ -889,14 +894,13 @@ ngx_conf_open_file(ngx_cycle_t *cycle, ngx_str_t *name)
         return NULL;
     }
 
-    if (name && name->len) {
+    if (name->len) {
         file->fd = NGX_INVALID_FILE;
         file->name = full;
 
     } else {
         file->fd = ngx_stderr;
-        file->name.len = 0;
-        file->name.data = NULL;
+        file->name = *name;
     }
 
     file->buffer = NULL;
@@ -961,35 +965,21 @@ ngx_conf_log_error(ngx_uint_t level, ngx_conf_t *cf, ngx_err_t err,
     last = errstr + NGX_MAX_CONF_ERRSTR;
 
     va_start(args, fmt);
-    p = ngx_vsnprintf(errstr, last - errstr, fmt, args);
+    p = ngx_vslprintf(errstr, last, fmt, args);
     va_end(args);
 
     if (err) {
-
-        if (p > last - 50) {
-
-            /* leave a space for an error code */
-
-            p = last - 50;
-            *p++ = '.';
-            *p++ = '.';
-            *p++ = '.';
-        }
-
-#if (NGX_WIN32)
-        p = ngx_snprintf(p, last - p, ((unsigned) err < 0x80000000)
-                                           ? " (%d: " : " (%Xd: ", err);
-#else
-        p = ngx_snprintf(p, last - p, " (%d: ", err);
-#endif
-
-        p = ngx_strerror_r(err, p, last - p);
-
-        *p++ = ')';
+        p = ngx_log_errno(p, last, err);
     }
 
     if (cf->conf_file == NULL) {
         ngx_log_error(level, cf->log, 0, "%*s", p - errstr, errstr);
+        return;
+    }
+
+    if (cf->conf_file->file.fd == NGX_INVALID_FILE) {
+        ngx_log_error(level, cf->log, 0, "%*s in command line",
+                      p - errstr, errstr);
         return;
     }
 

@@ -1,4 +1,26 @@
 
+Changes with nginx 0.7.54                                        01 May 2009
+
+    *) Feature: the ngx_http_image_filter_module.
+
+    *) Feature: the "proxy_ignore_headers" and "fastcgi_ignore_headers" 
+       directives.
+
+    *) Bugfix: a segmentation fault might occur in worker process, if an 
+       "open_file_cache_errors off" directive was used; the bug had 
+       appeared in 0.7.53.
+
+    *) Bugfix: the "port_in_redirect off" directive did not work; the bug 
+       had appeared in 0.7.39.
+
+    *) Bugfix: improve handling of "select" method errors.
+
+    *) Bugfix: of "select() failed (10022: ...)" error in nginx/Windows.
+
+    *) Bugfix: in error text descriptions in nginx/Windows; the bug had 
+       appeared in 0.7.53.
+
+
 Changes with nginx 0.7.53                                        27 Apr 2009
 
     *) Change: now a log set by --error-log-path is created from the very 

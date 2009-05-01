@@ -8,14 +8,14 @@
 #include <ngx_core.h>
 
 
-static char *ngx_set_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_command_t  ngx_errlog_commands[] = {
 
     {ngx_string("error_log"),
      NGX_MAIN_CONF|NGX_CONF_1MORE,
-     ngx_set_error_log,
+     ngx_error_log,
      0,
      0,
      NULL},
@@ -53,7 +53,7 @@ ngx_uint_t              ngx_use_stderr = 1;
 
 
 static ngx_str_t err_levels[] = {
-    ngx_string("stderr"),
+    ngx_null_string,
     ngx_string("emerg"),
     ngx_string("alert"),
     ngx_string("crit"),
@@ -101,14 +101,14 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 
     p = errstr + ngx_cached_err_log_time.len;
 
-    p = ngx_snprintf(p, last - p, " [%V] ", &err_levels[level]);
+    p = ngx_slprintf(p, last, " [%V] ", &err_levels[level]);
 
     /* pid#tid */
-    p = ngx_snprintf(p, last - p, "%P#" NGX_TID_T_FMT ": ",
+    p = ngx_slprintf(p, last, "%P#" NGX_TID_T_FMT ": ",
                     ngx_log_pid, ngx_log_tid);
 
     if (log->connection) {
-        p = ngx_snprintf(p, last - p, "*%uA ", log->connection);
+        p = ngx_slprintf(p, last, "*%uA ", log->connection);
     }
 
     msg = p;
@@ -116,39 +116,17 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 #if (NGX_HAVE_VARIADIC_MACROS)
 
     va_start(args, fmt);
-    p = ngx_vsnprintf(p, last - p, fmt, args);
+    p = ngx_vslprintf(p, last, fmt, args);
     va_end(args);
 
 #else
 
-    p = ngx_vsnprintf(p, last - p, fmt, args);
+    p = ngx_vslprintf(p, last, fmt, args);
 
 #endif
 
     if (err) {
-
-        if (p > last - 50) {
-
-            /* leave a space for an error code */
-
-            p = last - 50;
-            *p++ = '.';
-            *p++ = '.';
-            *p++ = '.';
-        }
-
-#if (NGX_WIN32)
-        p = ngx_snprintf(p, last - p, ((unsigned) err < 0x80000000)
-                                           ? " (%d: " : " (%Xd: ", err);
-#else
-        p = ngx_snprintf(p, last - p, " (%d: ", err);
-#endif
-
-        p = ngx_strerror_r(err, p, last - p);
-
-        if (p < last) {
-            *p++ = ')';
-        }
+        p = ngx_log_errno(p, last, err);
     }
 
     if (level != NGX_LOG_DEBUG && log->handler) {
@@ -174,7 +152,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 
     (void) ngx_sprintf(msg, "[%V]: ", &err_levels[level]);
 
-    (void) ngx_write_fd(ngx_stderr, msg, p - msg);
+    (void) ngx_write_console(ngx_stderr, msg, p - msg);
 }
 
 
@@ -230,45 +208,53 @@ ngx_log_stderr(ngx_err_t err, const char *fmt, ...)
     va_list   args;
     u_char    errstr[NGX_MAX_ERROR_STR];
 
+    last = errstr + NGX_MAX_ERROR_STR;
+
     va_start(args, fmt);
-    p = ngx_vsnprintf(errstr, NGX_MAX_ERROR_STR, fmt, args);
+    p = ngx_vslprintf(errstr, last, fmt, args);
     va_end(args);
 
-    if (p > errstr + NGX_MAX_ERROR_STR - NGX_LINEFEED_SIZE) {
-        p = errstr + NGX_MAX_ERROR_STR - NGX_LINEFEED_SIZE;
+    if (err) {
+        p = ngx_log_errno(p, last, err);
     }
 
-    if (err) {
-
-        last = errstr + NGX_MAX_ERROR_STR;
-
-        if (p > last - 50) {
-
-            /* leave a space for an error code */
-
-            p = last - 50;
-            *p++ = '.';
-            *p++ = '.';
-            *p++ = '.';
-        }
-
-#if (NGX_WIN32)
-        p = ngx_snprintf(p, last - p, ((unsigned) err < 0x80000000)
-                                           ? " (%d: " : " (%Xd: ", err);
-#else
-        p = ngx_snprintf(p, last - p, " (%d: ", err);
-#endif
-
-        p = ngx_strerror_r(err, p, last - p);
-
-        if (p < last) {
-            *p++ = ')';
-        }
+    if (p > last - NGX_LINEFEED_SIZE) {
+        p = last - NGX_LINEFEED_SIZE;
     }
 
     ngx_linefeed(p);
 
-    (void) ngx_write_fd(ngx_stderr, errstr, p - errstr);
+    (void) ngx_write_console(ngx_stderr, errstr, p - errstr);
+}
+
+
+u_char *
+ngx_log_errno(u_char *buf, u_char *last, ngx_err_t err)
+{
+    if (buf > last - 50) {
+
+        /* leave a space for an error code */
+
+        buf = last - 50;
+        *buf++ = '.';
+        *buf++ = '.';
+        *buf++ = '.';
+    }
+
+#if (NGX_WIN32)
+    buf = ngx_slprintf(buf, last, ((unsigned) err < 0x80000000)
+                                       ? " (%d: " : " (%Xd: ", err);
+#else
+    buf = ngx_slprintf(buf, last, " (%d: ", err);
+#endif
+
+    buf = ngx_strerror_r(err, buf, last - buf);
+
+    if (buf < last) {
+        *buf++ = ')';
+    }
+
+    return buf;
 }
 
 
@@ -302,15 +288,16 @@ ngx_log_init(u_char *prefix)
 #else
     if (name[0] != '/') {
 #endif
-        plen = 0;
 
         if (prefix) {
             plen = ngx_strlen(prefix);
 
-#ifdef NGX_PREFIX
         } else {
+#ifdef NGX_PREFIX
             prefix = (u_char *) NGX_PREFIX;
             plen = ngx_strlen(prefix);
+#else
+            plen = 0;
 #endif
         }
 
@@ -358,7 +345,7 @@ ngx_log_init(u_char *prefix)
 
 
 ngx_log_t *
-ngx_log_create_errlog(ngx_cycle_t *cycle, ngx_str_t *name)
+ngx_log_create(ngx_cycle_t *cycle, ngx_str_t *name)
 {
     ngx_log_t  *log;
 
@@ -377,7 +364,7 @@ ngx_log_create_errlog(ngx_cycle_t *cycle, ngx_str_t *name)
 
 
 char *
-ngx_set_error_log_levels(ngx_conf_t *cf, ngx_log_t *log)
+ngx_log_set_levels(ngx_conf_t *cf, ngx_log_t *log)
 {
     ngx_uint_t   i, n, d;
     ngx_str_t   *value;
@@ -422,10 +409,7 @@ ngx_set_error_log_levels(ngx_conf_t *cf, ngx_log_t *log)
         }
     }
 
-    if (log->log_level == 0) {
-        log->log_level = NGX_LOG_ERR;
-
-    } else if (log->log_level == NGX_LOG_DEBUG) {
+    if (log->log_level == NGX_LOG_DEBUG) {
         log->log_level = NGX_LOG_DEBUG_ALL;
     }
 
@@ -434,26 +418,35 @@ ngx_set_error_log_levels(ngx_conf_t *cf, ngx_log_t *log)
 
 
 static char *
-ngx_set_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+ngx_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_str_t  *value;
+    ngx_str_t  *value, name;
+
+    if (cf->cycle->new_log.file) {
+        return "is duplicate";
+    }
 
     value = cf->args->elts;
 
-    if (value[1].len == 6 && ngx_strcmp(value[1].data, "stderr") == 0) {
-        cf->cycle->new_log->file->fd = ngx_stderr;
-        cf->cycle->new_log->file->name.len = 0;
-        cf->cycle->new_log->file->name.data = NULL;
+    if (ngx_strcmp(value[1].data, "stderr") == 0) {
+        name.len = 0;
+        name.data = NULL;
 
     } else {
-        cf->cycle->new_log->file->name = value[1];
-
-        if (ngx_conf_full_name(cf->cycle, &cf->cycle->new_log->file->name, 0)
-            != NGX_OK)
-        {
-            return NGX_CONF_ERROR;
-        }
+        name = value[1];
     }
 
-    return ngx_set_error_log_levels(cf, cf->cycle->new_log);
+    cf->cycle->new_log.file = ngx_conf_open_file(cf->cycle, &name);
+    if (cf->cycle->new_log.file == NULL) {
+        return NULL;
+    }
+
+    if (cf->args->nelts == 2) {
+        cf->cycle->new_log.log_level = NGX_LOG_ERR;
+        return NGX_CONF_OK;
+    }
+
+    cf->cycle->new_log.log_level = 0;
+
+    return ngx_log_set_levels(cf, &cf->cycle->new_log);
 }

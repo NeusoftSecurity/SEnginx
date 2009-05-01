@@ -82,6 +82,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     cycle->pool = pool;
     cycle->log = log;
+    cycle->new_log.log_level = NGX_LOG_ERR;
     cycle->old_cycle = old_cycle;
 
     cycle->conf_prefix.len = old_cycle->conf_prefix.len;
@@ -164,14 +165,6 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         ngx_destroy_pool(pool);
         return NULL;
     }
-
-
-    cycle->new_log = ngx_log_create_errlog(cycle, &error_log);
-    if (cycle->new_log == NULL) {
-        ngx_destroy_pool(pool);
-        return NULL;
-    }
-
 
     n = old_cycle->listening.nelts ? old_cycle->listening.nelts : 10;
 
@@ -336,6 +329,13 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
 
+    if (cycle->new_log.file == NULL) {
+        cycle->new_log.file = ngx_conf_open_file(cycle, &error_log);
+        if (cycle->new_log.file == NULL) {
+            goto failed;
+        }
+    }
+
     /* open the new files */
 
     part = &cycle->open_files.part;
@@ -382,12 +382,8 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 #endif
     }
 
-    cycle->log = cycle->new_log;
-    pool->log = cycle->new_log;
-
-    if (cycle->log->log_level == 0) {
-        cycle->log->log_level = NGX_LOG_ERR;
-    }
+    cycle->log = &cycle->new_log;
+    pool->log = &cycle->new_log;
 
 
     /* create shared memory */
@@ -1126,7 +1122,9 @@ ngx_reopen_files(ngx_cycle_t *cycle, ngx_uid_t user)
         if (user != (ngx_uid_t) NGX_CONF_UNSET_UINT) {
             ngx_file_info_t  fi;
 
-            if (ngx_file_info((const char *) file[i].name.data, &fi) == -1) {
+            if (ngx_file_info((const char *) file[i].name.data, &fi)
+                == NGX_FILE_ERROR)
+            {
                 ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
                               ngx_file_info_n " \"%s\" failed",
                               file[i].name.data);

@@ -18,6 +18,7 @@ static ngx_int_t ngx_select_del_event(ngx_event_t *ev, ngx_int_t event,
     ngx_uint_t flags);
 static ngx_int_t ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
     ngx_uint_t flags);
+static void ngx_select_repair_fd_sets(ngx_cycle_t *cycle);
 static char *ngx_select_init_conf(ngx_cycle_t *cycle, void *conf);
 
 
@@ -248,12 +249,12 @@ static ngx_int_t
 ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
     ngx_uint_t flags)
 {
-    int                 ready, nready;
-    ngx_uint_t          i, found;
-    ngx_err_t           err;
-    ngx_event_t        *ev, **queue;
-    ngx_connection_t   *c;
-    struct timeval      tv, *tp;
+    int                ready, nready;
+    ngx_err_t          err;
+    ngx_uint_t         i, found;
+    ngx_event_t       *ev, **queue;
+    struct timeval     tv, *tp;
+    ngx_connection_t  *c;
 
 #if !(NGX_WIN32)
 
@@ -302,19 +303,23 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
     work_read_fd_set = master_read_fd_set;
     work_write_fd_set = master_write_fd_set;
 
-#if 1
-    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                   /*
-                    * (void *) disables "dereferencing type-punned
-                    * pointer will break strict-aliasing rules
-                    */
-                   "select read fd_set: %08Xd",
-                   *(int *) (void *) &work_read_fd_set);
-#endif
-
 #if (NGX_WIN32)
 
-    ready = select(0, &work_read_fd_set, &work_write_fd_set, NULL, tp);
+    if (max_read || max_write) {
+        ready = select(0, &work_read_fd_set, &work_write_fd_set, NULL, tp);
+
+    } else {
+
+        /*
+         * Winsock select() requires that at least one descriptor set must be
+         * be non-null, and any non-null descriptor set must contain at least
+         * one handle to a socket.  Otherwise select() returns WSAEINVAL.
+         */
+
+        ngx_msleep(timer);
+
+        ready = 0;
+    }
 
 #else
 
@@ -339,6 +344,11 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
 
     if (err) {
         ngx_log_error(NGX_LOG_ALERT, cycle->log, err, "select() failed");
+
+        if (err == WSAENOTSOCK) {
+            ngx_select_repair_fd_sets(cycle);
+        }
+
         return NGX_ERROR;
     }
 
@@ -361,6 +371,11 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
         }
 
         ngx_log_error(level, cycle->log, err, "select() failed");
+
+        if (err == EBADF) {
+            ngx_select_repair_fd_sets(cycle);
+        }
+
         return NGX_ERROR;
     }
 
@@ -414,10 +429,98 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
     ngx_mutex_unlock(ngx_posted_events_mutex);
 
     if (ready != nready) {
-        ngx_log_error(NGX_LOG_ALERT, cycle->log, 0, "select ready != events");
+        ngx_log_error(NGX_LOG_ALERT, cycle->log, 0,
+                      "select ready != events: %d:%d", ready, nready);
+
+        ngx_select_repair_fd_sets(cycle);
     }
 
     return NGX_OK;
+}
+
+
+static void
+ngx_select_repair_fd_sets(ngx_cycle_t *cycle)
+{
+    int           n;
+    socklen_t     len;
+    ngx_err_t     err;
+    ngx_socket_t  s;
+
+#if (NGX_WIN32)
+    u_int         i;
+
+    for (i = 0; i < master_read_fd_set.fd_count; i++) {
+
+        s = master_read_fd_set.fd_array[i];
+        len = sizeof(int);
+
+        if (getsockopt(s, SOL_SOCKET, SO_TYPE, (char *) &n, &len) == -1) {
+            err = ngx_socket_errno;
+
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, err,
+                          "invalid descriptor #%d in read fd_set", s);
+
+            FD_CLR(s, &master_read_fd_set);
+        }
+    }
+
+    for (i = 0; i < master_write_fd_set.fd_count; i++) {
+
+        s = master_write_fd_set.fd_array[i];
+        len = sizeof(int);
+
+        if (getsockopt(s, SOL_SOCKET, SO_TYPE, (char *) &n, &len) == -1) {
+            err = ngx_socket_errno;
+
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, err,
+                          "invalid descriptor #%d in write fd_set", s);
+
+            FD_CLR(s, &master_write_fd_set);
+        }
+    }
+
+#else
+
+    for (s = 0; s <= max_fd; s++) {
+
+        if (FD_ISSET(s, &master_read_fd_set) == 0) {
+            continue;
+        }
+
+        len = sizeof(int);
+
+        if (getsockopt(s, SOL_SOCKET, SO_TYPE, &n, &len) == -1) {
+            err = ngx_socket_errno;
+
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, err,
+                          "invalid descriptor #%d in read fd_set", s);
+
+            FD_CLR(s, &master_read_fd_set);
+        }
+    }
+
+    for (s = 0; s <= max_fd; s++) {
+
+        if (FD_ISSET(s, &master_write_fd_set) == 0) {
+            continue;
+        }
+
+        len = sizeof(int);
+
+        if (getsockopt(s, SOL_SOCKET, SO_TYPE, &n, &len) == -1) {
+            err = ngx_socket_errno;
+
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, err,
+                          "invalid descriptor #%d in write fd_set", s);
+
+            FD_CLR(s, &master_write_fd_set);
+        }
+    }
+
+    max_fd = -1;
+
+#endif
 }
 
 

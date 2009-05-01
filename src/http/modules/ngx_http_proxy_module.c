@@ -172,6 +172,15 @@ static ngx_conf_bitmask_t  ngx_http_proxy_next_upstream_masks[] = {
 };
 
 
+static ngx_conf_bitmask_t  ngx_http_proxy_ignore_headers_masks[] = {
+    { ngx_string("X-Accel-Redirect"), NGX_HTTP_UPSTREAM_IGN_XA_REDIRECT },
+    { ngx_string("X-Accel-Expires"), NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES },
+    { ngx_string("Expires"), NGX_HTTP_UPSTREAM_IGN_EXPIRES },
+    { ngx_string("Cache-Control"), NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL },
+    { ngx_null_string, 0 }
+};
+
+
 ngx_module_t  ngx_http_proxy_module;
 
 
@@ -425,6 +434,13 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_proxy_loc_conf_t, upstream.hide_headers),
       NULL },
+
+    { ngx_string("proxy_ignore_headers"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
+      ngx_conf_set_bitmask_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_proxy_loc_conf_t, upstream.ignore_headers),
+      &ngx_http_proxy_ignore_headers_masks },
 
 #if (NGX_HTTP_SSL)
 
@@ -1867,6 +1883,7 @@ ngx_http_proxy_create_loc_conf(ngx_conf_t *cf)
      * set by ngx_pcalloc():
      *
      *     conf->upstream.bufs.num = 0;
+     *     conf->upstream.ignore_headers = 0;
      *     conf->upstream.next_upstream = 0;
      *     conf->upstream.use_stale_cache = 0;
      *     conf->upstream.temp_path = NULL;
@@ -2070,6 +2087,11 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
         return NGX_CONF_ERROR;
     }
+
+
+    ngx_conf_merge_bitmask_value(conf->upstream.ignore_headers,
+                              prev->upstream.ignore_headers,
+                              NGX_CONF_BITMASK_SET);
 
 
     ngx_conf_merge_bitmask_value(conf->upstream.next_upstream,
@@ -2675,10 +2697,26 @@ ngx_http_proxy_redirect(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    if (ngx_strcmp(value[1].data, "off") == 0) {
-        plcf->redirect = 0;
-        plcf->redirects = NULL;
-        return NGX_CONF_OK;
+    if (cf->args->nelts == 2) {
+        if (ngx_strcmp(value[1].data, "off") == 0) {
+            plcf->redirect = 0;
+            plcf->redirects = NULL;
+            return NGX_CONF_OK;
+        }
+
+        if (ngx_strcmp(value[1].data, "false") == 0) {
+            ngx_conf_log_error(NGX_LOG_ERR, cf, 0,
+                           "invalid parameter \"false\", use \"off\" instead");
+            plcf->redirect = 0;
+            plcf->redirects = NULL;
+            return NGX_CONF_OK;
+        }
+
+        if (ngx_strcmp(value[1].data, "default") != 0) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "invalid parameter \"%V\"", &value[1]);
+            return NGX_CONF_ERROR;
+        }
     }
 
     if (plcf->redirects == NULL) {
@@ -2694,7 +2732,7 @@ ngx_http_proxy_redirect(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (cf->args->nelts == 2 && ngx_strcmp(value[1].data, "default") == 0) {
+    if (ngx_strcmp(value[1].data, "default") == 0) {
         if (plcf->url.data == NULL) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "\"proxy_rewrite_location default\" must go "

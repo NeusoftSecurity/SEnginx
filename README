@@ -1,0 +1,10 @@
+
+Eval module evaluates the response of proxy or memcached module into a nginx variable. Example:
+
+set $memcached_key $1;
+
+eval $var {
+    memcached_pass 192.168.2.1;
+}
+
+This work is sponsored by gadu-gadu.pl

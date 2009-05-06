@@ -768,6 +768,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     int                  n;
     char                 buf[1];
     ngx_err_t            err;
+    ngx_int_t            event;
     ngx_connection_t     *c;
     ngx_http_upstream_t  *u;
 
@@ -779,10 +780,22 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     u = r->upstream;
 
     if (c->error) {
+        if ((ngx_event_flags & NGX_USE_LEVEL_EVENT) && ev->active) {
+
+            event = ev->write ? NGX_WRITE_EVENT : NGX_READ_EVENT;
+
+            if (ngx_del_event(ev, event, 0) != NGX_OK) {
+                ngx_http_upstream_finalize_request(r, u,
+                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
+                return;
+            }
+        }
+
         if (!u->cacheable) {
             ngx_http_upstream_finalize_request(r, u,
                                                NGX_HTTP_CLIENT_CLOSED_REQUEST);
         }
+
         return;
     }
 
@@ -836,17 +849,15 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ev->log, err,
                    "http upstream recv(): %d", n);
 
-    /*
-     * we do not need to disable the write event because
-     * that event has NGX_USE_CLEAR_EVENT type
-     */
-
     if (ev->write && (n >= 0 || err == NGX_EAGAIN)) {
         return;
     }
 
     if ((ngx_event_flags & NGX_USE_LEVEL_EVENT) && ev->active) {
-        if (ngx_del_event(ev, NGX_READ_EVENT, 0) == NGX_ERROR) {
+
+        event = ev->write ? NGX_WRITE_EVENT : NGX_READ_EVENT;
+
+        if (ngx_del_event(ev, event, 0) != NGX_OK) {
             ngx_http_upstream_finalize_request(r, u,
                                                NGX_HTTP_INTERNAL_SERVER_ERROR);
             return;
@@ -1472,12 +1483,9 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 static ngx_int_t
 ngx_http_upstream_test_next(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
+    ngx_int_t                  rc;
     ngx_uint_t                 status;
     ngx_http_upstream_next_t  *un;
-
-    if (!(u->conf->next_upstream & NGX_HTTP_UPSTREAM_FT_STATUS)) {
-        return NGX_DECLINED;
-    }
 
     status = u->headers_in.status_n;
 
@@ -1494,12 +1502,15 @@ ngx_http_upstream_test_next(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
 #if (NGX_HTTP_CACHE)
 
-        if (u->peer.tries == 0
-            && u->stale_cache
-            && (u->conf->cache_use_stale & un->mask))
-        {
-            ngx_http_upstream_finalize_request(r, u,
-                                           ngx_http_upstream_cache_send(r, u));
+        if (u->stale_cache && (u->conf->cache_use_stale & un->mask)) {
+
+            rc = u->reinit_request(r);
+
+            if (rc == NGX_OK) {
+                rc = ngx_http_upstream_cache_send(r, u);
+            }
+
+            ngx_http_upstream_finalize_request(r, u, rc);
             return NGX_OK;
         }
 
@@ -2650,9 +2661,15 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
 #if (NGX_HTTP_CACHE)
 
             if (u->stale_cache && (u->conf->cache_use_stale & ft_type)) {
+                ngx_int_t  rc;
 
-                ngx_http_upstream_finalize_request(r, u,
-                                           ngx_http_upstream_cache_send(r, u));
+                rc = u->reinit_request(r);
+
+                if (rc == NGX_OK) {
+                    rc = ngx_http_upstream_cache_send(r, u);
+                }
+
+                ngx_http_upstream_finalize_request(r, u, rc);
                 return;
             }
 #endif

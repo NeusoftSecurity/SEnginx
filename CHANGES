@@ -1,4 +1,25 @@
 
+Changes with nginx 0.7.55                                        06 May 2009
+
+    *) Bugfix: the http_XXX parameters in "proxy_cache_use_stale" and 
+       "fastcgi_cache_use_stale" directives did not work.
+
+    *) Bugfix: fastcgi cache did not cache header only responses.
+
+    *) Bugfix: of "select() failed (9: Bad file descriptor)" error in 
+       nginx/Unix and "select() failed (10022: ...)" error in nginx/Windows.
+
+    *) Bugfix: a segmentation fault might occur in worker process, if an 
+       "debug_connection" directive was used; the bug had appeared in 
+       0.7.54.
+
+    *) Bugfix: fix ngx_http_image_filter_module building errors.
+
+    *) Bugfix: the files bigger than 2G could not be transferred using 
+       $r->sendfile.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.7.54                                        01 May 2009
 
     *) Feature: the ngx_http_image_filter_module.

@@ -13,11 +13,11 @@ ngx_os_io_t  ngx_io;
 
 
 ngx_listening_t *
-ngx_listening_inet_stream_socket(ngx_conf_t *cf, in_addr_t addr, in_port_t port)
+ngx_create_listening(ngx_conf_t *cf, void *sockaddr, socklen_t socklen)
 {
-    size_t               len;
-    ngx_listening_t     *ls;
-    struct sockaddr_in  *sin;
+    ngx_listening_t  *ls;
+    struct sockaddr  *sa;
+    u_char            text[NGX_SOCKADDR_STRLEN];
 
     ls = ngx_array_push(&cf->cycle->listening);
     if (ls == NULL) {
@@ -26,33 +26,45 @@ ngx_listening_inet_stream_socket(ngx_conf_t *cf, in_addr_t addr, in_port_t port)
 
     ngx_memzero(ls, sizeof(ngx_listening_t));
 
-    sin = ngx_pcalloc(cf->pool, sizeof(struct sockaddr_in));
-    if (sin == NULL) {
+    sa = ngx_palloc(cf->pool, socklen);
+    if (sa == NULL) {
         return NULL;
     }
 
-    sin->sin_family = AF_INET;
-    sin->sin_addr.s_addr = addr;
-    sin->sin_port = htons(port);
+    ngx_memcpy(sa, sockaddr, socklen);
 
+    ls->sockaddr = sa;
+    ls->socklen = socklen;
 
-    ls->addr_text.data = ngx_pnalloc(cf->pool,
-                                    NGX_INET_ADDRSTRLEN + sizeof(":65535") - 1);
+    ls->addr_text.len = ngx_sock_ntop(sa, text, NGX_SOCKADDR_STRLEN, 1);
+
+    ls->addr_text.data = ngx_pnalloc(cf->pool, ls->addr_text.len);
     if (ls->addr_text.data == NULL) {
         return NULL;
     }
 
-    len = ngx_inet_ntop(AF_INET, &addr, ls->addr_text.data,
-                        NGX_INET_ADDRSTRLEN);
-
-    ls->addr_text.len = ngx_sprintf(ls->addr_text.data + len, ":%d", port)
-                        - ls->addr_text.data;
+    ngx_memcpy(ls->addr_text.data, text, ls->addr_text.len);
 
     ls->fd = (ngx_socket_t) -1;
     ls->type = SOCK_STREAM;
-    ls->sockaddr = (struct sockaddr *) sin;
-    ls->socklen = sizeof(struct sockaddr_in);
-    ls->addr_text_max_len = NGX_INET_ADDRSTRLEN;
+
+    switch (ls->sockaddr->sa_family) {
+#if (NGX_HAVE_INET6)
+    case AF_INET6:
+         ls->addr_text_max_len = NGX_INET6_ADDRSTRLEN;
+         break;
+#endif
+    case AF_INET:
+         ls->addr_text_max_len = NGX_INET_ADDRSTRLEN;
+         break;
+    default:
+         ls->addr_text_max_len = NGX_SOCKADDR_STRLEN;
+         break;
+    }
+
+    ls->backlog = NGX_LISTEN_BACKLOG;
+    ls->rcvbuf = -1;
+    ls->sndbuf = -1;
 
     return ls;
 }
@@ -248,8 +260,6 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 continue;
             }
 
-            ls[i].log = *ls[i].logp;
-
             if (ls[i].inherited) {
 
                 /* TODO: close on exit */
@@ -295,7 +305,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                                (const void *) &ipv6only, sizeof(int))
                     == -1)
                 {
-                    ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_socket_errno,
+                    ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
                                   "setsockopt(IPV6_V6ONLY) %V failed, ignored",
                                   &ls[i].addr_text);
                 }
@@ -319,7 +329,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 }
             }
 
-            ngx_log_debug2(NGX_LOG_DEBUG_CORE, cycle->log, 0,
+            ngx_log_debug2(NGX_LOG_DEBUG_CORE, log, 0,
                            "bind() %V #%d ", &ls[i].addr_text, s);
 
             if (bind(s, ls[i].sockaddr, ls[i].socklen) == -1) {
@@ -388,7 +398,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 
 
 void
-ngx_configure_listening_socket(ngx_cycle_t *cycle)
+ngx_configure_listening_sockets(ngx_cycle_t *cycle)
 {
     ngx_uint_t                 i;
     ngx_listening_t           *ls;
@@ -402,6 +412,8 @@ ngx_configure_listening_socket(ngx_cycle_t *cycle)
 
     ls = cycle->listening.elts;
     for (i = 0; i < cycle->listening.nelts; i++) {
+
+        ls[i].log = *ls[i].logp;
 
         if (ls[i].rcvbuf != -1) {
             if (setsockopt(ls[i].fd, SOL_SOCKET, SO_RCVBUF,

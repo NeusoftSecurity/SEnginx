@@ -1,4 +1,12 @@
 
+Changes with nginx 0.7.56                                        11 May 2009
+
+    *) Feature: nginx/Windows supports IPv6 in a "listen" directive of the 
+       HTTP module.
+
+    *) Bugfix: in ngx_http_image_filter_module.
+
+
 Changes with nginx 0.7.55                                        06 May 2009
 
     *) Bugfix: the http_XXX parameters in "proxy_cache_use_stale" and 
@@ -7,7 +15,7 @@ Changes with nginx 0.7.55                                        06 May 2009
     *) Bugfix: fastcgi cache did not cache header only responses.
 
     *) Bugfix: of "select() failed (9: Bad file descriptor)" error in 
-       nginx/Unix and "select() failed (10022: ...)" error in nginx/Windows.
+       nginx/Unix and "select() failed (10038: ...)" error in nginx/Windows.
 
     *) Bugfix: a segmentation fault might occur in worker process, if an 
        "debug_connection" directive was used; the bug had appeared in 

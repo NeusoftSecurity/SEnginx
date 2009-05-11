@@ -1,4 +1,12 @@
 
+Изменения в nginx 0.7.56                                          11.05.2009
+
+    *) Добавление: nginx/Windows поддерживает IPv6 в директиве listen 
+       модуля HTTP.
+
+    *) Исправление: в модуле ngx_http_image_filter_module.
+
+
 Изменения в nginx 0.7.55                                          06.05.2009
 
     *) Исправление: параметры http_XXX в директиве proxy_cache_use_stale и 
@@ -8,7 +16,7 @@
        заголовка.
 
     *) Исправление: ошибки "select() failed (9: Bad file descriptor)" в 
-       nginx/Unix и "select() failed (10022: ...)" в nginx/Windows.
+       nginx/Unix и "select() failed (10038: ...)" в nginx/Windows.
 
     *) Исправление: при использовании директивы debug_connection в рабочем 
        процессе мог произойти segmentation fault; ошибка появилась в 0.7.54.

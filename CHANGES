@@ -1,4 +1,11 @@
 
+Changes with nginx 0.7.57                                        12 May 2009
+
+    *) Bugfix: a segmentation fault occurred in worker process, if the 
+       ngx_http_image_filter_module errors were redirected to named 
+       location; the bug had appeared in 0.7.56.
+
+
 Changes with nginx 0.7.56                                        11 May 2009
 
     *) Feature: nginx/Windows supports IPv6 in a "listen" directive of the 

@@ -355,11 +355,18 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NULL },
 
     { ngx_string("client_body_in_file_only"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_core_loc_conf_t, client_body_in_file_only),
       &ngx_http_core_request_body_in_file },
+
+    { ngx_string("client_body_in_single_buffer"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, client_body_in_single_buffer),
+      NULL },
 
     { ngx_string("sendfile"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
@@ -1317,6 +1324,8 @@ ngx_http_update_location_config(ngx_http_request_t *r)
         r->request_body_file_log_level = NGX_LOG_WARN;
     }
 
+    r->request_body_in_single_buf = clcf->client_body_in_single_buffer;
+
     if (r->keepalive && clcf->keepalive_timeout == 0) {
         r->keepalive = 0;
     }
@@ -1814,68 +1823,6 @@ ngx_http_auth_basic_user(ngx_http_request_t *r)
     r->headers_in.user.data = auth.data;
     r->headers_in.passwd.len = auth.len - len - 1;
     r->headers_in.passwd.data = &auth.data[len + 1];
-
-    return NGX_OK;
-}
-
-
-ngx_int_t
-ngx_http_server_addr(ngx_http_request_t *r, ngx_str_t *s)
-{
-    socklen_t             len;
-    ngx_uint_t            addr;
-    ngx_connection_t     *c;
-    u_char                sa[NGX_SOCKADDRLEN];
-    struct sockaddr_in   *sin;
-#if (NGX_HAVE_INET6)
-    ngx_uint_t            i;
-    struct sockaddr_in6  *sin6;
-#endif
-
-    c = r->connection;
-
-    switch (c->local_sockaddr->sa_family) {
-
-#if (NGX_HAVE_INET6)
-    case AF_INET6:
-        sin6 = (struct sockaddr_in6 *) c->local_sockaddr;
-
-        for (addr = 0, i = 0; addr == 0 && i < 16; i++) {
-            addr |= sin6->sin6_addr.s6_addr[i];
-        }
-
-        break;
-#endif
-
-    default: /* AF_INET */
-        sin = (struct sockaddr_in *) c->local_sockaddr;
-        addr = sin->sin_addr.s_addr;
-        break;
-    }
-
-    if (addr == 0) {
-
-        len = NGX_SOCKADDRLEN;
-
-        if (getsockname(c->fd, (struct sockaddr *) &sa, &len) == -1) {
-            ngx_connection_error(c, ngx_socket_errno, "getsockname() failed");
-            return NGX_ERROR;
-        }
-
-        c->local_sockaddr = ngx_palloc(r->connection->pool, len);
-        if (c->local_sockaddr == NULL) {
-            return NGX_ERROR;
-        }
-
-        c->local_socklen = len;
-        ngx_memcpy(c->local_sockaddr, &sa, len);
-    }
-
-    if (s == NULL) {
-        return NGX_OK;
-    }
-
-    s->len = ngx_sock_ntop(c->local_sockaddr, s->data, s->len, 0);
 
     return NGX_OK;
 }
@@ -2953,8 +2900,9 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     lcf->client_body_timeout = NGX_CONF_UNSET_MSEC;
     lcf->satisfy = NGX_CONF_UNSET_UINT;
     lcf->if_modified_since = NGX_CONF_UNSET_UINT;
+    lcf->client_body_in_file_only = NGX_CONF_UNSET_UINT;
+    lcf->client_body_in_single_buffer = NGX_CONF_UNSET;
     lcf->internal = NGX_CONF_UNSET;
-    lcf->client_body_in_file_only = NGX_CONF_UNSET;
     lcf->sendfile = NGX_CONF_UNSET;
     lcf->sendfile_max_chunk = NGX_CONF_UNSET_SIZE;
     lcf->directio = NGX_CONF_UNSET;
@@ -3144,9 +3092,11 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               NGX_HTTP_SATISFY_ALL);
     ngx_conf_merge_uint_value(conf->if_modified_since, prev->if_modified_since,
                               NGX_HTTP_IMS_EXACT);
-    ngx_conf_merge_value(conf->internal, prev->internal, 0);
-    ngx_conf_merge_value(conf->client_body_in_file_only,
+    ngx_conf_merge_uint_value(conf->client_body_in_file_only,
                               prev->client_body_in_file_only, 0);
+    ngx_conf_merge_value(conf->client_body_in_single_buffer,
+                              prev->client_body_in_single_buffer, 0);
+    ngx_conf_merge_value(conf->internal, prev->internal, 0);
     ngx_conf_merge_value(conf->sendfile, prev->sendfile, 0);
     ngx_conf_merge_size_value(conf->sendfile_max_chunk,
                               prev->sendfile_max_chunk, 0);

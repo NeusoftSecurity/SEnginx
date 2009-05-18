@@ -18,7 +18,7 @@ static ngx_int_t ngx_http_init_phase_handlers(ngx_conf_t *cf,
     ngx_http_core_main_conf_t *cmcf);
 
 static ngx_int_t ngx_http_init_server_lists(ngx_conf_t *cf,
-    ngx_array_t *servers, ngx_array_t *in_ports);
+    ngx_array_t *servers, ngx_array_t *ports);
 static ngx_int_t ngx_http_add_ports(ngx_conf_t *cf,
     ngx_http_core_srv_conf_t *cscf, ngx_array_t *ports,
     ngx_http_listen_t *listen);
@@ -122,7 +122,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     char                        *rv;
     ngx_uint_t                   mi, m, s;
     ngx_conf_t                   pcf;
-    ngx_array_t                  in_ports;
+    ngx_array_t                  ports;
     ngx_http_module_t           *module;
     ngx_http_conf_ctx_t         *ctx;
     ngx_http_core_loc_conf_t    *clcf;
@@ -367,14 +367,14 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
      * to find quickly the server core module configuration at run-time
      */
 
-    if (ngx_http_init_server_lists(cf, &cmcf->servers, &in_ports) != NGX_OK) {
+    if (ngx_http_init_server_lists(cf, &cmcf->servers, &ports) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
 
     /* optimize the lists of ports, addresses and server names */
 
-    if (ngx_http_optimize_servers(cf, cmcf, &in_ports) != NGX_OK) {
+    if (ngx_http_optimize_servers(cf, cmcf, &ports) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -1180,12 +1180,12 @@ ngx_http_add_ports(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
             continue;
         }
 
-        /* a port is already in the in_port list */
+        /* a port is already in the port list */
 
         return ngx_http_add_addresses(cf, cscf, &port[i], listen);
     }
 
-    /* add a port to the in_port list */
+    /* add a port to the port list */
 
     port = ngx_array_push(ports);
     if (port == NULL) {
@@ -1279,7 +1279,7 @@ ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
 
 /*
  * add the server address, the server names and the server core module
- * configurations to the port (in_port)
+ * configurations to the port list
  */
 
 static ngx_int_t

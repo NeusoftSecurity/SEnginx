@@ -339,9 +339,11 @@ struct ngx_http_core_loc_conf_s {
 
     ngx_uint_t    satisfy;                 /* satisfy */
     ngx_uint_t    if_modified_since;       /* if_modified_since */
+    ngx_uint_t    client_body_in_file_only; /* client_body_in_file_only */
 
+    ngx_flag_t    client_body_in_single_buffer;
+                                           /* client_body_in_singe_buffer */
     ngx_flag_t    internal;                /* internal */
-    ngx_flag_t    client_body_in_file_only; /* client_body_in_file_only */
     ngx_flag_t    sendfile;                /* sendfile */
     ngx_flag_t    tcp_nopush;              /* tcp_nopush */
     ngx_flag_t    tcp_nodelay;             /* tcp_nodelay */
@@ -438,7 +440,6 @@ ngx_int_t ngx_http_set_exten(ngx_http_request_t *r);
 u_char *ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *name,
     size_t *root_length, size_t reserved);
 ngx_int_t ngx_http_auth_basic_user(ngx_http_request_t *r);
-ngx_int_t ngx_http_server_addr(ngx_http_request_t *r, ngx_str_t *s);
 #if (NGX_HTTP_GZIP)
 ngx_int_t ngx_http_gzip_ok(ngx_http_request_t *r);
 #endif

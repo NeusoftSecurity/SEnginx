@@ -1,4 +1,22 @@
 
+Changes with nginx 0.7.58                                        18 May 2009
+
+    *) Feature: a "listen" directive of the mail proxy module supports IPv6.
+
+    *) Feature: the "image_filter_jpeg_quality" directive.
+
+    *) Feature: the "client_body_in_single_buffer" directive.
+
+    *) Feature: the $request_body variable.
+
+    *) Bugfix: in ngx_http_autoindex_module in file name links having a ":" 
+       symbol in the name.
+
+    *) Bugfix: "make upgrade" procedure did not work; the bug had appeared 
+       in 0.7.53.
+       Thanks to Denis F. Latypoff.
+
+
 Changes with nginx 0.7.57                                        12 May 2009
 
     *) Bugfix: a segmentation fault occurred in worker process, if the 

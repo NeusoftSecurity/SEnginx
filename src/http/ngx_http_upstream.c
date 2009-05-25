@@ -329,6 +329,15 @@ static ngx_http_upstream_next_t  ngx_http_upstream_next_errors[] = {
     { 0, 0 }
 };
 
+
+ngx_conf_bitmask_t  ngx_http_upstream_cache_method_mask[] = {
+   { ngx_string("GET"),  NGX_HTTP_GET},
+   { ngx_string("HEAD"), NGX_HTTP_HEAD },
+   { ngx_string("POST"), NGX_HTTP_POST },
+   { ngx_null_string, 0 }
+};
+
+
 void
 ngx_http_upstream_init(ngx_http_request_t *r)
 {
@@ -532,7 +541,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
     ngx_int_t          rc;
     ngx_http_cache_t  *c;
 
-    if (!(r->method & (NGX_HTTP_GET|NGX_HTTP_HEAD))) {
+    if (!(r->method & u->conf->cache_methods)) {
         return NGX_DECLINED;
     }
 
@@ -562,8 +571,8 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     u->cacheable = 1;
 
-    c->min_uses = r->upstream->conf->cache_min_uses;
-    c->body_start = r->upstream->conf->buffer_size;
+    c->min_uses = u->conf->cache_min_uses;
+    c->body_start = u->conf->buffer_size;
     c->file_cache = u->conf->cache->data;
 
     rc = ngx_http_file_cache_open(r);
@@ -3165,6 +3174,7 @@ ngx_http_upstream_copy_content_type(ngx_http_request_t *r, ngx_table_elt_t *h,
 
     r->headers_out.content_type_len = h->value.len;
     r->headers_out.content_type = h->value;
+    r->headers_out.content_type_lowcase = NULL;
 
     for (p = h->value.data; *p; p++) {
 

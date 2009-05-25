@@ -1,4 +1,26 @@
 
+Changes with nginx 0.7.59                                        25 May 2009
+
+    *) Feature: the "proxy_cache_methods" and "fastcgi_cache_methods" 
+       directives.
+
+    *) Bugfix: socket leak; the bug had appeared in 0.7.25.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: a segmentation fault occurred in worker process, 
+       if a request had no body and the $request_body variable was used;
+       the bug had appeared in 0.7.58.
+
+    *) Bugfix: the SSL modules might not built on Solaris and Linux;
+       the bug had appeared in 0.7.58.
+
+    *) Bugfix: ngx_http_xslt_filter_module responses were not handled by 
+       SSI, charset, and gzip filters.
+
+    *) Bugfix: a "charset" directive did not set a charset to 
+       ngx_http_gzip_static_module responses.
+
+
 Changes with nginx 0.7.58                                        18 May 2009
 
     *) Feature: a "listen" directive of the mail proxy module supports IPv6.
@@ -19,7 +41,7 @@ Changes with nginx 0.7.58                                        18 May 2009
 
 Changes with nginx 0.7.57                                        12 May 2009
 
-    *) Bugfix: a segmentation fault occurred in worker process, if the 
+    *) Bugfix: a floating-point fault occurred in worker process, if the 
        ngx_http_image_filter_module errors were redirected to named 
        location; the bug had appeared in 0.7.56.
 

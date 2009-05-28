@@ -12,11 +12,13 @@ typedef struct {
     ngx_int_t                   variable_index;
     ngx_str_t                   eval_location;
     unsigned int                enabled;
+    ngx_flag_t                  escalate;
 } ngx_http_eval_loc_conf_t;
 
 typedef struct {
     ngx_http_variable_value_t  *value;
-    unsigned int                done;
+    unsigned int                done:1;
+    unsigned int                escalate:1;
 } ngx_http_eval_ctx_t;
 
 static ngx_int_t ngx_http_eval_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc);
@@ -36,6 +38,14 @@ static ngx_command_t  ngx_http_eval_commands[] = {
       ngx_http_eval_block,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
+      NULL },
+
+
+    { ngx_string("eval_escalate"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_eval_loc_conf_t, escalate),
       NULL },
 
       ngx_null_command
@@ -108,6 +118,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
     }
 
     ctx->value = r->variables + ecf->variable_index;
+    ctx->escalate = ecf->escalate;
 
     args.len = 0;
     args.data = NULL;
@@ -151,7 +162,7 @@ ngx_http_eval_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc)
 
     ctx->done = 1;
 
-    return NGX_OK;
+    return ctx->escalate ? rc : NGX_OK;
 }
 
 static void *
@@ -165,12 +176,19 @@ ngx_http_eval_create_loc_conf(ngx_conf_t *cf)
         return NGX_CONF_ERROR;
     }
 
+    conf->escalate = NGX_CONF_UNSET;
+
     return conf;
 }
 
 static char *
 ngx_http_eval_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
+    ngx_http_eval_loc_conf_t *prev = parent;
+    ngx_http_eval_loc_conf_t *conf = child;
+
+    ngx_conf_merge_value(conf->escalate, prev->escalate, 0);
+
     return NGX_CONF_OK;
 }
 

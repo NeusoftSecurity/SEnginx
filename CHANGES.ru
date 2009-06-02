@@ -1,4 +1,22 @@
 
+Изменения в nginx 0.8.0                                           02.06.2009
+
+    *) Добавление: директива keepalive_requests.
+
+    *) Добавление: директива limit_rate_after.
+       Спасибо Ivan Debnar.
+
+    *) Исправление: XSLT-фильтр не работал в подзапросах.
+
+    *) Исправление: обработке относительных путей в in nginx/Windows.
+
+    *) Исправление: в proxy_store, fastcgi_store, proxy_cache и 
+       fastcgi_cache в nginx/Windows.
+
+    *) Исправление: в обработке ошибок выделения памяти.
+       Спасибо Максиму Дунину и Кириллу Коринскому.
+
+
 Изменения в nginx 0.7.59                                          25.05.2009
 
     *) Добавление: директивы proxy_cache_methods и fastcgi_cache_methods.

@@ -1883,7 +1883,7 @@ ngx_http_proxy_create_loc_conf(ngx_conf_t *cf)
 
     conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_proxy_loc_conf_t));
     if (conf == NULL) {
-        return NGX_CONF_ERROR;
+        return NULL;
     }
 
     /*
@@ -1973,7 +1973,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     if (conf->upstream.store != 0) {
         ngx_conf_merge_value(conf->upstream.store,
-                                  prev->upstream.store, 0);
+                              prev->upstream.store, 0);
 
         if (conf->upstream.store_lengths == NULL) {
             conf->upstream.store_lengths = prev->upstream.store_lengths;
@@ -2809,20 +2809,31 @@ ngx_http_proxy_store(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t                  *value;
     ngx_http_script_compile_t   sc;
 
-    if (plcf->upstream.store != NGX_CONF_UNSET || plcf->upstream.store_lengths)
+    if (plcf->upstream.store != NGX_CONF_UNSET
+        || plcf->upstream.store_lengths)
     {
         return "is duplicate";
     }
 
     value = cf->args->elts;
 
-    if (ngx_strcmp(value[1].data, "on") == 0) {
-        plcf->upstream.store = 1;
+    if (ngx_strcmp(value[1].data, "off") == 0) {
+        plcf->upstream.store = 0;
         return NGX_CONF_OK;
     }
 
-    if (ngx_strcmp(value[1].data, "off") == 0) {
-        plcf->upstream.store = 0;
+#if (NGX_HTTP_CACHE)
+
+    if (plcf->upstream.cache != NGX_CONF_UNSET_PTR
+        && plcf->upstream.cache != NULL)
+    {
+        return "is incompatible with \"proxy_cache\"";
+    }
+
+#endif
+
+    if (ngx_strcmp(value[1].data, "on") == 0) {
+        plcf->upstream.store = 1;
         return NGX_CONF_OK;
     }
 
@@ -2865,6 +2876,10 @@ ngx_http_proxy_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (ngx_strcmp(value[1].data, "off") == 0) {
         plcf->upstream.cache = NULL;
         return NGX_CONF_OK;
+    }
+
+    if (plcf->upstream.store > 0 || plcf->upstream.store_lengths) {
+        return "is incompatible with \"proxy_store\"";
     }
 
     plcf->upstream.cache = ngx_shared_memory_add(cf, &value[1], 0,

@@ -1,4 +1,22 @@
 
+Changes with nginx 0.8.0                                         02 Jun 2009
+
+    *) Feature: the "keepalive_requests" directive.
+
+    *) Feature: the "limit_rate_after" directive.
+       Thanks to Ivan Debnar.
+
+    *) Bugfix: XLST filter did not work in subrequests.
+
+    *) Bugfix: in relative paths handling in nginx/Windows.
+
+    *) Bugfix: in proxy_store, fastcgi_store, proxy_cache, and 
+       fastcgi_cache in nginx/Windows.
+
+    *) Bugfix: in memory allocation error handling.
+       Thanks to Maxim Dounin and Kirill A. Korinskiy.
+
+
 Changes with nginx 0.7.59                                        25 May 2009
 
     *) Feature: the "proxy_cache_methods" and "fastcgi_cache_methods" 

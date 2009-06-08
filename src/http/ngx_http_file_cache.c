@@ -172,9 +172,8 @@ ngx_http_file_cache_open(ngx_http_request_t *r)
 
     rc = ngx_http_file_cache_exists(cache, c);
 
-    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http file cache exists: %i u:%ui e:%d",
-                   rc, c->uses, c->exists);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "http file cache exists: %i e:%d", rc, c->exists);
 
     if (rc == NGX_ERROR) {
         return rc;
@@ -332,15 +331,24 @@ ngx_http_file_cache_open(ngx_http_request_t *r)
 
     if (c->valid_sec < now) {
 
-        c->uses = c->min_uses;
+        ngx_shmtx_lock(&cache->shpool->mutex);
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http file cache expired: %T %T", c->valid_sec, now);
+        if (c->node->updating) {
+            rc = NGX_HTTP_CACHE_UPDATING;
 
-        return NGX_HTTP_CACHE_STALE;
+        } else {
+            c->node->updating = 1;
+            rc = NGX_HTTP_CACHE_STALE;
+        }
+
+        ngx_shmtx_unlock(&cache->shpool->mutex);
+
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "http file cache expired: %i %T %T",
+                       rc, c->valid_sec, now);
+
+        return rc;
     }
-
-    /* TODO: NGX_HTTP_CACHE_AGED */
 
     return NGX_OK;
 }
@@ -442,7 +450,6 @@ done:
     ngx_queue_insert_head(&cache->sh->queue, &fcn->queue);
 
     c->uniq = fcn->uniq;
-    c->uses = fcn->uses;
     c->error = fcn->error;
     c->node = fcn;
 
@@ -654,6 +661,8 @@ ngx_http_file_cache_update(ngx_http_request_t *r, ngx_temp_file_t *tf)
         c->node->exists = 1;
     }
 
+    c->node->updating = 0;
+
     ngx_shmtx_unlock(&cache->shpool->mutex);
 }
 
@@ -735,6 +744,8 @@ ngx_http_file_cache_free(ngx_http_request_t *r, ngx_temp_file_t *tf)
         c->node->valid_msec = c->valid_msec;
         c->node->error = c->error;
     }
+
+    c->node->updating = 0;
 
     ngx_shmtx_unlock(&cache->shpool->mutex);
 

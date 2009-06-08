@@ -1,4 +1,25 @@
 
+Changes with nginx 0.8.1                                         08 Jun 2009
+
+    *) Feature: the "updating" parameter in "proxy_cache_use_stale" and 
+       "fastcgi_cache_use_stale" directives.
+
+    *) Bugfix: the "If-Modified-Since", "If-Range", etc. client request 
+       header lines were passed to backend while caching if no 
+       "proxy_set_header" directive was used with any parameters.
+
+    *) Bugfix: the "Set-Cookie" and "P3P" response header lines were not 
+       hidden while caching if no "proxy_hide_header/fastcgi_hide_header" 
+       directives were used with any parameters.
+
+    *) Bugfix: the ngx_http_image_filter_module did not support GIF87a 
+       format.
+       Thanks to Denis Ilyinyh.
+
+    *) Bugfix: nginx could not be built modules on Solaris 10 and early; 
+       the bug had appeared in 0.7.56.
+
+
 Changes with nginx 0.8.0                                         02 Jun 2009
 
     *) Feature: the "keepalive_requests" directive.
@@ -30,7 +51,7 @@ Changes with nginx 0.7.59                                        25 May 2009
        the bug had appeared in 0.7.58.
 
     *) Bugfix: the SSL modules might not built on Solaris and Linux;
-       the bug had appeared in 0.7.58.
+       the bug had appeared in 0.7.56.
 
     *) Bugfix: ngx_http_xslt_filter_module responses were not handled by 
        SSI, charset, and gzip filters.

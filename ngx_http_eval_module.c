@@ -19,6 +19,7 @@ typedef struct {
     ngx_http_variable_value_t  *value;
     unsigned int                done:1;
     unsigned int                escalate:1;
+    ngx_int_t                   status;
 } ngx_http_eval_ctx_t;
 
 static ngx_int_t ngx_http_eval_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc);
@@ -109,7 +110,11 @@ ngx_http_eval_handler(ngx_http_request_t *r)
     }
 
     if(ctx->done) {
-        return NGX_DECLINED;
+        if(!ctx->escalate || ctx->status == NGX_OK || ctx->status == NGX_HTTP_OK) {
+            return NGX_DECLINED;
+        }
+
+        return ctx->status;
     }
 
     psr = ngx_palloc(r->pool, sizeof(ngx_http_post_subrequest_t));
@@ -161,8 +166,9 @@ ngx_http_eval_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc)
     }
 
     ctx->done = 1;
+    ctx->status = rc;
 
-    return ctx->escalate ? rc : NGX_OK;
+    return NGX_OK;
 }
 
 static void *

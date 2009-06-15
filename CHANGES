@@ -1,4 +1,12 @@
 
+Changes with nginx 0.8.2                                         15 Jun 2009
+
+    *) Bugfix: in open_file_cache and proxy/fastcgi cache interaction on 
+       start up.
+
+    *) Bugfix: open_file_cache might cache open file descriptors too long.
+
+
 Changes with nginx 0.8.1                                         08 Jun 2009
 
     *) Feature: the "updating" parameter in "proxy_cache_use_stale" and 

@@ -144,6 +144,8 @@ ngx_http_eval_handler(ngx_http_request_t *r)
         return rc;
     } 
 
+    sr->discard_body = 1;
+
     /*
      * Wait for subrequest to complete
      */

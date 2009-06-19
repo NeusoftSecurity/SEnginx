@@ -1,4 +1,20 @@
 
+Changes with nginx 0.8.2                                         19 Jun 2009
+
+    *) Feature: the $upstream_cache_status variable.
+
+    *) Bugfix: nginx could not be built on MacOSX 10.6. the bug had 
+       appeared in 0.8.2.
+
+    *) Bugfix: nginx could not be built --without-http-cache; the bug had 
+       appeared in 0.8.2.
+
+    *) Bugfix: a segmentation fault occurred in worker process, if a 
+       backend 401 error was intercepted and the backend did not set the 
+       "WWW-Authenticate" response header line.
+       Thanks to Eugene Mychlo.
+
+
 Changes with nginx 0.8.2                                         15 Jun 2009
 
     *) Bugfix: in open_file_cache and proxy/fastcgi cache interaction on 

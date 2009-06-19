@@ -14,6 +14,8 @@ static ngx_int_t ngx_http_upstream_cache(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static ngx_int_t ngx_http_upstream_cache_send(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
+static ngx_int_t ngx_http_upstream_cache_status(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 #endif
 
 static void ngx_http_upstream_resolve_handler(ngx_resolver_ctx_t *ctx);
@@ -316,6 +318,10 @@ static ngx_http_variable_t  ngx_http_upstream_vars[] = {
       ngx_http_upstream_response_length_variable, 0,
       NGX_HTTP_VAR_NOHASH|NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
+    { ngx_string("upstream_cache_status"), NULL,
+      ngx_http_upstream_cache_status, 0,
+      NGX_HTTP_VAR_NOHASH|NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
     { ngx_null_string, NULL, NULL, 0, 0, 0 }
 };
 
@@ -575,21 +581,34 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
     c->body_start = u->conf->buffer_size;
     c->file_cache = u->conf->cache->data;
 
+    u->cache_status = NGX_HTTP_CACHE_MISS;
+
     rc = ngx_http_file_cache_open(r);
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http upstream cache: %i", rc);
 
-    if (rc == NGX_HTTP_CACHE_UPDATING) {
+    switch (rc) {
+
+    case NGX_HTTP_CACHE_UPDATING:
+
         if (u->conf->cache_use_stale & NGX_HTTP_UPSTREAM_FT_UPDATING) {
+            u->cache_status = rc;
             rc = NGX_OK;
 
         } else {
             rc = NGX_HTTP_CACHE_STALE;
         }
+
+        break;
+
+    case NGX_OK:
+        u->cache_status = NGX_HTTP_CACHE_HIT;
     }
 
-    if (rc == NGX_OK) {
+    switch (rc) {
+
+    case NGX_OK:
 
         rc = ngx_http_upstream_cache_send(r, u);
 
@@ -597,17 +616,21 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
             return rc;
         }
 
-    } else if (rc == NGX_ERROR) {
+        break;
+
+    case NGX_ERROR:
 
         return NGX_ERROR;
 
-    } else if (rc == NGX_HTTP_CACHE_STALE) {
+    case NGX_HTTP_CACHE_STALE:
 
         c->valid_sec = 0;
-        u->stale_cache = 1;
         u->buffer.start = NULL;
+        u->cache_status = NGX_HTTP_CACHE_EXPIRED;
 
-    } else if (rc == NGX_DECLINED) {
+        break;
+
+    case NGX_DECLINED:
 
         if ((size_t) (u->buffer.end - u->buffer.start) < u->conf->buffer_size) {
             u->buffer.start = NULL;
@@ -617,13 +640,19 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
             u->buffer.last = u->buffer.pos;
         }
 
-    } else if (rc == NGX_AGAIN) {
+        break;
+
+    case NGX_AGAIN:
 
         u->cacheable = 0;
 
-    } else {
+        break;
+
+    default:
 
         /* cached NGX_HTTP_BAD_GATEWAY, NGX_HTTP_GATEWAY_TIME_OUT, etc. */
+
+        u->cache_status = NGX_HTTP_CACHE_HIT;
 
         return rc;
     }
@@ -640,6 +669,7 @@ ngx_http_upstream_cache_send(ngx_http_request_t *r, ngx_http_upstream_t *u)
     ngx_int_t          rc;
     ngx_http_cache_t  *c;
 
+    r->cached = 1;
     c = r->cache;
 
     /* TODO: cache stack */
@@ -1521,12 +1551,15 @@ ngx_http_upstream_test_next(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
 #if (NGX_HTTP_CACHE)
 
-        if (u->stale_cache && (u->conf->cache_use_stale & un->mask)) {
+        if (u->cache_status == NGX_HTTP_CACHE_EXPIRED
+            && (u->conf->cache_use_stale & un->mask))
+        {
             ngx_int_t  rc;
 
             rc = u->reinit_request(r);
 
             if (rc == NGX_OK) {
+                u->cache_status = NGX_HTTP_CACHE_STALE;
                 rc = ngx_http_upstream_cache_send(r, u);
             }
 
@@ -1573,8 +1606,9 @@ ngx_http_upstream_intercept_errors(ngx_http_request_t *r,
 
         if (err_page[i].status == status) {
 
-            if (status == NGX_HTTP_UNAUTHORIZED) {
-
+            if (status == NGX_HTTP_UNAUTHORIZED
+                && u->headers_in.www_authenticate)
+            {
                 h = ngx_list_push(&r->headers_out.headers);
 
                 if (h == NULL) {
@@ -2680,12 +2714,15 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
 
 #if (NGX_HTTP_CACHE)
 
-            if (u->stale_cache && (u->conf->cache_use_stale & ft_type)) {
+            if (u->cache_status == NGX_HTTP_CACHE_EXPIRED
+                && (u->conf->cache_use_stale & ft_type))
+            {
                 ngx_int_t  rc;
 
                 rc = u->reinit_request(r);
 
                 if (rc == NGX_OK) {
+                    u->cache_status = NGX_HTTP_CACHE_STALE;
                     rc = ngx_http_upstream_cache_send(r, u);
                 }
 
@@ -3262,7 +3299,7 @@ ngx_http_upstream_copy_last_modified(ngx_http_request_t *r, ngx_table_elt_t *h,
 
 #if (NGX_HTTP_CACHE)
 
-    if (r->cached || r->upstream->cacheable) {
+    if (r->upstream->cacheable) {
         r->headers_out.last_modified = ho;
         r->headers_out.last_modified_time = ngx_http_parse_time(h->value.data,
                                                                 h->value.len);
@@ -3713,6 +3750,33 @@ ngx_http_upstream_header_variable(ngx_http_request_t *r,
 }
 
 
+#if (NGX_HTTP_CACHE)
+
+ngx_int_t
+ngx_http_upstream_cache_status(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_uint_t  n;
+
+    if (r->upstream == NULL || r->upstream->cache_status == 0) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    n = r->upstream->cache_status - 1;
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->len = ngx_http_cache_status[n].len;
+    v->data = ngx_http_cache_status[n].data;
+
+    return NGX_OK;
+}
+
+#endif
+
+
 static char *
 ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 {
@@ -4086,7 +4150,10 @@ ngx_http_upstream_hide_headers_hash(ngx_conf_t *cf,
         conf->hide_headers_hash = prev->hide_headers_hash;
 
         if (conf->hide_headers_hash.buckets
-            && ((conf->cache == NULL) == (prev->cache == NULL)))
+#if (NGX_HTTP_CACHE)
+            && ((conf->cache == NULL) == (prev->cache == NULL))
+#endif
+           )
         {
             return NGX_OK;
         }

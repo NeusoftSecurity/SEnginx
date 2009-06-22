@@ -40,7 +40,7 @@ static ngx_int_t
 ngx_http_eval_init_variables(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx, 
     ngx_http_eval_loc_conf_t *ecf);
 
-static ngx_int_t ngx_http_eval_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc);
+static ngx_int_t ngx_http_eval_post_subrequest_handler(ngx_http_request_t *r, void *data, ngx_int_t rc);
 
 static void *ngx_http_eval_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_eval_merge_loc_conf(ngx_conf_t *cf, void *parent,
@@ -176,7 +176,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    psr->handler = ngx_http_eval_set_variable;
+    psr->handler = ngx_http_eval_post_subrequest_handler;
     psr->data = ctx;
 
     flags |= NGX_HTTP_SUBREQUEST_IN_MEMORY|NGX_HTTP_SUBREQUEST_WAITED;
@@ -223,7 +223,7 @@ ngx_http_eval_init_variables(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx,
 }
 
 static ngx_int_t
-ngx_http_eval_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc)
+ngx_http_eval_post_subrequest_handler(ngx_http_request_t *r, void *data, ngx_int_t rc)
 {
     ngx_http_eval_ctx_t     *ctx = data;
     ngx_http_eval_format_t  *f = ngx_http_eval_formats;
@@ -233,12 +233,11 @@ ngx_http_eval_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc)
         content_type.data = ctx->base_conf->override_content_type.data;
         content_type.len = ctx->base_conf->override_content_type.len;
     }
-    else {
+    else if(r->headers_out.content_type.len) {
         content_type.data = r->headers_out.content_type.data;
         content_type.len = r->headers_out.content_type.len;
     }
-
-    if(!content_type.len) {
+    else {
         content_type.data = (u_char*)"application/octet-stream";
         content_type.len = sizeof("application/octet-stream") - 1;
     }
@@ -264,9 +263,10 @@ ngx_http_eval_set_variable(ngx_http_request_t *r, void *data, ngx_int_t rc)
 /*
  * The next two evaluation methods assume we have at least one varible.
  *
- * ngx_http_eval_handler must guarantee this *
+ * ngx_http_eval_handler must guarantee this. *
  */
-static ngx_int_t ngx_http_eval_octet_stream(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx)
+static ngx_int_t
+ngx_http_eval_octet_stream(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx)
 {
     ngx_http_variable_value_t *value = ctx->values[0];
 
@@ -280,19 +280,66 @@ static ngx_int_t ngx_http_eval_octet_stream(ngx_http_request_t *r, ngx_http_eval
     return NGX_OK;
 }
 
-static ngx_int_t ngx_http_eval_plain_text(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx)
+static ngx_int_t
+ngx_http_eval_plain_text(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx)
 {
-//    ngx_http_variable_value_t *value = ctx->values[0];
+    ngx_int_t rc;
+    u_char *p;
+    ngx_http_variable_value_t *value = ctx->values[0];
 
-    ngx_http_eval_octet_stream(r, ctx);
+    rc = ngx_http_eval_octet_stream(r, ctx);
 
-    // TODO: strip the trailing spaces and control characters
+    if(rc != NGX_OK) {
+        return rc;
+    }
+
+    /*
+     * Remove trailing spaces and control characters
+     */
+    if(value->valid) {
+        p = value->data + value->len;
+
+        while(p != value->data) {
+            p--;
+
+            if(*p != CR && *p != LF && *p != '\t' && *p != ' ')
+                break;
+
+            value->len--;
+        }
+    }
 
     return NGX_OK;
 }
 
 static ngx_int_t
-ngx_http_eval_parse_param(ngx_http_request_t *r, ngx_str_t *param) {
+ngx_http_eval_set_variable_value(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx,
+    ngx_str_t *name, ngx_str_t *value)
+{
+    ngx_uint_t i;
+    ngx_http_eval_variable_t *variable;
+
+    variable = ctx->base_conf->variables->elts;
+
+    for(i = 0;i<ctx->base_conf->variables->nelts;i++) {
+        if(ngx_strncmp(variable[i].variable->name.data, name->data, variable[i].variable->name.len)) {
+            ctx->values[i]->len = value->len;
+            ctx->values[i]->data = value->data;
+            ctx->values[i]->valid = 0;
+            ctx->values[i]->not_found = 1;
+
+            return NGX_OK;
+        }
+    }
+
+    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
+        "eval: ignored undefined variable \"%V\"", value);
+
+    return NGX_OK;
+}
+
+static ngx_int_t
+ngx_http_eval_parse_param(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx, ngx_str_t *param) {
     u_char                    *p, *src, *dst;
 
     ngx_str_t                  name;
@@ -319,7 +366,7 @@ ngx_http_eval_parse_param(ngx_http_request_t *r, ngx_str_t *param) {
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "eval param: \"%V\"=\"%V\"", &name, &value);
 
-    return NGX_OK;
+    return ngx_http_eval_set_variable_value(r, ctx, &name, &value);
 }
 
 static ngx_int_t
@@ -336,35 +383,28 @@ ngx_http_eval_urlencoded(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx)
     pos = r->upstream->buffer.pos;
     last = r->upstream->buffer.last;
 
-    param.data = pos;
-    param.len = 0;
+    do {
+        param.data = pos;
+        param.len = 0;
 
-    while (pos != last && *pos != LF) {
-        if (*pos == '&' || *pos == CR) {
-            if(param.len != 0) {
-                rc = ngx_http_eval_parse_param(r, &param);
-
-                if(rc != NGX_OK) {
-                    return rc;
-                }
-
+        while (pos != last) {
+            if (*pos == '&') {
                 pos++;
-
-                param.data = pos;
-                param.len = 0;
-            }
-
-            if(*pos == CR) {
                 break;
             }
-            else {
-                continue;
-            }
+
+            param.len++;
+            pos++;
         }
 
-        param.len++;
-        pos++;
-    }
+        if(param.len != 0) {
+            rc = ngx_http_eval_parse_param(r, ctx, &param);
+
+            if(rc != NGX_OK) {
+                return rc;
+            }
+        }
+    }while(pos != last);
 
     return NGX_OK;
 }

@@ -1,5 +1,11 @@
 
-Changes with nginx 0.8.2                                         19 Jun 2009
+Changes with nginx 0.8.4                                         22 Jun 2009
+
+    *) Bugfix: nginx could not be built --without-http-cache; the bug had 
+       appeared in 0.8.3.
+
+
+Changes with nginx 0.8.3                                         19 Jun 2009
 
     *) Feature: the $upstream_cache_status variable.
 

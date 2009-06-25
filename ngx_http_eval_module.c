@@ -479,6 +479,9 @@ ngx_http_eval_add_variables(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 
         variable = ngx_array_push(ecf->variables);
+        if(variable == NULL) {
+            return NGX_CONF_ERROR;
+        }
 
         value[i].len--;
         value[i].data++;

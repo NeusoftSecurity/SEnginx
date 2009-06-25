@@ -471,14 +471,14 @@ ngx_http_eval_add_variables(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    variable = ecf->variables->elts;
-
     for(i = 1;i<cf->args->nelts;i++) {
         if (value[i].data[0] != '$') {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "invalid variable name \"%V\"", &value[1]);
             return NGX_CONF_ERROR;
         }
+
+        variable = ngx_array_push(ecf->variables);
 
         value[i].len--;
         value[i].data++;
@@ -499,8 +499,8 @@ ngx_http_eval_add_variables(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             v->data = index;
         }
 
-        variable[i].variable = v;
-        variable[i].index = index;
+        variable->variable = v;
+        variable->index = index;
     }
 
     return NGX_CONF_OK;

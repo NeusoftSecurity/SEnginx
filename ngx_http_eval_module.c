@@ -322,11 +322,11 @@ ngx_http_eval_set_variable_value(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx
     variable = ctx->base_conf->variables->elts;
 
     for(i = 0;i<ctx->base_conf->variables->nelts;i++) {
-        if(ngx_strncmp(variable[i].variable->name.data, name->data, variable[i].variable->name.len)) {
+        if(!ngx_strncasecmp(variable[i].variable->name.data, name->data, variable[i].variable->name.len)) {
             ctx->values[i]->len = value->len;
             ctx->values[i]->data = value->data;
-            ctx->values[i]->valid = 0;
-            ctx->values[i]->not_found = 1;
+            ctx->values[i]->valid = 1;
+            ctx->values[i]->not_found = 0;
 
             return NGX_OK;
         }
@@ -390,6 +390,11 @@ ngx_http_eval_urlencoded(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx)
         while (pos != last) {
             if (*pos == '&') {
                 pos++;
+                break;
+            }
+
+            if (*pos == CR || *pos == LF) {
+                pos = last;
                 break;
             }
 

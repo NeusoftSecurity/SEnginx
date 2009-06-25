@@ -363,6 +363,8 @@ ngx_http_eval_parse_param(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx, ngx_s
 
     ngx_unescape_uri(&dst, &src, value.len, NGX_UNESCAPE_URI);
 
+    value.len = dst - value.data;
+
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "eval param: \"%V\"=\"%V\"", &name, &value);
 

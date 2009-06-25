@@ -1,10 +1,12 @@
 
-Eval module evaluates the response of proxy or memcached module into a nginx variable. Example:
+Documentation for this module could be found under following URLs:
 
+  * English:
 
-eval $var {
-    set $memcached_key $1;
-    memcached_pass 192.168.2.1;
-}
+    http://www.grid.net.ru/nginx/eval.en.html
+    
+  * Russian:
+
+    http://www.grid.net.ru/nginx/eval.ru.html
 
 This work is commissioned by gadu-gadu.pl

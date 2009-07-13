@@ -1,4 +1,17 @@
 
+Changes with nginx 0.8.5                                         13 Jul 2009
+
+    *) Bugfix: now nginx allows underscores in a request method.
+
+    *) Bugfix: a 500 error code was returned for invalid login/password 
+       while HTTP Basic authentication on Windows.
+
+    *) Bugfix: ngx_http_perl_module responses did not work in subrequests.
+
+    *) Bugfix: in ngx_http_limit_req_module.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.8.4                                         22 Jun 2009
 
     *) Bugfix: nginx could not be built --without-http-cache; the bug had 
@@ -26,7 +39,8 @@ Changes with nginx 0.8.2                                         15 Jun 2009
     *) Bugfix: in open_file_cache and proxy/fastcgi cache interaction on 
        start up.
 
-    *) Bugfix: open_file_cache might cache open file descriptors too long.
+    *) Bugfix: open_file_cache might cache open file descriptors too long; 
+       the bug had appeared in 0.7.4.
 
 
 Changes with nginx 0.8.1                                         08 Jun 2009

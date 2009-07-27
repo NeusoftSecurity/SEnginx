@@ -129,7 +129,7 @@ ngx_http_header_t  ngx_http_headers_in[] = {
     { ngx_string("Keep-Alive"), offsetof(ngx_http_headers_in_t, keep_alive),
                  ngx_http_process_header_line },
 
-#if (NGX_HTTP_PROXY || NGX_HTTP_REALIP)
+#if (NGX_HTTP_PROXY || NGX_HTTP_REALIP || NGX_HTTP_GEO)
     { ngx_string("X-Forwarded-For"),
                  offsetof(ngx_http_headers_in_t, x_forwarded_for),
                  ngx_http_process_header_line },
@@ -384,6 +384,7 @@ ngx_http_init_request(ngx_event_t *rev)
     r->loc_conf = cscf->ctx->loc_conf;
 
     rev->handler = ngx_http_process_request_line;
+    r->read_event_handler = ngx_http_block_reading;
 
 #if (NGX_HTTP_SSL)
 
@@ -1524,7 +1525,7 @@ ngx_http_process_request(ngx_http_request_t *r)
 
         sscf = ngx_http_get_module_srv_conf(r, ngx_http_ssl_module);
 
-        if (sscf->verify == 1) {
+        if (sscf->verify) {
             rc = SSL_get_verify_result(c->ssl->connection);
 
             if (rc != X509_V_OK) {
@@ -1539,20 +1540,22 @@ ngx_http_process_request(ngx_http_request_t *r)
                 return;
             }
 
-            cert = SSL_get_peer_certificate(c->ssl->connection);
+            if (sscf->verify == 1) {
+                cert = SSL_get_peer_certificate(c->ssl->connection);
 
-            if (cert == NULL) {
-                ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                              "client sent no required SSL certificate");
+                if (cert == NULL) {
+                    ngx_log_error(NGX_LOG_INFO, c->log, 0,
+                                  "client sent no required SSL certificate");
 
-                ngx_ssl_remove_cached_session(sscf->ssl.ctx,
+                    ngx_ssl_remove_cached_session(sscf->ssl.ctx,
                                        (SSL_get0_session(c->ssl->connection)));
 
-                ngx_http_finalize_request(r, NGX_HTTPS_NO_CERT);
-                return;
-            }
+                    ngx_http_finalize_request(r, NGX_HTTPS_NO_CERT);
+                    return;
+                }
 
-            X509_free(cert);
+                X509_free(cert);
+            }
         }
     }
 
@@ -2715,6 +2718,7 @@ ngx_http_send_special(ngx_http_request_t *r, ngx_uint_t flags)
             b->last_buf = 1;
 
         } else {
+            b->sync = 1;
             b->last_in_chain = 1;
         }
     }

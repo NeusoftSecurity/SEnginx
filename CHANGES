@@ -1,4 +1,14 @@
 
+Changes with nginx 0.8.8                                         10 Aug 2009
+
+    *) Bugfix: in handling FastCGI headers split in records.
+
+    *) Bugfix: a segmentation fault occurred in worker process, if a 
+       request was handled in two proxied or FastCGIed locations and a 
+       caching was enabled in the first location; the bug had appeared in 
+       0.8.7.
+
+
 Changes with nginx 0.8.7                                         27 Jul 2009
 
     *) Change: minimum supported OpenSSL version is 0.9.7.

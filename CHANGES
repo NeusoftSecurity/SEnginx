@@ -1,4 +1,13 @@
 
+Changes with nginx 0.8.9                                         17 Aug 2009
+
+    *) Feature: now the start cache loader runs in a separate process; this 
+       should improve large caches handling.
+
+    *) Feature: now temporarily files and permanent storage area may reside 
+       at different file systems.
+
+
 Changes with nginx 0.8.8                                         10 Aug 2009
 
     *) Bugfix: in handling FastCGI headers split in records.

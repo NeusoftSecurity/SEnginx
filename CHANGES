@@ -1,10 +1,18 @@
 
+Changes with nginx 0.8.10                                        24 Aug 2009
+
+    *) Bugfix: memory leaks if GeoIP City database was used.
+
+    *) Bugfix: in copying temporary files to permanent storage area; the 
+       bug had appeared in 0.8.9.
+
+
 Changes with nginx 0.8.9                                         17 Aug 2009
 
     *) Feature: now the start cache loader runs in a separate process; this 
        should improve large caches handling.
 
-    *) Feature: now temporarily files and permanent storage area may reside 
+    *) Feature: now temporary files and permanent storage area may reside 
        at different file systems.
 
 
@@ -98,8 +106,7 @@ Changes with nginx 0.8.3                                         19 Jun 2009
 
     *) Feature: the $upstream_cache_status variable.
 
-    *) Bugfix: nginx could not be built on MacOSX 10.6. the bug had 
-       appeared in 0.8.2.
+    *) Bugfix: nginx could not be built on MacOSX 10.6.
 
     *) Bugfix: nginx could not be built --without-http-cache; the bug had 
        appeared in 0.8.2.
@@ -1938,8 +1945,8 @@ Changes with nginx 0.5.12                                        12 Feb 2007
        amd64, sparc, and ppc; the bug had appeared in 0.5.8.
 
     *) Bugfix: a segmentation fault might occur in worker process if the 
-       temporarily files were used while working with FastCGI server; the 
-       bug had appeared in 0.5.8.
+       temporary files were used while working with FastCGI server; the bug 
+       had appeared in 0.5.8.
 
     *) Bugfix: a segmentation fault might occur in worker process if the 
        $fastcgi_script_name variable was logged.
@@ -2842,8 +2849,8 @@ Changes with nginx 0.3.31                                        10 Mar 2006
        in 0.3.18.
 
     *) Bugfix: if the HTTPS protocol was used in the "proxy_pass" directive 
-       and the request body was in temporarily file then the request was 
-       not transferred.
+       and the request body was in temporary file then the request was not 
+       transferred.
 
     *) Bugfix: perl 5.8.8 compatibility.
 

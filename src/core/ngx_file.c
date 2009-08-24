@@ -8,8 +8,9 @@
 #include <ngx_core.h>
 
 
-static ngx_atomic_uint_t  ngx_temp_number;
-static ngx_atomic_uint_t  ngx_random_number;
+static ngx_atomic_t   temp_number = 0;
+ngx_atomic_t         *ngx_temp_number = &temp_number;
+ngx_atomic_int_t      ngx_random_number = 123456;
 
 
 ssize_t
@@ -205,22 +206,16 @@ ngx_create_full_path(u_char *dir, ngx_uint_t access)
 }
 
 
-void
-ngx_init_temp_number(void)
-{
-    ngx_temp_number = 0;
-    ngx_random_number = 123456;
-}
-
-
 ngx_atomic_uint_t
 ngx_next_temp_number(ngx_uint_t collision)
 {
-    if (collision) {
-        ngx_temp_number += ngx_random_number;
-    }
+    ngx_atomic_uint_t  n, add;
 
-    return ngx_temp_number++;
+    add = collision ? ngx_random_number : 1;
+
+    n = ngx_atomic_fetch_add(ngx_temp_number, add);
+
+    return n + add;
 }
 
 
@@ -576,7 +571,6 @@ ngx_ext_rename_file(ngx_str_t *src, ngx_str_t *to, ngx_ext_rename_file_t *ext)
         }
 
         err = ngx_errno;
-        goto failed;
     }
 
 #if (NGX_WIN32)
@@ -605,34 +599,43 @@ ngx_ext_rename_file(ngx_str_t *src, ngx_str_t *to, ngx_ext_rename_file_t *ext)
         cf.time = ext->time;
         cf.log = ext->log;
 
-        name = ngx_alloc(to->len + 1 + 10, ext->log);
+        name = ngx_alloc(to->len + 1 + 10 + 1, ext->log);
         if (name == NULL) {
             return NGX_ERROR;
         }
 
-        (void) ngx_sprintf(name, "%*s.%010uD%Z", to->len - 1, to->data,
+        (void) ngx_sprintf(name, "%*s.%010uD%Z", to->len, to->data,
                            (uint32_t) ngx_next_temp_number(0));
 
         if (ngx_copy_file(src->data, name, &cf) == NGX_OK) {
 
-            if (ngx_rename_file(name, to->data) == NGX_FILE_ERROR) {
+            if (ngx_rename_file(name, to->data) != NGX_FILE_ERROR) {
                 ngx_free(name);
-                goto failed;
+
+                if (ngx_delete_file(src->data) == NGX_FILE_ERROR) {
+                    ngx_log_error(NGX_LOG_CRIT, ext->log, ngx_errno,
+                                  ngx_delete_file_n " \"%s\" failed",
+                                  src->data);
+                    return NGX_ERROR;
+                }
+
+                return NGX_OK;
             }
 
-            ngx_free(name);
+            ngx_log_error(NGX_LOG_CRIT, ext->log, ngx_errno,
+                          ngx_rename_file_n " \"%s\" to \"%s\" failed",
+                          name, to->data);
 
-            if (ngx_delete_file(src->data) == NGX_FILE_ERROR) {
+            if (ngx_delete_file(name) == NGX_FILE_ERROR) {
                 ngx_log_error(NGX_LOG_CRIT, ext->log, ngx_errno,
-                              ngx_delete_file_n " \"%s\" failed", src->data);
+                              ngx_delete_file_n " \"%s\" failed", name);
 
-                return NGX_ERROR;
             }
-
-            return NGX_OK;
         }
 
         ngx_free(name);
+
+        err = 0;
     }
 
 failed:

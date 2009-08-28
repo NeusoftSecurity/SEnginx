@@ -383,11 +383,29 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, sendfile_max_chunk),
       NULL },
 
+#if (NGX_HAVE_FILE_AIO)
+
+    { ngx_string("aio"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, aio),
+      NULL },
+
+#endif
+
     { ngx_string("directio"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_core_directio,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
+      NULL },
+
+    { ngx_string("directio_alignment"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_off_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, directio_alignment),
       NULL },
 
     { ngx_string("tcp_nopush"),
@@ -1260,10 +1278,6 @@ ngx_http_core_content_phase(ngx_http_request_t *r,
 
     rc = ph->handler(r);
 
-    if (rc == NGX_DONE) {
-        return NGX_OK;
-    }
-
     if (rc != NGX_DECLINED) {
         ngx_http_finalize_request(r, rc);
         return NGX_OK;
@@ -1689,11 +1703,6 @@ ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
     rc = ngx_http_top_body_filter(r, in);
 
     if (rc == NGX_ERROR) {
-
-        if (c->destroyed) {
-            return NGX_DONE;
-        }
-
         /* NGX_ERROR may be returned by any filter */
         c->error = 1;
     }
@@ -2126,6 +2135,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
     sr->uri_changes = NGX_HTTP_MAX_URI_CHANGES + 1;
 
     r->main->subrequests++;
+    r->main->count++;
 
     *psr = sr;
 
@@ -2178,6 +2188,7 @@ ngx_http_internal_redirect(ngx_http_request_t *r,
 #endif
 
     r->internal = 1;
+    r->main->count++;
 
     ngx_http_handler(r);
 
@@ -2191,6 +2202,8 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
     ngx_http_core_srv_conf_t    *cscf;
     ngx_http_core_loc_conf_t   **clcfp;
     ngx_http_core_main_conf_t   *cmcf;
+
+    r->main->count++;
 
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
@@ -2921,7 +2934,11 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     lcf->internal = NGX_CONF_UNSET;
     lcf->sendfile = NGX_CONF_UNSET;
     lcf->sendfile_max_chunk = NGX_CONF_UNSET_SIZE;
+#if (NGX_HAVE_FILE_AIO)
+    lcf->aio = NGX_CONF_UNSET;
+#endif
     lcf->directio = NGX_CONF_UNSET;
+    lcf->directio_alignment = NGX_CONF_UNSET;
     lcf->tcp_nopush = NGX_CONF_UNSET;
     lcf->tcp_nodelay = NGX_CONF_UNSET;
     lcf->send_timeout = NGX_CONF_UNSET_MSEC;
@@ -3118,8 +3135,13 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->sendfile, prev->sendfile, 0);
     ngx_conf_merge_size_value(conf->sendfile_max_chunk,
                               prev->sendfile_max_chunk, 0);
+#if (NGX_HAVE_FILE_AIO)
+    ngx_conf_merge_value(conf->aio, prev->aio, 0);
+#endif
     ngx_conf_merge_off_value(conf->directio, prev->directio,
                               NGX_MAX_OFF_T_VALUE);
+    ngx_conf_merge_off_value(conf->directio_alignment, prev->directio_alignment,
+                              512);
     ngx_conf_merge_value(conf->tcp_nopush, prev->tcp_nopush, 0);
     ngx_conf_merge_value(conf->tcp_nodelay, prev->tcp_nodelay, 1);
 

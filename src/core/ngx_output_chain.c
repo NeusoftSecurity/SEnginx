@@ -16,14 +16,12 @@
 /*
  * When DIRECTIO is enabled FreeBSD, Solaris, and MacOSX read directly
  * to an application memory from a device if parameters are aligned
- * to device sector boundary(512 bytes).  They fallback to usual read
+ * to device sector boundary (512 bytes).  They fallback to usual read
  * operation if the parameters are not aligned.
  * Linux allows DIRECTIO only if the parameters are aligned to a filesystem
  * sector boundary, otherwise it returns EINVAL.  The sector size is
  * usually 512 bytes, however, on XFS it may be 4096 bytes.
  */
-#define NGX_DIRECTIO_BLOCK  4096
-
 
 #define NGX_NONE            1
 
@@ -337,7 +335,7 @@ ngx_output_chain_align_file_buf(ngx_output_chain_ctx_t *ctx, off_t bsize)
 
     ctx->directio = 1;
 
-    size = (size_t) (in->file_pos - (in->file_pos & ~(NGX_DIRECTIO_BLOCK - 1)));
+    size = (size_t) (in->file_pos - (in->file_pos & ~(ctx->alignment - 1)));
 
     if (size == 0) {
 
@@ -348,7 +346,7 @@ ngx_output_chain_align_file_buf(ngx_output_chain_ctx_t *ctx, off_t bsize)
         size = (size_t) bsize;
 
     } else {
-        size = NGX_DIRECTIO_BLOCK - size;
+        size = (size_t) ctx->alignment - size;
 
         if ((off_t) size > bsize) {
             size = (size_t) bsize;
@@ -423,7 +421,7 @@ ngx_output_chain_get_buf(ngx_output_chain_ctx_t *ctx, off_t bsize)
          * userland buffer direct usage conjunctly with directio
          */
 
-        b->start = ngx_pmemalign(ctx->pool, size, NGX_DIRECTIO_BLOCK);
+        b->start = ngx_pmemalign(ctx->pool, size, (size_t) ctx->alignment);
         if (b->start == NULL) {
             return NGX_ERROR;
         }
@@ -519,7 +517,25 @@ ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx)
 
 #endif
 
+#if (NGX_HAVE_FILE_AIO)
+
+        if (ctx->aio) {
+            n = ngx_file_aio_read(src->file, dst->pos, (size_t) size,
+                                  src->file_pos, ctx->pool);
+            if (n == NGX_AGAIN) {
+                ctx->aio(ctx, src->file);
+                return NGX_AGAIN;
+            }
+
+        } else {
+            n = ngx_read_file(src->file, dst->pos, (size_t) size,
+                              src->file_pos);
+        }
+#else
+
         n = ngx_read_file(src->file, dst->pos, (size_t) size, src->file_pos);
+
+#endif
 
 #if (NGX_HAVE_ALIGNED_DIRECTIO)
 
@@ -544,12 +560,6 @@ ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx)
         if (n == NGX_ERROR) {
             return (ngx_int_t) n;
         }
-
-#if (NGX_FILE_AIO_READ)
-        if (n == NGX_AGAIN) {
-            return (ngx_int_t) n;
-        }
-#endif
 
         if (n != size) {
             ngx_log_error(NGX_LOG_ALERT, ctx->pool->log, 0,

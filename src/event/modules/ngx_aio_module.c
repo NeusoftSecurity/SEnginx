@@ -7,11 +7,9 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_event.h>
-#include <ngx_aio.h>
 
-#if (NGX_HAVE_KQUEUE)
-#include <ngx_kqueue_module.h>
-#endif
+
+extern ngx_event_module_t  ngx_kqueue_module_ctx;
 
 
 static ngx_int_t ngx_aio_init(ngx_cycle_t *cycle, ngx_msec_t timer);
@@ -71,7 +69,6 @@ ngx_module_t  ngx_aio_module = {
     NULL,                                  /* exit master */
     NGX_MODULE_V1_PADDING
 };
-
 
 
 #if (NGX_HAVE_KQUEUE)

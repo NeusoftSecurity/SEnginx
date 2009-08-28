@@ -7,7 +7,6 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_event.h>
-#include <ngx_kqueue_module.h>
 
 
 typedef struct {
@@ -111,7 +110,6 @@ ngx_module_t  ngx_kqueue_module = {
     NULL,                                  /* exit master */
     NGX_MODULE_V1_PADDING
 };
-
 
 
 static ngx_int_t
@@ -537,11 +535,7 @@ ngx_kqueue_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
 
     events = kevent(ngx_kqueue, change_list, n, event_list, (int) nevents, tp);
 
-    if (events == -1) {
-        err = ngx_errno;
-    } else {
-        err = 0;
-    }
+    err = (events == -1) ? ngx_errno : 0;
 
     if (flags & NGX_UPDATE_TIME) {
         ngx_time_update(0, 0);

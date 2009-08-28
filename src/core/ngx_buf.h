@@ -67,9 +67,16 @@ typedef struct {
 } ngx_bufs_t;
 
 
+typedef struct ngx_output_chain_ctx_s  ngx_output_chain_ctx_t;
+
 typedef ngx_int_t (*ngx_output_chain_filter_pt)(void *ctx, ngx_chain_t *in);
 
-typedef struct {
+#if (NGX_HAVE_FILE_AIO)
+typedef void (*ngx_output_chain_aio_pt)(ngx_output_chain_ctx_t *ctx,
+    ngx_file_t *file);
+#endif
+
+struct ngx_output_chain_ctx_s {
     ngx_buf_t                   *buf;
     ngx_chain_t                 *in;
     ngx_chain_t                 *free;
@@ -83,6 +90,8 @@ typedef struct {
     unsigned                     need_in_memory:1;
     unsigned                     need_in_temp:1;
 
+    off_t                        alignment;
+
     ngx_pool_t                  *pool;
     ngx_int_t                    allocated;
     ngx_bufs_t                   bufs;
@@ -90,7 +99,11 @@ typedef struct {
 
     ngx_output_chain_filter_pt   output_filter;
     void                        *filter_ctx;
-} ngx_output_chain_ctx_t;
+
+#if (NGX_HAVE_FILE_AIO)
+    ngx_output_chain_aio_pt      aio;
+#endif
+};
 
 
 typedef struct {

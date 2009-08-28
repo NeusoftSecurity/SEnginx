@@ -1,4 +1,14 @@
 
+Changes with nginx 0.8.11                                        28 Aug 2009
+
+    *) Change: directive "gzip_disable msie6" enables gzipping for 
+       MSIE 6.0 SV1.
+
+    *) Feature: file AIO support on FreeBSD and Linux.
+
+    *) Feature: the "directio_alignment" directive.
+
+
 Changes with nginx 0.8.10                                        24 Aug 2009
 
     *) Bugfix: memory leaks if GeoIP City database was used.

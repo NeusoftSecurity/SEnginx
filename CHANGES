@@ -1,4 +1,13 @@
 
+Changes with nginx 0.8.13                                        31 Aug 2009
+
+    *) Bugfix: in the "aio sendfile" directive. the bug had appeared in 
+       0.8.12.
+
+    *) Bugfix: nginx could not be built without the --with-file-aio option 
+       on FreeBSD; the bug had appeared in 0.8.12.
+
+
 Changes with nginx 0.8.12                                        31 Aug 2009
 
     *) Feature: the "sendfile" parameter in the "aio" directive on FreeBSD.

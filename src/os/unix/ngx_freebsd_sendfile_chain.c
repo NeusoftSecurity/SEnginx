@@ -40,7 +40,7 @@
 ngx_chain_t *
 ngx_freebsd_sendfile_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 {
-    int              rc;
+    int              rc, flags;
     u_char          *prev;
     off_t            size, send, prev_send, aligned, sent, fprev;
     size_t           header_size, file_size;
@@ -78,6 +78,7 @@ ngx_freebsd_sendfile_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 
     send = 0;
     eagain = 0;
+    flags = 0;
 
     header.elts = headers;
     header.size = sizeof(struct iovec);
@@ -261,28 +262,39 @@ ngx_freebsd_sendfile_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 
             sent = 0;
 
+#if (NGX_HAVE_AIO_SENDFILE)
+            flags = c->aio_sendfile ? SF_NODISKIO : 0;
+#endif
+
             rc = sendfile(file->file->fd, c->fd, file->file_pos,
-                          file_size + header_size, &hdtr, &sent, 0);
+                          file_size + header_size, &hdtr, &sent, flags);
 
             if (rc == -1) {
                 err = ngx_errno;
 
-                if (err == NGX_EAGAIN || err == NGX_EINTR) {
-                    if (err == NGX_EINTR) {
-                        eintr = 1;
+                switch (err) {
+                case NGX_EAGAIN:
+                    eagain = 1;
+                    break;
 
-                    } else {
-                        eagain = 1;
-                    }
+                case NGX_EINTR:
+                    eintr = 1;
+                    break;
 
-                    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, err,
-                                   "sendfile() sent only %O bytes", sent);
+#if (NGX_HAVE_AIO_SENDFILE)
+                case NGX_EBUSY:
+                    c->busy_sendfile = file;
+                    break;
+#endif
 
-                } else {
+                default:
                     wev->error = 1;
                     (void) ngx_connection_error(c, err, "sendfile() failed");
                     return NGX_CHAIN_ERROR;
                 }
+
+                ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, err,
+                               "sendfile() sent only %O bytes", sent);
             }
 
             /*
@@ -318,19 +330,22 @@ ngx_freebsd_sendfile_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
             if (rc == -1) {
                 err = ngx_errno;
 
-                if (err == NGX_EAGAIN || err == NGX_EINTR) {
-                    if (err == NGX_EINTR) {
-                        eintr = 1;
-                    }
+                switch (err) {
+                case NGX_EAGAIN:
+                    break;
 
-                    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err,
-                                   "writev() not ready");
+                case NGX_EINTR:
+                    eintr = 1;
+                    break;
 
-                } else {
+                default:
                     wev->error = 1;
                     ngx_connection_error(c, err, "writev() failed");
                     return NGX_CHAIN_ERROR;
                 }
+
+                ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err,
+                               "writev() not ready");
             }
 
             sent = rc > 0 ? rc : 0;
@@ -378,6 +393,12 @@ ngx_freebsd_sendfile_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 
             break;
         }
+
+#if (NGX_HAVE_AIO_SENDFILE)
+        if (c->busy_sendfile) {
+            return cl;
+        }
+#endif
 
         if (eagain) {
 

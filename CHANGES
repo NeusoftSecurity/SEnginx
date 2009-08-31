@@ -1,8 +1,17 @@
 
+Changes with nginx 0.8.12                                        31 Aug 2009
+
+    *) Feature: the "sendfile" parameter in the "aio" directive on FreeBSD.
+
+    *) Bugfix: in try_files; the bug had appeared in 0.8.11.
+
+    *) Bugfix: in memcached; the bug had appeared in 0.8.11.
+
+
 Changes with nginx 0.8.11                                        28 Aug 2009
 
-    *) Change: directive "gzip_disable msie6" enables gzipping for 
-       MSIE 6.0 SV1.
+    *) Change: now directive "gzip_disable msie6" does not disable gzipping 
+       for MSIE 6.0 SV1.
 
     *) Feature: file AIO support on FreeBSD and Linux.
 

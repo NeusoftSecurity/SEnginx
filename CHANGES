@@ -1,7 +1,22 @@
 
+Changes with nginx 0.8.14                                        07 Sep 2009
+
+    *) Bugfix: an expired cached response might stick in the "UPDATING" 
+       state.
+
+    *) Bugfix: a segmentation fault might occur in worker process, if 
+       error_log was set to info or debug level.
+       Thanks to Sergey Bochenkov.
+
+    *) Bugfix: in embedded perl module; the bug had appeared in 0.8.11.
+
+    *) Bugfix: an "error_page" directive did not redirect a 413 error; the 
+       bug had appeared in 0.6.10.
+
+
 Changes with nginx 0.8.13                                        31 Aug 2009
 
-    *) Bugfix: in the "aio sendfile" directive. the bug had appeared in 
+    *) Bugfix: in the "aio sendfile" directive; the bug had appeared in 
        0.8.12.
 
     *) Bugfix: nginx could not be built without the --with-file-aio option 

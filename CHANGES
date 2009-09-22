@@ -1,4 +1,34 @@
 
+Changes with nginx 0.8.16                                        22 Sep 2009
+
+    *) Feature: the "image_filter_transparency" directive.
+
+    *) Bugfix: "addition_types" directive was incorrectly named 
+       "addtion_types".
+
+    *) Bugfix: resolver cache poisoning.
+       Thanks to Matthew Dempsky.
+
+    *) Bugfix: memory leak in resolver.
+       Thanks to Matthew Dempsky.
+
+    *) Bugfix: invalid request line in $request variable was written in 
+       access_log only if error_log was set to "info" or "debug" level.
+
+    *) Bugfix: in PNG alpha-channel support in the 
+       ngx_http_image_filter_module.
+
+    *) Bugfix: nginx always added "Vary: Accept-Encoding" response header 
+       line, if both "gzip_static" and "gzip_vary" were on.
+
+    *) Bugfix: in UTF-8 encoding support by "try_files" directive in 
+       nginx/Windows.
+
+    *) Bugfix: in "post_action" directive usage; the bug had appeared in 
+       0.8.11.
+       Thanks to Igor Artemiev.
+
+
 Changes with nginx 0.8.15                                        14 Sep 2009
 
     *) Security: a segmentation fault might occur in worker process while 

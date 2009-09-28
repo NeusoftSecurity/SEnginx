@@ -1,4 +1,16 @@
 
+Changes with nginx 0.8.17                                        28 Sep 2009
+
+    *) Security: now "/../" are disabled in "Destination" request header 
+       line.
+
+    *) Change: now $host variable value is always low case.
+
+    *) Feature: the $ssl_session_id variable.
+
+    *) Bugfix: socket leak; the bug had appeared in 0.8.11.
+
+
 Changes with nginx 0.8.16                                        22 Sep 2009
 
     *) Feature: the "image_filter_transparency" directive.

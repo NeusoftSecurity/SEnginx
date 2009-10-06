@@ -1,9 +1,19 @@
 
+Changes with nginx 0.8.19                                        06 Oct 2009
+
+    *) Change: now SSLv2 protocol is disabled by default.
+
+    *) Change: now default SSL ciphers are "ALL:!ADH:RC4+RSA:+HIGH:+MEDIUM".
+
+    *) Bugfix: a "limit_req" directive did not work; the bug had appeared 
+       in 0.8.18.
+
+
 Changes with nginx 0.8.18                                        06 Oct 2009
 
     *) Feature: the "read_ahead" directive.
 
-    *) Feature: now several "perl_modules" directive may be used.
+    *) Feature: now several "perl_modules" directives may be used.
 
     *) Feature: the "limit_req_log_level" and "limit_conn_log_level" 
        directives.

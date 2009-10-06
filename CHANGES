@@ -1,4 +1,30 @@
 
+Changes with nginx 0.8.18                                        06 Oct 2009
+
+    *) Feature: the "read_ahead" directive.
+
+    *) Feature: now several "perl_modules" directive may be used.
+
+    *) Feature: the "limit_req_log_level" and "limit_conn_log_level" 
+       directives.
+
+    *) Bugfix: now "limit_req" directive conforms to the leaky bucket 
+       algorithm.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: nginx did not work on Linux/sparc.
+       Thanks to Marcus Ramberg.
+
+    *) Bugfix: nginx sent '\0' in a "Location" response header line on 
+       MKCOL request.
+       Thanks to Xie Zhenye.
+
+    *) Bugfix: zero status code was logged instead of 499 status code; the 
+       bug had appeared in 0.8.11.
+
+    *) Bugfix: socket leak; the bug had appeared in 0.8.11.
+
+
 Changes with nginx 0.8.17                                        28 Sep 2009
 
     *) Security: now "/../" are disabled in "Destination" request header 

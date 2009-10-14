@@ -1,4 +1,28 @@
 
+Changes with nginx 0.8.20                                        14 Oct 2009
+
+    *) Change: now default SSL ciphers are "HIGH:!ADH:!MD5".
+
+    *) Bugfix: the ngx_http_autoindex_module did not show the trailing 
+       slash in links to a directory; the bug had appeared in 0.7.15.
+
+    *) Bugfix: nginx did not close a log file set by the --error-log-path 
+       configuration option; the bug had appeared in 0.7.53.
+
+    *) Bugfix: nginx did not treat a comma as separator in the 
+       "Cache-Control" backend response header line.
+
+    *) Bugfix: nginx/Windows might not create temporary file, a cache file, 
+       or "proxy/fastcgi_store"d file if a worker has no enough access 
+       rights for top level directories.
+
+    *) Bugfix: the "Set-Cookie" and "P3P" FastCGI response header lines 
+       were not hidden while caching if no "fastcgi_hide_header" directives 
+       were used with any parameters.
+
+    *) Bugfix: nginx counted incorrectly disk cache size.
+
+
 Changes with nginx 0.8.19                                        06 Oct 2009
 
     *) Change: now SSLv2 protocol is disabled by default.

@@ -43,6 +43,10 @@ typedef struct ngx_http_core_loc_conf_s  ngx_http_core_loc_conf_t;
 
 
 typedef struct {
+    u_char                     sockaddr[NGX_SOCKADDRLEN];
+    socklen_t                  socklen;
+
+    unsigned                   set:1;
     unsigned                   default_server:1;
     unsigned                   bind:1;
     unsigned                   wildcard:1;
@@ -65,18 +69,7 @@ typedef struct {
 #endif
 
     u_char                     addr[NGX_SOCKADDR_STRLEN + 1];
-} ngx_http_listen_conf_t;
-
-
-typedef struct {
-    u_char                     sockaddr[NGX_SOCKADDRLEN];
-    socklen_t                  socklen;
-
-    u_char                    *file_name;
-    ngx_uint_t                 line;
-
-    ngx_http_listen_conf_t     conf;
-} ngx_http_listen_t;
+} ngx_http_listen_opt_t;
 
 
 typedef enum {
@@ -142,6 +135,8 @@ typedef struct {
 
     ngx_hash_keys_arrays_t    *variables_keys;
 
+    ngx_array_t               *ports;
+
     ngx_uint_t                 try_files;       /* unsigned  try_files:1 */
 
     ngx_http_phase_t           phases[NGX_HTTP_LOG_PHASE + 1];
@@ -149,9 +144,6 @@ typedef struct {
 
 
 typedef struct {
-    /* array of the ngx_http_listen_t, "listen" directive */
-    ngx_array_t                 listen;
-
     /* array of the ngx_http_server_name_t, "server_name" directive */
     ngx_array_t                 server_names;
 
@@ -172,6 +164,11 @@ typedef struct {
     ngx_flag_t                  merge_slashes;
     ngx_flag_t                  underscores_in_headers;
 
+    unsigned                    listen:1;
+#if (NGX_PCRE)
+    unsigned                    captures:1;
+#endif
+
     ngx_http_core_loc_conf_t  **named_locations;
 } ngx_http_core_srv_conf_t;
 
@@ -181,7 +178,7 @@ typedef struct {
 
 typedef struct {
     /* the default server configuration for this address:port */
-    ngx_http_core_srv_conf_t  *core_srv_conf;
+    ngx_http_core_srv_conf_t  *default_server;
 
     ngx_http_virtual_names_t  *virtual_names;
 
@@ -222,14 +219,11 @@ typedef struct {
 
 
 typedef struct {
-    struct sockaddr           *sockaddr;
-    socklen_t                  socklen;
+    ngx_http_listen_opt_t      opt;
 
     ngx_hash_t                 hash;
     ngx_hash_wildcard_t       *wc_head;
     ngx_hash_wildcard_t       *wc_tail;
-
-    ngx_array_t                names;      /* array of ngx_http_server_name_t */
 
 #if (NGX_PCRE)
     ngx_uint_t                 nregex;
@@ -237,25 +231,16 @@ typedef struct {
 #endif
 
     /* the default server configuration for this address:port */
-    ngx_http_core_srv_conf_t  *core_srv_conf;
-
-    unsigned                   default_server:1;
-    unsigned                   bind:1;
-    unsigned                   wildcard:1;
-#if (NGX_HTTP_SSL)
-    unsigned                   ssl:1;
-#endif
-
-    ngx_http_listen_conf_t    *listen_conf;
+    ngx_http_core_srv_conf_t  *default_server;
+    ngx_array_t                servers;  /* array of ngx_http_core_srv_conf_t */
 } ngx_http_conf_addr_t;
 
 
 struct ngx_http_server_name_s {
 #if (NGX_PCRE)
     ngx_regex_t               *regex;
-    ngx_uint_t                 captures;      /* unsigned  captures:1; */
 #endif
-    ngx_http_core_srv_conf_t  *core_srv_conf; /* virtual name server conf */
+    ngx_http_core_srv_conf_t  *server;   /* virtual name server conf */
     ngx_str_t                  name;
 };
 

@@ -57,6 +57,8 @@ struct ngx_http_log_ctx_s {
 
 ngx_int_t ngx_http_add_location(ngx_conf_t *cf, ngx_queue_t **locations,
     ngx_http_core_loc_conf_t *clcf);
+ngx_int_t ngx_http_add_listen(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
+    ngx_http_listen_opt_t *lsopt);
 
 
 void ngx_http_init_connection(ngx_connection_t *c);
@@ -118,6 +120,7 @@ size_t ngx_http_get_time(char *buf, time_t t);
 
 
 ngx_int_t ngx_http_discard_request_body(ngx_http_request_t *r);
+void ngx_http_discarded_request_body_handler(ngx_http_request_t *r);
 void ngx_http_block_reading(ngx_http_request_t *r);
 void ngx_http_test_reading(ngx_http_request_t *r);
 

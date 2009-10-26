@@ -1,4 +1,22 @@
 
+Changes with nginx 0.8.21                                        26 Oct 2009
+
+    *) Feature: now the "-V" switch shows TLS SNI support.
+
+    *) Feature: the "listen" directive of the HTTP module supports unix 
+       domain sockets.
+       Thanks to Hongli Lai.
+
+    *) Feature: the "default_server" parameter of the "listen" directive.
+
+    *) Feature: now a "default" parameter is not required to set listen 
+       socket options.
+
+    *) Bugfix: nginx did not support dates in 2038 year on 32-bit platforms;
+
+    *) Bugfix: socket leak; the bug had appeared in 0.8.11.
+
+
 Changes with nginx 0.8.20                                        14 Oct 2009
 
     *) Change: now default SSL ciphers are "HIGH:!ADH:!MD5".
@@ -13,7 +31,7 @@ Changes with nginx 0.8.20                                        14 Oct 2009
        "Cache-Control" backend response header line.
 
     *) Bugfix: nginx/Windows might not create temporary file, a cache file, 
-       or "proxy/fastcgi_store"d file if a worker has no enough access 
+       or "proxy/fastcgi_store"d file if a worker had no enough access 
        rights for top level directories.
 
     *) Bugfix: the "Set-Cookie" and "P3P" FastCGI response header lines 

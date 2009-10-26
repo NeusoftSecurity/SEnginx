@@ -13,7 +13,6 @@ static void ngx_http_read_client_request_body_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_do_read_client_request_body(ngx_http_request_t *r);
 static ngx_int_t ngx_http_write_request_body(ngx_http_request_t *r,
     ngx_chain_t *body);
-static void ngx_http_read_discarded_request_body_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_read_discarded_request_body(ngx_http_request_t *r);
 static ngx_int_t ngx_http_test_expect(ngx_http_request_t *r);
 
@@ -460,6 +459,7 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
 
     if (size) {
         if (r->headers_in.content_length_n > size) {
+            r->header_in->pos += size;
             r->headers_in.content_length_n -= size;
 
         } else {
@@ -469,7 +469,7 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
         }
     }
 
-    r->read_event_handler = ngx_http_read_discarded_request_body_handler;
+    r->read_event_handler = ngx_http_discarded_request_body_handler;
 
     if (ngx_handle_read_event(rev, 0) != NGX_OK) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -487,8 +487,8 @@ ngx_http_discard_request_body(ngx_http_request_t *r)
 }
 
 
-static void
-ngx_http_read_discarded_request_body_handler(ngx_http_request_t *r)
+void
+ngx_http_discarded_request_body_handler(ngx_http_request_t *r)
 {
     ngx_int_t                  rc;
     ngx_msec_t                 timer;
@@ -502,7 +502,7 @@ ngx_http_read_discarded_request_body_handler(ngx_http_request_t *r)
     if (rev->timedout) {
         c->timedout = 1;
         c->error = 1;
-        ngx_http_finalize_request(r, 0);
+        ngx_http_finalize_request(r, NGX_ERROR);
         return;
     }
 
@@ -512,7 +512,7 @@ ngx_http_read_discarded_request_body_handler(ngx_http_request_t *r)
         if (timer <= 0) {
             r->discard_body = 0;
             r->lingering_close = 0;
-            ngx_http_finalize_request(r, 0);
+            ngx_http_finalize_request(r, NGX_ERROR);
             return;
         }
 
@@ -523,14 +523,9 @@ ngx_http_read_discarded_request_body_handler(ngx_http_request_t *r)
     rc = ngx_http_read_discarded_request_body(r);
 
     if (rc == NGX_OK) {
-
         r->discard_body = 0;
         r->lingering_close = 0;
-
-        if (r->done) {
-            ngx_http_finalize_request(r, 0);
-        }
-
+        ngx_http_finalize_request(r, NGX_DONE);
         return;
     }
 
@@ -538,7 +533,7 @@ ngx_http_read_discarded_request_body_handler(ngx_http_request_t *r)
 
     if (ngx_handle_read_event(rev, 0) != NGX_OK) {
         c->error = 1;
-        ngx_http_finalize_request(r, rc);
+        ngx_http_finalize_request(r, NGX_ERROR);
         return;
     }
 

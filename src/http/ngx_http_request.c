@@ -381,7 +381,7 @@ ngx_http_init_request(ngx_event_t *rev)
     r->virtual_names = addr_conf->virtual_names;
 
     /* the default server configuration for the address:port */
-    cscf = addr_conf->core_srv_conf;
+    cscf = addr_conf->default_server;
 
     r->main_conf = cscf->ctx->main_conf;
     r->srv_conf = cscf->ctx->srv_conf;
@@ -1688,7 +1688,7 @@ ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len)
 
 #if (NGX_PCRE)
 
-    if (r->virtual_names->nregex) {
+    if (len && r->virtual_names->nregex) {
         size_t                   ncaptures;
         ngx_int_t                n;
         ngx_uint_t               i;
@@ -1704,7 +1704,7 @@ ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len)
 
         for (i = 0; i < r->virtual_names->nregex; i++) {
 
-            if (sn[i].captures && r->captures == NULL) {
+            if (sn[i].server->captures && r->captures == NULL) {
 
                 ncaptures = (NGX_HTTP_MAX_CAPTURES + 1) * 3;
 
@@ -1730,7 +1730,7 @@ ngx_http_find_virtual_server(ngx_http_request_t *r, u_char *host, size_t len)
 
             /* match */
 
-            cscf = sn[i].core_srv_conf;
+            cscf = sn[i].server;
 
             r->ncaptures = ncaptures;
             r->captures_data = host;
@@ -2101,12 +2101,23 @@ ngx_http_finalize_connection(ngx_http_request_t *r)
 {
     ngx_http_core_loc_conf_t  *clcf;
 
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
     if (r->main->count != 1) {
+
+        if (r->discard_body) {
+            r->read_event_handler = ngx_http_discarded_request_body_handler;
+
+            if (r->lingering_time == 0) {
+                r->lingering_time = ngx_time()
+                                      + (time_t) (clcf->lingering_time / 1000);
+                ngx_add_timer(r->connection->read, clcf->lingering_timeout);
+            }
+        }
+
         ngx_http_close_request(r, 0);
         return;
     }
-
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     if (!ngx_terminate
          && !ngx_exiting
@@ -2133,7 +2144,9 @@ ngx_http_set_write_handler(ngx_http_request_t *r)
 
     r->http_state = NGX_HTTP_WRITING_REQUEST_STATE;
 
-    r->read_event_handler = ngx_http_test_reading;
+    r->read_event_handler = r->discard_body ?
+                                ngx_http_discarded_request_body_handler:
+                                ngx_http_test_reading;
     r->write_event_handler = ngx_http_writer;
 
     wev = r->connection->write;
@@ -2234,6 +2247,8 @@ ngx_http_writer(ngx_http_request_t *r)
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, wev->log, 0,
                    "http writer done: \"%V?%V\"", &r->uri, &r->args);
+
+    r->write_event_handler = ngx_http_request_empty_handler;
 
     ngx_http_finalize_request(r, rc);
 }

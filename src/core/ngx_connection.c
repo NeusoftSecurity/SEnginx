@@ -365,6 +365,18 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 continue;
             }
 
+#if (NGX_HAVE_UNIX_DOMAIN)
+
+            if (ngx_test_config && ls[i].sockaddr->sa_family == AF_UNIX) {
+                u_char *name = ls[i].addr_text.data + sizeof("unix:") - 1;
+
+                if (ngx_delete_file(name) == -1) {
+                    ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_socket_errno,
+                                  ngx_delete_file_n " %s failed", name);
+                }
+            }
+#endif
+
             if (listen(s, ls[i].backlog) == -1) {
                 ngx_log_error(NGX_LOG_EMERG, log, ngx_socket_errno,
                               "listen() to %V, backlog %d failed",
@@ -615,7 +627,8 @@ ngx_close_listening_sockets(ngx_cycle_t *cycle)
 #if (NGX_HAVE_UNIX_DOMAIN)
 
         if (ls[i].sockaddr->sa_family == AF_UNIX
-            && ngx_process != NGX_PROCESS_WORKER)
+            && ngx_process != NGX_PROCESS_WORKER
+            && ngx_new_binary == 0)
         {
             u_char *name = ls[i].addr_text.data + sizeof("unix:") - 1;
 
@@ -881,7 +894,6 @@ ngx_connection_local_sockaddr(ngx_connection_t *c, ngx_str_t *s,
             return NGX_ERROR;
         }
 
-        c->local_socklen = len;
         ngx_memcpy(c->local_sockaddr, &sa, len);
     }
 

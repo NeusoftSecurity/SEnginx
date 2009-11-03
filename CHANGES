@@ -1,4 +1,37 @@
 
+Changes with nginx 0.8.22                                        03 Nov 2009
+
+    *) Feature: the "proxy_bind", "fastcgi_bind", and "memcached_bind" 
+       directives.
+
+    *) Feature: the "access" and the "deny" directives support IPv6.
+
+    *) Feature: the "set_real_ip_from" directive supports IPv6 addresses in 
+       request headers.
+
+    *) Feature: the "unix:" parameter of the "set_real_ip_from" directive.
+
+    *) Bugfix: nginx did not delete unix domain socket after configuration 
+       testing.
+
+    *) Bugfix: nginx deleted unix domain socket while online upgrade.
+
+    *) Bugfix: the "!-x" operator did not work.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: a segmentation fault might occur in a worker process, if 
+       limit_rate was used in HTTPS server.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: a segmentation fault might occur in a worker process while 
+       $limit_rate logging.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: a segmentation fault might occur in a worker process, if 
+       there was no "listen" directive in "server" block; the bug had 
+       appeared in 0.8.21.
+
+
 Changes with nginx 0.8.21                                        26 Oct 2009
 
     *) Feature: now the "-V" switch shows TLS SNI support.

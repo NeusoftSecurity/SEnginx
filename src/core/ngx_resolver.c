@@ -464,6 +464,7 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx)
 
             ctx->next = rn->waiting;
             rn->waiting = ctx;
+            ctx->state = NGX_AGAIN;
 
             return NGX_AGAIN;
         }
@@ -625,6 +626,7 @@ ngx_resolve_addr(ngx_resolver_ctx_t *ctx)
 
             ctx->next = rn->waiting;
             rn->waiting = ctx;
+            ctx->state = NGX_AGAIN;
 
             /* unlock addr mutex */
 
@@ -1752,7 +1754,8 @@ ngx_resolver_create_name_query(ngx_resolver_node_t *rn, ngx_resolver_ctx_t *ctx)
     query->nns_hi = 0; query->nns_lo = 0;
     query->nar_hi = 0; query->nar_lo = 0;
 
-    p += sizeof(ngx_resolver_query_t) + 1 + ctx->name.len + 1;
+    p += sizeof(ngx_resolver_query_t)
+         + ctx->name.len ? (1 + ctx->name.len + 1) : 1;
 
     qs = (ngx_resolver_qs_t *) p;
 
@@ -1897,6 +1900,12 @@ invalid:
 done:
 
     if (name == NULL) {
+        return NGX_OK;
+    }
+
+    if (len == -1) {
+        name->len = 0;
+        name->data = NULL;
         return NGX_OK;
     }
 

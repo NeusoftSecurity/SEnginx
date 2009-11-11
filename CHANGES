@@ -1,4 +1,21 @@
 
+Changes with nginx 0.8.23                                        11 Nov 2009
+
+    *) Security: now SSL/TLS renegotiation is disabled.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: listen unix domain socket did not inherit while online 
+       upgrade.
+
+    *) Bugfix: the "unix:" parameter of the "set_real_ip_from" directive 
+       did not without yet another directive with any IP address.
+
+    *) Bugfix: segmentation fault and infinite looping in resolver.
+
+    *) Bugfix: in resolver.
+       Thanks to Artem Bokhan.
+
+
 Changes with nginx 0.8.22                                        03 Nov 2009
 
     *) Feature: the "proxy_bind", "fastcgi_bind", and "memcached_bind" 

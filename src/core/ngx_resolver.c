@@ -1719,15 +1719,16 @@ static ngx_int_t
 ngx_resolver_create_name_query(ngx_resolver_node_t *rn, ngx_resolver_ctx_t *ctx)
 {
     u_char                *p, *s;
-    size_t                 len;
+    size_t                 len, nlen;
     ngx_uint_t             ident;
     ngx_resolver_qs_t     *qs;
     ngx_resolver_query_t  *query;
 
-    len = sizeof(ngx_resolver_query_t)
-          + 1 + ctx->name.len + 1 + sizeof(ngx_resolver_qs_t);
+    nlen = ctx->name.len ? (1 + ctx->name.len + 1) : 1;
 
-    p = ngx_resolver_calloc(ctx->resolver, len);
+    len = sizeof(ngx_resolver_query_t) + nlen + sizeof(ngx_resolver_qs_t);
+
+    p = ngx_resolver_alloc(ctx->resolver, len);
     if (p == NULL) {
         return NGX_ERROR;
     }
@@ -1754,8 +1755,7 @@ ngx_resolver_create_name_query(ngx_resolver_node_t *rn, ngx_resolver_ctx_t *ctx)
     query->nns_hi = 0; query->nns_lo = 0;
     query->nar_hi = 0; query->nar_lo = 0;
 
-    p += sizeof(ngx_resolver_query_t)
-         + ctx->name.len ? (1 + ctx->name.len + 1) : 1;
+    p += sizeof(ngx_resolver_query_t) + nlen;
 
     qs = (ngx_resolver_qs_t *) p;
 
@@ -1809,7 +1809,7 @@ ngx_resolver_create_addr_query(ngx_resolver_node_t *rn, ngx_resolver_ctx_t *ctx)
           + sizeof(".255.255.255.255.in-addr.arpa.") - 1
           + sizeof(ngx_resolver_qs_t);
 
-    p = ngx_resolver_calloc(ctx->resolver, len);
+    p = ngx_resolver_alloc(ctx->resolver, len);
     if (p == NULL) {
         return NGX_ERROR;
     }

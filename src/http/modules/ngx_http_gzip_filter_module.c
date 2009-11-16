@@ -243,17 +243,27 @@ ngx_http_gzip_header_filter(ngx_http_request_t *r)
     conf = ngx_http_get_module_loc_conf(r, ngx_http_gzip_filter_module);
 
     if (!conf->enable
+        || r->header_only
         || (r->headers_out.status != NGX_HTTP_OK
             && r->headers_out.status != NGX_HTTP_FORBIDDEN
             && r->headers_out.status != NGX_HTTP_NOT_FOUND)
-        || r->header_only
         || (r->headers_out.content_encoding
             && r->headers_out.content_encoding->value.len)
         || (r->headers_out.content_length_n != -1
             && r->headers_out.content_length_n < conf->min_length)
-        || ngx_http_test_content_type(r, &conf->types) == NULL
-        || ngx_http_gzip_ok(r) != NGX_OK)
+        || ngx_http_test_content_type(r, &conf->types) == NULL)
     {
+        return ngx_http_next_header_filter(r);
+    }
+
+    r->gzip_vary = 1;
+
+    if (!r->gzip_tested) {
+        if (ngx_http_gzip_ok(r) != NGX_OK) {
+            return ngx_http_next_header_filter(r);
+        }
+
+    } else if (!r->gzip_ok) {
         return ngx_http_next_header_filter(r);
     }
 

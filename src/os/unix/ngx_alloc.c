@@ -21,7 +21,7 @@ ngx_alloc(size_t size, ngx_log_t *log)
     p = malloc(size);
     if (p == NULL) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
-                      "malloc() %uz bytes failed", size);
+                      "malloc(%uz) failed", size);
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_ALLOC, log, 0, "malloc: %p:%uz", p, size);
@@ -51,15 +51,18 @@ void *
 ngx_memalign(size_t alignment, size_t size, ngx_log_t *log)
 {
     void  *p;
+    int    err;
 
-    if (posix_memalign(&p, alignment, size) == -1) {
-        ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
-                      "posix_memalign() %uz bytes aligned to %uz failed",
-                      size, alignment);
+    err = posix_memalign(&p, alignment, size);
+
+    if (err) {
+        ngx_log_error(NGX_LOG_EMERG, log, err,
+                      "posix_memalign(%uz, %uz) failed", alignment, size);
+        p = NULL;
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_ALLOC, log, 0,
-                   "posix_memalign: %p:%uz", p, size);
+                   "posix_memalign: %p:%uz @%uz", p, size, alignment);
 
     return p;
 }
@@ -74,12 +77,11 @@ ngx_memalign(size_t alignment, size_t size, ngx_log_t *log)
     p = memalign(alignment, size);
     if (p == NULL) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
-                      "memalign() %uz bytes aligned to %uz failed",
-                      size, alignment);
+                      "memalign(%uz, %uz) failed", alignment, size);
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_ALLOC, log, 0,
-                   "memalign: %p:%uz", p, size);
+                   "memalign: %p:%uz @%uz", p, size, alignment);
 
     return p;
 }

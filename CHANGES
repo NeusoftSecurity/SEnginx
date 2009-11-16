@@ -1,4 +1,26 @@
 
+Changes with nginx 0.8.25                                        16 Nov 2009
+
+    *) Change: now no message is written in an error log if a variable is 
+       not found by $r->variable() method.
+
+    *) Feature: the ngx_http_degradation_module.
+
+    *) Feature: regular expression named captures.
+
+    *) Feature: now URI part is not required a "proxy_pass" directive if 
+       variables are used.
+
+    *) Feature: now the "msie_padding" directive works for Chrome too.
+
+    *) Bugfix: a segmentation fault occurred in a worker process on low 
+       memory condition; the bug had appeared in 0.8.18.
+
+    *) Bugfix: nginx sent gzipped responses to clients those do not support 
+       gzip, if "gzip_static on" and "gzip_vary off"; the bug had appeared 
+       in 0.8.16.
+
+
 Changes with nginx 0.8.24                                        11 Nov 2009
 
     *) Bugfix: nginx always added "Content-Encoding: gzip" response header 

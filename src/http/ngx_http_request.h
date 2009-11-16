@@ -10,7 +10,6 @@
 
 #define NGX_HTTP_MAX_URI_CHANGES           10
 #define NGX_HTTP_MAX_SUBREQUESTS           50
-#define NGX_HTTP_MAX_CAPTURES              9
 
 /* must be 2^n */
 #define NGX_HTTP_LC_HEADER_LEN             32
@@ -220,6 +219,7 @@ typedef struct {
     unsigned                          msie6:1;
     unsigned                          opera:1;
     unsigned                          gecko:1;
+    unsigned                          chrome:1;
     unsigned                          konqueror:1;
 } ngx_http_headers_in_t;
 
@@ -457,7 +457,12 @@ struct ngx_http_request_s {
 #if (NGX_HTTP_CACHE)
     unsigned                          cached:1;
 #endif
-    unsigned                          gzip:2;
+
+#if (NGX_HTTP_GZIP)
+    unsigned                          gzip_tested:1;
+    unsigned                          gzip_ok:1;
+    unsigned                          gzip_vary:1;
+#endif
 
     unsigned                          proxy:1;
     unsigned                          bypass_cache:1;

@@ -1,4 +1,13 @@
 
+Changes with nginx 0.8.26                                        16 Nov 2009
+
+    *) Bugfix: in captures usage in "rewrite" directive; the bug had 
+       appeared in 0.8.25.
+
+    *) Bugfix: nginx could not be built without the --with-debug option; 
+       the bug had appeared in 0.8.25.
+
+
 Changes with nginx 0.8.25                                        16 Nov 2009
 
     *) Change: now no message is written in an error log if a variable is 

@@ -1,8 +1,14 @@
 
+Changes with nginx 0.8.28                                        23 Nov 2009
+
+    *) Bugfix: nginx could not be built with the --without-pcre parameter; 
+       the bug had appeared in 0.8.25.
+
+
 Changes with nginx 0.8.27                                        17 Nov 2009
 
-    *) Bugfix: regular expressions did work in nginx/Windows; the bug had 
-       appeared in 0.8.25.
+    *) Bugfix: regular expressions did not work in nginx/Windows; the bug 
+       had appeared in 0.8.25.
 
 
 Changes with nginx 0.8.26                                        16 Nov 2009

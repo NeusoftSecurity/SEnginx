@@ -1,4 +1,28 @@
 
+Changes with nginx 0.8.29                                        30 Nov 2009
+
+    *) Change: now the "009" status code is written to an access log for 
+       proxied HTTP/0.9 responses.
+
+    *) Feature: the "addition_types", "charset_types", "gzip_types", 
+       "ssi_types", "sub_filter_types", and "xslt_types" directives support 
+       an "*" parameter.
+
+    *) Feature: GCC 4.1+ built-in atomic operations usage.
+       Thanks to W-Mark Kubacki.
+
+    *) Feature: the --with-libatomic[=DIR] option in the configure.
+       Thanks to W-Mark Kubacki.
+
+    *) Bugfix: listen unix domain socket had limited access rights.
+
+    *) Bugfix: cached HTTP/0.9 responses were handled incorrectly.
+
+    *) Bugfix: regular expression named captures given by "?P<...>" did not 
+       work in a "server_name" directive.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.8.28                                        23 Nov 2009
 
     *) Bugfix: nginx could not be built with the --without-pcre parameter; 

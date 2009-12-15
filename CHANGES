@@ -1,4 +1,23 @@
 
+Changes with nginx 0.8.30                                        15 Dec 2009
+
+    *) Change: now the default buffer size of the 
+       "large_client_header_buffers" directive is 8K.
+       Thanks to Andrew Cholakian.
+
+    *) Feature: the conf/fastcgi.conf for simple FastCGI configurations.
+
+    *) Bugfix: nginx/Windows tried to rename a temporary file twice if the 
+       file should replace an already existent file.
+
+    *) Bugfix: of "double free or corruption" error issued if host could 
+       not be resolved; the bug had appeared in 0.8.22.
+       Thanks to Konstantin Svist.
+
+    *) Bugfix: in libatomic usage on some platforms.
+       Thanks to W-Mark Kubacki.
+
+
 Changes with nginx 0.8.29                                        30 Nov 2009
 
     *) Change: now the "009" status code is written to an access log for 

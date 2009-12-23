@@ -1,4 +1,36 @@
 
+Changes with nginx 0.8.31                                        23 Dec 2009
+
+    *) Feature: now the "error_page" directive may redirect the 301 and 302 
+       responses.
+
+    *) Feature: the $geoip_city_continent_code, $geoip_latitude, and 
+       $geoip_longitude variables.
+       Thanks to Arvind Sundararajan.
+
+    *) Feature: now the ngx_http_image_filter_module deletes always EXIF 
+       and other application specific data if the data consume more than 5% 
+       of a JPEG file.
+
+    *) Bugfix: nginx closed a connection if a cached response had an empty 
+       body.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: nginx might not be built by gcc 4.x if the -O2 or higher 
+       optimization option was used.
+       Thanks to Maxim Dounin and Denis F. Latypoff.
+
+    *) Bugfix: regular expressions in location were always tested in 
+       case-sensitive mode; the bug had appeared in 0.8.25.
+
+    *) Bugfix: nginx cached a 304 response if there was the "If-None-Match" 
+       header line in a proxied request.
+       Thanks to Tim Dettrick and David Kostal.
+
+    *) Bugfix: nginx/Windows tried to delete a temporary file twice if the 
+       file should replace an already existent file.
+
+
 Changes with nginx 0.8.30                                        15 Dec 2009
 
     *) Change: now the default buffer size of the 

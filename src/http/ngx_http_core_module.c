@@ -2588,6 +2588,8 @@ ngx_http_core_regex_location(ngx_conf_t *cf, ngx_http_core_loc_conf_t *clcf,
 
 #if (NGX_HAVE_CASELESS_FILESYSTEM)
     rc.options = NGX_REGEX_CASELESS;
+#else
+    rc.options = caseless;
 #endif
 
     clcf->regex = ngx_http_regex_compile(cf, &rc);
@@ -2848,7 +2850,7 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     if (!conf->listen) {
         ngx_memzero(&lsopt, sizeof(ngx_http_listen_opt_t));
 
-        sin = (struct sockaddr_in *) &lsopt.sockaddr;
+        sin = &lsopt.u.sockaddr_in;
 
         sin->sin_family = AF_INET;
 #if (NGX_WIN32)
@@ -2865,7 +2867,7 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
         lsopt.sndbuf = -1;
         lsopt.wildcard = 1;
 
-        (void) ngx_sock_ntop((struct sockaddr *) &lsopt.sockaddr, lsopt.addr,
+        (void) ngx_sock_ntop(&lsopt.u.sockaddr, lsopt.addr,
                              NGX_SOCKADDR_STRLEN, 1);
 
         if (ngx_http_add_listen(cf, conf, &lsopt) == NGX_OK) {
@@ -3273,7 +3275,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ngx_memzero(&lsopt, sizeof(ngx_http_listen_opt_t));
 
-    ngx_memcpy(lsopt.sockaddr, u.sockaddr, u.socklen);
+    ngx_memcpy(&lsopt.u.sockaddr, u.sockaddr, u.socklen);
 
     lsopt.socklen = u.socklen;
     lsopt.backlog = NGX_LISTEN_BACKLOG;
@@ -3281,7 +3283,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     lsopt.sndbuf = -1;
     lsopt.wildcard = u.wildcard;
 
-    (void) ngx_sock_ntop((struct sockaddr *) &lsopt.sockaddr, lsopt.addr,
+    (void) ngx_sock_ntop(&lsopt.u.sockaddr, lsopt.addr,
                          NGX_SOCKADDR_STRLEN, 1);
 
     for (n = 2; n < cf->args->nelts; n++) {
@@ -3378,7 +3380,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #if (NGX_HAVE_INET6 && defined IPV6_V6ONLY)
             struct sockaddr  *sa;
 
-            sa = (struct sockaddr *) lsopt.sockaddr;
+            sa = &lsopt.u.sockaddr;
 
             if (sa->sa_family == AF_INET6) {
 
@@ -3898,9 +3900,9 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             return NGX_CONF_ERROR;
         }
 
-        if (err->status < 400 || err->status > 599) {
+        if (err->status < 300 || err->status > 599) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "value \"%V\" must be between 400 and 599",
+                               "value \"%V\" must be between 300 and 599",
                                &value[i]);
             return NGX_CONF_ERROR;
         }
@@ -4318,8 +4320,15 @@ ngx_http_core_pool_size(ngx_conf_t *cf, void *post, void *data)
 
     if (*sp < NGX_MIN_POOL_SIZE) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "pool must be no less than %uz", NGX_MIN_POOL_SIZE);
+                           "the pool size must be no less than %uz",
+                           NGX_MIN_POOL_SIZE);
+        return NGX_CONF_ERROR;
+    }
 
+    if (*sp % NGX_POOL_ALIGNMENT) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "the pool size must be a multiple of %uz",
+                           NGX_POOL_ALIGNMENT);
         return NGX_CONF_ERROR;
     }
 

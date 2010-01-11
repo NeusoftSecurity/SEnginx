@@ -1,4 +1,27 @@
 
+Changes with nginx 0.8.32                                        11 Jan 2010
+
+    *) Bugfix: UTF-8 encoding usage in the ngx_http_autoindex_module.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: regular expression named captures worked for two names only. 
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: now the "localhost" name is used in the "Host" request 
+       header line, if an unix domain socket is defined in the "auth_http" 
+       directive.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: nginx did nor support chunked transfer encoding for 201 
+       responses.
+       Thanks to Julian Reich.
+
+    *) Bugfix: if the "expires modified" set date in the past, the a 
+       negative number was set in the "Cache-Control" response header 
+       line.
+       Thanks to Alex Kapranoff.
+
+
 Changes with nginx 0.8.31                                        23 Dec 2009
 
     *) Feature: now the "error_page" directive may redirect the 301 and 302 

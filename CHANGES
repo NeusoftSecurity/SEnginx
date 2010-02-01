@@ -1,4 +1,27 @@
 
+Changes with nginx 0.8.33                                        01 Feb 2010
+
+    *) Security: now nginx/Windows ignores trailing spaces in URI.
+       Thanks to Dan Crowley, Core Security Technologies.
+
+    *) Security: now nginx/Windows ignores short files names.
+       Thanks to Dan Crowley, Core Security Technologies.
+
+    *) Change: now keepalive connections after POST requests are not 
+       disabled for MSIE 7.0+. Thanks to Adam Lounds.
+
+    *) Workaround: now keepalive connections are disabled for Safari. 
+       Thanks to Joshua Sierles.
+
+    *) Bugfix: if a proxied or FastCGI request was internally redirected to 
+       another proxied or FastCGI location, then $upstream_response_time 
+       variable may have abnormally large value; the bug had appeared in 
+       0.8.7.
+
+    *) Bugfix: a segmentation fault might occur in a worker process, while 
+       discarding a request body; the bug had appeared in 0.8.11.
+
+
 Changes with nginx 0.8.32                                        11 Jan 2010
 
     *) Bugfix: UTF-8 encoding usage in the ngx_http_autoindex_module.
@@ -12,11 +35,11 @@ Changes with nginx 0.8.32                                        11 Jan 2010
        directive.
        Thanks to Maxim Dounin.
 
-    *) Bugfix: nginx did nor support chunked transfer encoding for 201 
+    *) Bugfix: nginx did not support chunked transfer encoding for 201 
        responses.
        Thanks to Julian Reich.
 
-    *) Bugfix: if the "expires modified" set date in the past, the a 
+    *) Bugfix: if the "expires modified" set date in the past, then a 
        negative number was set in the "Cache-Control" response header 
        line.
        Thanks to Alex Kapranoff.

@@ -788,9 +788,11 @@ ngx_http_process_request_line(ngx_event_t *rev)
 
             p = r->uri.data + r->uri.len - 1;
 
-            if (*p == '.') {
+            if (*p == '.' || *p == ' ') {
 
-                while (--p > r->uri.data && *p == '.') { /* void */ }
+                while (--p > r->uri.data && (*p == '.' || *p == ' ')) {
+                    /* void */
+                }
 
                 r->uri.len = p + 1 - r->uri.data;
 
@@ -1448,6 +1450,9 @@ ngx_http_process_user_agent(ngx_http_request_t *r, ngx_table_elt_t *h,
         } else if (ngx_strstrn(user_agent, "Chrome/", 7 - 1)) {
             r->headers_in.chrome = 1;
 
+        } else if (ngx_strstrn(user_agent, "Safari/", 7 - 1)) {
+            r->headers_in.safari = 1;
+
         } else if (ngx_strstrn(user_agent, "Konqueror", 9 - 1)) {
             r->headers_in.konqueror = 1;
         }
@@ -1997,6 +2002,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
     }
 
     r->done = 1;
+    r->write_event_handler = ngx_http_request_empty_handler;
 
     if (!r->post_action) {
         r->request_complete = 1;

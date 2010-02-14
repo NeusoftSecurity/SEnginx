@@ -16,6 +16,10 @@ typedef struct {
 typedef struct {
     ngx_array_t                *variables;
     ngx_str_t                   eval_location;
+} ngx_http_eval_block_t;
+
+typedef struct {
+    ngx_array_t                *blocks;
     ngx_flag_t                  escalate;
     ngx_str_t                   override_content_type;
 } ngx_http_eval_loc_conf_t;
@@ -26,6 +30,8 @@ typedef struct {
     unsigned int                done:1;
     unsigned int                in_progress:1;
     ngx_int_t                   status;
+    ngx_http_eval_block_t      *current_block;
+    ngx_http_eval_block_t      *last_block;
 } ngx_http_eval_ctx_t;
 
 typedef ngx_int_t (*ngx_http_eval_format_handler_pt)(ngx_http_request_t *r,
@@ -38,7 +44,7 @@ typedef struct {
 
 static ngx_int_t
 ngx_http_eval_init_variables(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx, 
-    ngx_http_eval_loc_conf_t *ecf);
+    ngx_http_eval_block_t *block);
 
 static ngx_int_t ngx_http_eval_post_subrequest_handler(ngx_http_request_t *r, void *data, ngx_int_t rc);
 
@@ -130,6 +136,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
     ngx_http_request_t         *sr; 
     ngx_int_t                   rc;
     ngx_http_post_subrequest_t *psr;
+    ngx_http_eval_block_t      *block;
     u_char                     *p;
 
     if(r != r->main) {
@@ -148,7 +155,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
 
     ecf = ngx_http_get_module_loc_conf(r, ngx_http_eval_module);
 
-    if(ecf->variables == NULL || !ecf->variables->nelts) {
+    if(ecf->blocks == NULL || !ecf->blocks->nelts) {
         return NGX_DECLINED;
     }
 
@@ -162,35 +169,57 @@ ngx_http_eval_handler(ngx_http_request_t *r)
 
         ctx->base_conf = ecf;
 
+        ctx->current_block = ecf->blocks->elts;
+        ctx->last_block = ctx->current_block + ecf->blocks->nelts - 1;
+
         ngx_http_set_ctx(r, ctx, ngx_http_eval_module);
     }
 
     if(ctx->done) {
-        if(!ecf->escalate || ctx->status == NGX_OK || ctx->status == NGX_HTTP_OK) {
-            return NGX_DECLINED;
+        ctx->in_progress = 0;
+
+        if(ctx->current_block == ctx->last_block) {
+            if(!ecf->escalate || ctx->status == NGX_OK || ctx->status == NGX_HTTP_OK) {
+                return NGX_DECLINED;
+            }
+
+            return ctx->status;
         }
 
-        return ctx->status;
+        ctx->current_block++;
     }
 
     if(ctx->in_progress) {
         return NGX_AGAIN;
     }
 
+    /*
+     * Advance to block which has at least one variable
+     */
+    while(ctx->current_block->variables == NULL || ctx->current_block->variables->nelts == 0) {
+        if(ctx->current_block == ctx->last_block) {
+            return NGX_DECLINED;
+        }
+
+        ctx->current_block++;
+    }
+
+    block = ctx->current_block;
+
     psr = ngx_palloc(r->pool, sizeof(ngx_http_post_subrequest_t));
     if (psr == NULL) {
         return NGX_ERROR;
     }
 
-    if(ngx_http_eval_init_variables(r, ctx, ecf) != NGX_OK) {
+    if(ngx_http_eval_init_variables(r, ctx, block) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    args.len = 0;
-    args.data = NULL;
+    args.len = r->args.len;
+    args.data = r->args.data;
     flags = 0;
 
-    subrequest_uri.len = ecf->eval_location.len + r->uri.len;
+    subrequest_uri.len = block->eval_location.len + r->uri.len;
 
     p = subrequest_uri.data = ngx_palloc(r->pool, subrequest_uri.len);
 
@@ -198,7 +227,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    p = ngx_copy(p, ecf->eval_location.data, ecf->eval_location.len);
+    p = ngx_copy(p, block->eval_location.data, block->eval_location.len);
     p = ngx_copy(p, r->uri.data, r->uri.len);
 
     if (ngx_http_parse_unsafe_uri(r, &subrequest_uri, &args, &flags) != NGX_OK) {
@@ -219,6 +248,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
     sr->discard_body = 1;
 
     ctx->in_progress = 1;
+    ctx->done = 0;
 
     /*
      * Wait for subrequest to complete
@@ -228,20 +258,20 @@ ngx_http_eval_handler(ngx_http_request_t *r)
 
 static ngx_int_t
 ngx_http_eval_init_variables(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx, 
-    ngx_http_eval_loc_conf_t *ecf)
+    ngx_http_eval_block_t *block)
 {
     ngx_uint_t i;
     ngx_http_eval_variable_t *variable;
 
-    ctx->values = ngx_pcalloc(r->pool, ecf->variables->nelts * sizeof(ngx_http_variable_value_t*));
+    ctx->values = ngx_pcalloc(r->pool, block->variables->nelts * sizeof(ngx_http_variable_value_t*));
 
     if (ctx->values == NULL) {
         return NGX_ERROR;
     }
 
-    variable = ecf->variables->elts;
+    variable = block->variables->elts;
 
-    for(i = 0;i<ecf->variables->nelts;i++) {
+    for(i = 0;i<block->variables->nelts;i++) {
         ctx->values[i] = r->variables + variable[i].index;
 
         ctx->values[i]->valid = 0;
@@ -348,9 +378,9 @@ ngx_http_eval_set_variable_value(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx
     ngx_uint_t i;
     ngx_http_eval_variable_t *variable;
 
-    variable = ctx->base_conf->variables->elts;
+    variable = ctx->current_block->variables->elts;
 
-    for(i = 0;i<ctx->base_conf->variables->nelts;i++) {
+    for(i = 0;i<ctx->current_block->variables->nelts;i++) {
         if(!ngx_strncasecmp(variable[i].variable->name.data, name->data, variable[i].variable->name.len)) {
             ctx->values[i]->len = value->len;
             ctx->values[i]->data = value->data;
@@ -488,10 +518,8 @@ ngx_http_eval_variable(ngx_http_request_t *r,
 }
 
 static char *
-ngx_http_eval_add_variables(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+ngx_http_eval_add_variables(ngx_conf_t *cf, ngx_http_eval_block_t *block)
 {
-    ngx_http_eval_loc_conf_t            *ecf = conf;
-
     ngx_uint_t                           i;
     ngx_int_t                            index;
     ngx_str_t                           *value;
@@ -500,10 +528,10 @@ ngx_http_eval_add_variables(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    ecf->variables = ngx_array_create(cf->pool,
+    block->variables = ngx_array_create(cf->pool,
         cf->args->nelts, sizeof(ngx_http_eval_variable_t));
 
-    if(ecf->variables == NULL) {
+    if(block->variables == NULL) {
         return NGX_CONF_ERROR;
     }
 
@@ -514,7 +542,7 @@ ngx_http_eval_add_variables(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             return NGX_CONF_ERROR;
         }
 
-        variable = ngx_array_push(ecf->variables);
+        variable = ngx_array_push(block->variables);
         if(variable == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -545,6 +573,33 @@ ngx_http_eval_add_variables(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
+static ngx_int_t
+ngx_http_eval_add_block(ngx_conf_t *cf, ngx_http_eval_loc_conf_t *conf, ngx_str_t *name) {
+    ngx_http_eval_block_t *block;
+
+    if(conf->blocks == NULL) {
+        conf->blocks = ngx_array_create(cf->pool, 1, sizeof(ngx_http_eval_block_t));
+
+        if(conf->blocks == NULL) {
+            return NGX_ERROR;
+        }
+    }
+
+    block = ngx_array_push(conf->blocks);
+
+    if(block == NULL) {
+        return NGX_ERROR;
+    }
+
+    block->eval_location = *name;
+
+    if(ngx_http_eval_add_variables(cf, block) != NGX_CONF_OK) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
 static char *
 ngx_http_eval_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -559,10 +614,6 @@ ngx_http_eval_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_conf_ctx_t       *ctx, *pctx;
     ngx_http_core_loc_conf_t  *clcf, *pclcf, *rclcf;
     ngx_http_core_srv_conf_t  *cscf;
-
-    if(ngx_http_eval_add_variables(cf, cmd, conf) != NGX_CONF_OK) {
-        return NGX_CONF_ERROR;
-    }
 
     ctx = ngx_pcalloc(cf->pool, sizeof(ngx_http_conf_ctx_t));
     if (ctx == NULL) {
@@ -627,7 +678,9 @@ ngx_http_eval_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    pecf->eval_location = clcf->name;
+    if(ngx_http_eval_add_block(cf, pecf, &clcf->name) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
 
     save = *cf;
     cf->ctx = ctx;

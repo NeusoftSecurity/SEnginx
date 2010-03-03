@@ -1,4 +1,35 @@
 
+Changes with nginx 0.8.34                                        03 Mar 2010
+
+    *) Bugfix: nginx did not support all ciphers and digests used in client 
+       certificates.
+       Thanks to Innocenty Enikeew.
+
+    *) Bugfix: nginx cached incorrectly FastCGI responses if there was 
+       large stderr output before response.
+
+    *) Bugfix: nginx did not support HTTPS referrers.
+
+    *) Bugfix: nginx/Windows might not find file if path in configuration 
+       was given in other character case; the bug had appeared in 0.8.34.
+
+    *) Bugfix: the $date_local variable has an incorrect value, if the "%s" 
+       format was used.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: if ssl_session_cache was not set or was set to "none", then 
+       during client certificate verify the error "session id context 
+       uninitialized" might occur; the bug had appeared in 0.7.1.
+
+    *) Bugfix: a geo range returned default value if the range included two 
+       or more /16 networks and did not begin at /16 network boundary.
+
+    *) Bugfix: a block used in a "stub" parameter of an "include" SSI 
+       directive was output with "text/plain" MIME type.
+
+    *) Bugfix: $r->sleep() did not work; the bug had appeared in 0.8.11.
+
+
 Changes with nginx 0.8.33                                        01 Feb 2010
 
     *) Security: now nginx/Windows ignores trailing spaces in URI.
@@ -8,9 +39,10 @@ Changes with nginx 0.8.33                                        01 Feb 2010
        Thanks to Dan Crowley, Core Security Technologies.
 
     *) Change: now keepalive connections after POST requests are not 
-       disabled for MSIE 7.0+. Thanks to Adam Lounds.
+       disabled for MSIE 7.0+.
+       Thanks to Adam Lounds.
 
-    *) Workaround: now keepalive connections are disabled for Safari. 
+    *) Workaround: now keepalive connections are disabled for Safari.
        Thanks to Joshua Sierles.
 
     *) Bugfix: if a proxied or FastCGI request was internally redirected to 
@@ -40,8 +72,7 @@ Changes with nginx 0.8.32                                        11 Jan 2010
        Thanks to Julian Reich.
 
     *) Bugfix: if the "expires modified" set date in the past, then a 
-       negative number was set in the "Cache-Control" response header 
-       line.
+       negative number was set in the "Cache-Control" response header line. 
        Thanks to Alex Kapranoff.
 
 

@@ -132,10 +132,6 @@ static ngx_str_t ngx_http_status_lines[] = {
 ngx_http_header_out_t  ngx_http_headers_out[] = {
     { ngx_string("Server"), offsetof(ngx_http_headers_out_t, server) },
     { ngx_string("Date"), offsetof(ngx_http_headers_out_t, date) },
-#if 0
-    { ngx_string("Content-Type"),
-                 offsetof(ngx_http_headers_out_t, content_type) },
-#endif
     { ngx_string("Content-Length"),
                  offsetof(ngx_http_headers_out_t, content_length) },
     { ngx_string("Content-Encoding"),
@@ -538,8 +534,8 @@ ngx_http_header_filter(ngx_http_request_t *r)
 
         r->headers_out.location->value.len = b->last - p;
         r->headers_out.location->value.data = p;
-        r->headers_out.location->key.len = sizeof("Location: ") - 1;
-        r->headers_out.location->key.data = (u_char *) "Location: ";
+        r->headers_out.location->key.len = sizeof("Location") - 1;
+        r->headers_out.location->key.data = (u_char *) "Location";
 
         *b->last++ = CR; *b->last++ = LF;
     }

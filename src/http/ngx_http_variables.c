@@ -196,7 +196,8 @@ static ngx_http_variable_t  ngx_http_core_variables[] = {
     { ngx_string("server_name"), NULL, ngx_http_variable_server_name, 0, 0, 0 },
 
     { ngx_string("request_method"), NULL,
-      ngx_http_variable_request_method, 0, 0, 0 },
+      ngx_http_variable_request_method, 0,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("remote_user"), NULL, ngx_http_variable_remote_user, 0, 0, 0 },
 
@@ -494,7 +495,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key,
         return NULL;
     }
 
-    if (ngx_strncmp(name->data, "upstream_http_", 10) == 0) {
+    if (ngx_strncmp(name->data, "upstream_http_", 14) == 0) {
 
         if (ngx_http_upstream_header_variable(r, vv, (uintptr_t) name)
             == NGX_OK)

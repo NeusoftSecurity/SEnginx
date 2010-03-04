@@ -27,11 +27,12 @@ typedef struct {
 typedef struct {
     ngx_http_eval_loc_conf_t   *base_conf;
     ngx_http_variable_value_t **values;
-    unsigned int                done:1;
-    unsigned int                in_progress:1;
     ngx_int_t                   status;
     ngx_http_eval_block_t      *current_block;
     ngx_http_eval_block_t      *last_block;
+
+    unsigned int                done:1;
+    unsigned int                in_progress:1;
 } ngx_http_eval_ctx_t;
 
 typedef ngx_int_t (*ngx_http_eval_format_handler_pt)(ngx_http_request_t *r,

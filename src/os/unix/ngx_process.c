@@ -317,7 +317,7 @@ ngx_signal_handler(int signo)
         }
     }
 
-    ngx_time_update(0, 0);
+    ngx_time_sigsafe_update();
 
     action = "";
 
@@ -479,16 +479,17 @@ ngx_process_get_status(void)
              */
 
             if (err == NGX_ECHILD) {
-                ngx_log_error(NGX_LOG_INFO, ngx_cycle->log, errno,
-                              "waitpid() failed");
+                ngx_log_error(NGX_LOG_INFO, ngx_cycle->log, 0,
+                              "waitpid() failed (%d: %s)",
+                              err, ngx_sigsafe_strerror(err));
                 return;
             }
 
 #endif
 
-            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, errno,
-                          "waitpid() failed");
-
+            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
+                          "waitpid() failed (%d: %s)",
+                          err, ngx_sigsafe_strerror(err));
             return;
         }
 

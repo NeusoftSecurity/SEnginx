@@ -1,4 +1,38 @@
 
+Changes with nginx 0.8.35                                        29 Mar 2010
+
+    *) Change: now the charset filter runs before the SSI filter.
+
+    *) Feature: the "chunked_transfer_encoding" directive.
+
+    *) Bugfix: an "&" character was not escaped when it was copied in 
+       arguments part in a rewrite rule.
+
+    *) Bugfix: nginx might be terminated abnormally while a signal 
+       processing or if the directive "timer_resolution" was used on 
+       platforms which do not support kqueue or eventport notification 
+       methods.
+       Thanks to George Xie and Maxim Dounin.
+
+    *) Bugfix: if temporary files and permanent storage area resided at 
+       different file systems, then permanent file modification times were 
+       incorrect.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: ngx_http_memcached_module might issue the error message 
+       "memcached sent invalid trailer".
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: nginx could not built zlib-1.2.4 library using the library 
+       sources.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: a segmentation fault occurred in a worker process, if there 
+       was large stderr output before FastCGI response; the bug had 
+       appeared in 0.8.34.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.8.34                                        03 Mar 2010
 
     *) Bugfix: nginx did not support all ciphers and digests used in client 
@@ -11,7 +45,7 @@ Changes with nginx 0.8.34                                        03 Mar 2010
     *) Bugfix: nginx did not support HTTPS referrers.
 
     *) Bugfix: nginx/Windows might not find file if path in configuration 
-       was given in other character case; the bug had appeared in 0.8.34.
+       was given in other character case; the bug had appeared in 0.8.33.
 
     *) Bugfix: the $date_local variable has an incorrect value, if the "%s" 
        format was used.

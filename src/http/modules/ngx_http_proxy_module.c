@@ -637,6 +637,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r)
     u->process_header = ngx_http_proxy_process_status_line;
     u->abort_request = ngx_http_proxy_abort_request;
     u->finalize_request = ngx_http_proxy_finalize_request;
+    r->state = 0;
 
     if (plcf->redirects) {
         u->rewrite_redirect = ngx_http_proxy_rewrite_redirect;
@@ -1198,6 +1199,7 @@ ngx_http_proxy_reinit_request(ngx_http_request_t *r)
     ctx->status_end = NULL;
 
     r->upstream->process_header = ngx_http_proxy_process_status_line;
+    r->state = 0;
 
     return NGX_OK;
 }
@@ -1913,7 +1915,7 @@ ngx_http_proxy_create_loc_conf(ngx_conf_t *cf)
      *     conf->body_set_len = NULL;
      *     conf->body_set = NULL;
      *     conf->body_source = { 0, NULL };
-     *     conf->rewrite_locations = NULL;
+     *     conf->redirects = NULL;
      */
 
     conf->upstream.store = NGX_CONF_UNSET;
@@ -2754,9 +2756,16 @@ ngx_http_proxy_redirect(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (ngx_strcmp(value[1].data, "default") == 0) {
+        if (plcf->proxy_lengths) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "\"proxy_redirect default\" may not be used "
+                               "with \"proxy_pass\" directive with variables");
+            return NGX_CONF_ERROR;
+        }
+
         if (plcf->url.data == NULL) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"proxy_rewrite_location default\" must go "
+                               "\"proxy_redirect default\" must go "
                                "after the \"proxy_pass\" directive");
             return NGX_CONF_ERROR;
         }

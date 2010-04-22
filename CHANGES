@@ -1,5 +1,26 @@
 
-Changes with nginx 0.8.35                                        29 Mar 2010
+Changes with nginx 0.8.36                                        22 Apr 2010
+
+    *) Bugfix: the ngx_http_dav_module handled incorrectly the DELETE, 
+       COPY, and MOVE methods for symlinks.
+
+    *) Bugfix: values of the $query_string, $arg_..., etc. variables cached 
+       in main request were used by the SSI module in subrequests.
+
+    *) Bugfix: a variable value was repeatedly encoded after each an "echo" 
+       SSI-command output; the bug had appeared in 0.6.14.
+
+    *) Bugfix: a worker process hung if a FIFO file was requested.
+       Thanks to Vicente Aguilar and Maxim Dounin.
+
+    *) Bugfix: OpenSSL-1.0.0 compatibility on 64-bit Linux.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: nginx could not be built --without-http-cache; the bug had 
+       appeared in 0.8.35.
+
+
+Changes with nginx 0.8.35                                        01 Apr 2010
 
     *) Change: now the charset filter runs before the SSI filter.
 

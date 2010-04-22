@@ -14,7 +14,6 @@
 
 #define NGX_HTTP_SSI_ADD_PREFIX     1
 #define NGX_HTTP_SSI_ADD_ZERO       2
-#define NGX_HTTP_SSI_EXPR_TEST      4
 
 
 typedef struct {
@@ -1701,8 +1700,7 @@ ngx_http_ssi_evaluate_string(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
             val = ngx_http_ssi_get_variable(r, &var, key);
 
             if (val == NULL) {
-                vv = ngx_http_get_variable(r, &var, key,
-                                           flags & NGX_HTTP_SSI_EXPR_TEST);
+                vv = ngx_http_get_variable(r, &var, key);
                 if (vv == NULL) {
                     return NGX_ERROR;
                 }
@@ -2110,7 +2108,7 @@ ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
     value = ngx_http_ssi_get_variable(r, var, key);
 
     if (value == NULL) {
-        vv = ngx_http_get_variable(r, var, key, 1);
+        vv = ngx_http_get_variable(r, var, key);
 
         if (vv == NULL) {
             return NGX_HTTP_SSI_ERROR;
@@ -2161,10 +2159,9 @@ ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
         }
     }
 
-    switch (ctx->encoding) {
+    p = value->data;
 
-    case NGX_HTTP_SSI_NO_ENCODING:
-        break;
+    switch (ctx->encoding) {
 
     case NGX_HTTP_SSI_URL_ENCODING:
         len = 2 * ngx_escape_uri(NULL, value->data, value->len,
@@ -2177,11 +2174,9 @@ ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
             }
 
             (void) ngx_escape_uri(p, value->data, value->len, NGX_ESCAPE_HTML);
-
-            value->len += len;
-            value->data = p;
         }
 
+        len += value->len;
         break;
 
     case NGX_HTTP_SSI_ENTITY_ENCODING:
@@ -2194,11 +2189,13 @@ ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
             }
 
             (void) ngx_escape_html(p, value->data, value->len);
-
-            value->len += len;
-            value->data = p;
         }
 
+        len += value->len;
+        break;
+
+    default: /* NGX_HTTP_SSI_NO_ENCODING */
+        len = value->len;
         break;
     }
 
@@ -2213,8 +2210,8 @@ ngx_http_ssi_echo(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
     }
 
     b->memory = 1;
-    b->pos = value->data;
-    b->last = value->data + value->len;
+    b->pos = p;
+    b->last = p + len;
 
     cl->buf = b;
     cl->next = NULL;
@@ -2362,7 +2359,7 @@ ngx_http_ssi_if(ngx_http_request_t *r, ngx_http_ssi_ctx_t *ctx,
         p++;
     }
 
-    flags = (p == last) ? NGX_HTTP_SSI_EXPR_TEST : 0;
+    flags = 0;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "left: \"%V\"", &left);

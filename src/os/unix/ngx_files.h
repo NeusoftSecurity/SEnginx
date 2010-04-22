@@ -64,6 +64,7 @@ typedef struct {
 #define NGX_FILE_OPEN            0
 #define NGX_FILE_TRUNCATE        O_CREAT|O_TRUNC
 #define NGX_FILE_APPEND          O_WRONLY|O_APPEND
+#define NGX_FILE_NONBLOCK        O_NONBLOCK
 
 #define NGX_FILE_DEFAULT_ACCESS  0644
 #define NGX_FILE_OWNER_ACCESS    0600
@@ -137,6 +138,9 @@ ngx_int_t ngx_set_file_time(u_char *name, ngx_fd_t fd, time_t s);
 
 #define ngx_fd_info(fd, sb)      fstat(fd, sb)
 #define ngx_fd_info_n            "fstat()"
+
+#define ngx_link_info(file, sb)  lstat((const char *) file, sb)
+#define ngx_link_info_n          "lstat()"
 
 #define ngx_is_dir(sb)           (S_ISDIR((sb)->st_mode))
 #define ngx_is_file(sb)          (S_ISREG((sb)->st_mode))

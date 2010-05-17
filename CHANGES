@@ -1,4 +1,26 @@
 
+Changes with nginx 0.8.37                                        17 May 2010
+
+    *) Feature: the ngx_http_split_clients_module.
+
+    *) Feature: the "map" directive supports keys more than 255 characters.
+
+    *) Bugfix: nginx ignored the "private" and "no-store" values in the 
+       "Cache-Control" backend response header line.
+
+    *) Bugfix: a "stub" parameter of an "include" SSI directive was not 
+       used, if empty response has 200 status code.
+
+    *) Bugfix: if a proxied or FastCGI request was internally redirected to 
+       another proxied or FastCGI location, then a segmentation fault might 
+       occur in a worker process; the bug had appeared in 0.8.33.
+       Thanks to Yichun Zhang.
+
+    *) Bugfix: IMAP connections may hang until they timed out while talking 
+       to Zimbra server.
+       Thanks to Alan Batie.
+
+
 Changes with nginx 0.8.36                                        22 Apr 2010
 
     *) Bugfix: the ngx_http_dav_module handled incorrectly the DELETE, 

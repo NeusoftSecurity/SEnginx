@@ -75,7 +75,7 @@ ngx_pstrdup(ngx_pool_t *pool, ngx_str_t *src)
  *    %[0][width][u][x|X]D      int32_t/uint32_t
  *    %[0][width][u][x|X]L      int64_t/uint64_t
  *    %[0][width|m][u][x|X]A    ngx_atomic_int_t/ngx_atomic_uint_t
- *    %[0][width][.width]f      float
+ *    %[0][width][.width]f      double, max valid number fits to %18.15f
  *    %P                        ngx_pid_t
  *    %M                        ngx_msec_t
  *    %r                        rlim_t
@@ -143,7 +143,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
 {
     u_char                *p, zero;
     int                    d;
-    float                  f, scale;
+    double                 f, scale;
     size_t                 len, slen;
     int64_t                i64;
     uint64_t               ui64;
@@ -229,9 +229,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
             case 'V':
                 v = va_arg(args, ngx_str_t *);
 
-                len = v->len;
-                len = (buf + len < last) ? len : (size_t) (last - buf);
-
+                len = ngx_min(((size_t) (last - buf)), v->len);
                 buf = ngx_cpymem(buf, v->data, len);
                 fmt++;
 
@@ -240,9 +238,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
             case 'v':
                 vv = va_arg(args, ngx_variable_value_t *);
 
-                len = vv->len;
-                len = (buf + len < last) ? len : (size_t) (last - buf);
-
+                len = ngx_min(((size_t) (last - buf)), vv->len);
                 buf = ngx_cpymem(buf, vv->data, len);
                 fmt++;
 
@@ -257,8 +253,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
                     }
 
                 } else {
-                    len = (buf + slen < last) ? slen : (size_t) (last - buf);
-
+                    len = ngx_min(((size_t) (last - buf)), slen);
                     buf = ngx_cpymem(buf, p, len);
                 }
 
@@ -359,7 +354,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
                 break;
 
             case 'f':
-                f = (float) va_arg(args, double);
+                f = va_arg(args, double);
 
                 if (f < 0) {
                     *buf++ = '-';
@@ -386,7 +381,7 @@ ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
                      * (int64_t) cast is required for msvc6:
                      * it can not convert uint64_t to double
                      */
-                    ui64 = (uint64_t) ((f - (int64_t) ui64) * scale);
+                    ui64 = (uint64_t) ((f - (int64_t) ui64) * scale + 0.5);
 
                     buf = ngx_sprintf_num(buf, last, ui64, '0', 0, frac_width);
                 }
@@ -866,6 +861,56 @@ ngx_atoi(u_char *line, size_t n)
         }
 
         value = value * 10 + (*line - '0');
+    }
+
+    if (value < 0) {
+        return NGX_ERROR;
+
+    } else {
+        return value;
+    }
+}
+
+
+/* parse a fixed point number, e.g., ngx_atofp("10.5", 4, 2) returns 1050 */
+
+ngx_int_t
+ngx_atofp(u_char *line, size_t n, size_t point)
+{
+    ngx_int_t   value;
+    ngx_uint_t  dot;
+
+    if (n == 0) {
+        return NGX_ERROR;
+    }
+
+    dot = 0;
+
+    for (value = 0; n--; line++) {
+
+        if (point == 0) {
+            return NGX_ERROR;
+        }
+
+        if (*line == '.') {
+            if (dot) {
+                return NGX_ERROR;
+            }
+
+            dot = 1;
+            continue;
+        }
+
+        if (*line < '0' || *line > '9') {
+            return NGX_ERROR;
+        }
+
+        value = value * 10 + (*line - '0');
+        point -= dot;
+    }
+
+    while (point--) {
+        value = value * 10;
     }
 
     if (value < 0) {

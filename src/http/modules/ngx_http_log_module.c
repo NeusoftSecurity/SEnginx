@@ -533,7 +533,7 @@ ngx_http_log_request_time(ngx_http_request_t *r, u_char *buf,
 
     ms = (ngx_msec_int_t)
              ((tp->sec - r->start_sec) * 1000 + (tp->msec - r->start_msec));
-    ms = (ms >= 0) ? ms : 0;
+    ms = ngx_max(ms, 0);
 
     return ngx_sprintf(buf, "%T.%03M", ms / 1000, ms % 1000);
 }
@@ -747,8 +747,7 @@ ngx_http_log_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    fmt->name.len = sizeof("combined") - 1;
-    fmt->name.data = (u_char *) "combined";
+    ngx_str_set(&fmt->name, "combined");
 
     fmt->flushes = NULL;
 
@@ -922,8 +921,7 @@ ngx_http_log_set_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 
     } else {
-        name.len = sizeof("combined") - 1;
-        name.data = (u_char *) "combined";
+        ngx_str_set(&name, "combined");
         lmcf->combined_used = 1;
     }
 

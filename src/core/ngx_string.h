@@ -38,6 +38,9 @@ typedef struct {
 
 #define ngx_string(str)     { sizeof(str) - 1, (u_char *) str }
 #define ngx_null_string     { 0, NULL }
+#define ngx_str_set(str, text)                                               \
+    (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
+#define ngx_str_null(str)   (str)->len = 0; (str)->data = NULL
 
 
 #define ngx_tolower(c)      (u_char) ((c >= 'A' && c <= 'Z') ? (c | 0x20) : c)
@@ -161,6 +164,7 @@ ngx_int_t ngx_memn2cmp(u_char *s1, u_char *s2, size_t n1, size_t n2);
 ngx_int_t ngx_dns_strcmp(u_char *s1, u_char *s2);
 
 ngx_int_t ngx_atoi(u_char *line, size_t n);
+ngx_int_t ngx_atofp(u_char *line, size_t n, size_t point);
 ssize_t ngx_atosz(u_char *line, size_t n);
 off_t ngx_atoof(u_char *line, size_t n);
 time_t ngx_atotm(u_char *line, size_t n);

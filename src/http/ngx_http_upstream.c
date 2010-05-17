@@ -365,8 +365,6 @@ ngx_http_upstream_create(ngx_http_request_t *r)
     if (u && u->cleanup) {
         r->main->count++;
         ngx_http_upstream_cleanup(r);
-        *u->cleanup = NULL;
-        u->cleanup = NULL;
     }
 
     u = ngx_pcalloc(r->pool, sizeof(ngx_http_upstream_t));
@@ -1802,8 +1800,7 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
         }
 
         uri = &u->headers_in.x_accel_redirect->value;
-        args.len = 0;
-        args.data = NULL;
+        ngx_str_null(&args);
         flags = NGX_HTTP_LOG_UNSAFE;
 
         if (ngx_http_parse_unsafe_uri(r, uri, &args, &flags) != NGX_OK) {
@@ -3026,16 +3023,18 @@ ngx_http_upstream_process_cache_control(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    last = h->value.data + h->value.len;
+    p = h->value.data;
+    last = p + h->value.len;
 
-    if (ngx_strlcasestrn(h->value.data, last, (u_char *) "no-cache", 8 - 1)
-        != NULL)
+    if (ngx_strlcasestrn(p, last, (u_char *) "no-cache", 8 - 1) != NULL
+        || ngx_strlcasestrn(p, last, (u_char *) "no-store", 8 - 1) != NULL
+        || ngx_strlcasestrn(p, last, (u_char *) "private", 7 - 1) != NULL)
     {
         u->cacheable = 0;
         return NGX_OK;
     }
 
-    p = ngx_strlcasestrn(h->value.data, last, (u_char *) "max-age=", 8 - 1);
+    p = ngx_strlcasestrn(p, last, (u_char *) "max-age=", 8 - 1);
 
     if (p == NULL) {
         return NGX_OK;
@@ -3712,7 +3711,7 @@ ngx_http_upstream_response_time_variable(ngx_http_request_t *r,
         if (state[i].status) {
             ms = (ngx_msec_int_t)
                      (state[i].response_sec * 1000 + state[i].response_msec);
-            ms = (ms >= 0) ? ms : 0;
+            ms = ngx_max(ms, 0);
             p = ngx_sprintf(p, "%d.%03d", ms / 1000, ms % 1000);
 
         } else {

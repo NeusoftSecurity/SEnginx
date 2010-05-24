@@ -1,4 +1,20 @@
 
+Changes with nginx 0.8.38                                        24 May 2010
+
+    *) Feature: the "proxy_no_cache" and "fastcgi_no_cache" directives.
+
+    *) Feature: now the "rewrite" directive does a redirect automatically 
+       if the $scheme variable is used.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: now "limit_req" delay directive conforms to the described 
+       algorithm.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: the $uid_got variable might not be used in the SSI and perl 
+       modules.
+
+
 Changes with nginx 0.8.37                                        17 May 2010
 
     *) Feature: the ngx_http_split_clients_module.

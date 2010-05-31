@@ -1152,7 +1152,7 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
 
     tf = clcf->try_files;
 
-    alias = clcf->alias ? clcf->name.len : 0;
+    alias = clcf->alias;
 
     for ( ;; ) {
 
@@ -1222,8 +1222,9 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
 
         tf++;
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "try to use file: \"%s\" \"%s\"", name, path.data);
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "try to use %s: \"%s\" \"%s\"",
+                       test_dir ? "dir" : "file", name, path.data);
 
         if (tf->lengths == NULL && tf->name.len == 0) {
 
@@ -1281,6 +1282,13 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
         if (!alias) {
             r->uri = path;
 
+#if (NGX_PCRE)
+        } else if (clcf->regex) {
+            if (!test_dir) {
+                r->uri = path;
+                r->add_uri_to_alias = 1;
+            }
+#endif
         } else {
             r->uri.len = alias + path.len;
             r->uri.data = ngx_pnalloc(r->pool, r->uri.len);
@@ -1748,7 +1756,7 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-    alias = clcf->alias ? clcf->name.len : 0;
+    alias = clcf->alias;
 
     if (alias && !r->valid_location) {
         ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
@@ -1776,7 +1784,9 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
         ngx_uint_t  captures;
 
         captures = alias && clcf->regex;
-        reserved += captures ? 1 : r->uri.len - alias + 1;
+
+        reserved += captures ? r->add_uri_to_alias ? r->uri.len + 1 : 1
+                             : r->uri.len - alias + 1;
 #else
         reserved += r->uri.len - alias + 1;
 #endif
@@ -1797,8 +1807,12 @@ ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *path,
 
 #if (NGX_PCRE)
         if (captures) {
-            *last = '\0';
-            return last;
+            if (!r->add_uri_to_alias) {
+                *last = '\0';
+                return last;
+            }
+
+            alias = 0;
         }
 #endif
     }
@@ -2206,6 +2220,7 @@ ngx_http_internal_redirect(ngx_http_request_t *r,
 #endif
 
     r->internal = 1;
+    r->add_uri_to_alias = 0;
     r->main->count++;
 
     ngx_http_handler(r);
@@ -3589,16 +3604,15 @@ ngx_http_core_root(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_core_loc_conf_t *clcf = conf;
 
     ngx_str_t                  *value;
-    ngx_uint_t                  alias, n;
+    ngx_int_t                   alias;
+    ngx_uint_t                  n;
     ngx_http_script_compile_t   sc;
 
     alias = (cmd->name.len == sizeof("alias") - 1) ? 1 : 0;
 
     if (clcf->root.data) {
 
-        /* the (ngx_uint_t) cast is required by gcc 2.7.2.3 */
-
-        if ((ngx_uint_t) clcf->alias == alias) {
+        if ((clcf->alias != 0) == alias) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "\"%V\" directive is duplicate",
                                &cmd->name);
@@ -3644,7 +3658,7 @@ ngx_http_core_root(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    clcf->alias = alias;
+    clcf->alias = alias ? clcf->name.len : 0;
     clcf->root = value[1];
 
     if (!alias && clcf->root.data[clcf->root.len - 1] == '/') {

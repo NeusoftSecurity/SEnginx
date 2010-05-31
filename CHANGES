@@ -1,4 +1,17 @@
 
+Changes with nginx 0.8.39                                        31 May 2010
+
+    *) Bugfix: an inherited "alias" directive worked incorrectly in 
+       inclusive location.
+
+    *) Bugfix: in "alias" with variables and "try_files" directives 
+       combination.
+
+    *) Bugfix: listen unix domain and IPv6 sockets did not inherit while 
+       online upgrade.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.8.38                                        24 May 2010
 
     *) Feature: the "proxy_no_cache" and "fastcgi_no_cache" directives.

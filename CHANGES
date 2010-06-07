@@ -1,4 +1,23 @@
 
+Changes with nginx 0.8.40                                        07 Jun 2010
+
+    *) Security: now nginx/Windows ignores default file stream name.
+       Thanks to Jose Antonio Vazquez Gonzalez.
+
+    *) Feature: the ngx_http_uwsgi_module.
+       Thanks to Roberto De Ioris.
+
+    *) Feature: a "fastcgi_param" directive with value starting with 
+       "HTTP_" overrides a client request header line.
+
+    *) Bugfix: the "If-Modified-Since", "If-Range", etc. client request 
+       header lines were passed to FastCGI-server while caching.
+
+    *) Bugfix: listen unix domain socket could not be changed during 
+       reconfiguration.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.8.39                                        31 May 2010
 
     *) Bugfix: an inherited "alias" directive worked incorrectly in 

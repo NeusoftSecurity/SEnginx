@@ -1,4 +1,19 @@
 
+Changes with nginx 0.8.41                                        15 Jun 2010
+
+    *) Security: nginx/Windows worker might be terminated abnormally if a 
+       requested file name has invalid UTF-8 encoding.
+
+    *) Change: now nginx allows to use spaces in a request line.
+
+    *) Bugfix: the "proxy_redirect" directive changed incorrectly a backend 
+       "Refresh" response header line.
+       Thanks to Andrey Andreew and Max Sogin.
+
+    *) Bugfix: nginx did not support path without host name in 
+       "Destination" request header line.
+
+
 Changes with nginx 0.8.40                                        07 Jun 2010
 
     *) Security: now nginx/Windows ignores default file stream name.

@@ -824,10 +824,6 @@ ngx_http_handler(ngx_http_request_t *r)
         r->phase_handler = cmcf->phase_engine.server_rewrite_index;
     }
 
-    if (r->unparsed_uri.len) {
-        r->valid_unparsed_uri = 1;
-    }
-
     r->valid_location = 1;
 #if (NGX_HTTP_GZIP)
     r->gzip_tested = 0;
@@ -3707,6 +3703,7 @@ static ngx_http_method_name_t  ngx_methods_names[] = {
    { (u_char *) "PROPPATCH", (uint32_t) ~NGX_HTTP_PROPPATCH },
    { (u_char *) "LOCK",      (uint32_t) ~NGX_HTTP_LOCK },
    { (u_char *) "UNLOCK",    (uint32_t) ~NGX_HTTP_UNLOCK },
+   { (u_char *) "PATCH",     (uint32_t) ~NGX_HTTP_PATCH },
    { NULL, 0 }
 };
 

@@ -911,7 +911,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
         loc_len = (r->valid_location && ctx->vars.uri.len) ?
                       plcf->location.len : 0;
 
-        if (r->quoted_uri || r->internal) {
+        if (r->quoted_uri || r->space_in_uri || r->internal) {
             escape = 2 * ngx_escape_uri(NULL, r->uri.data + loc_len,
                                         r->uri.len - loc_len, NGX_ESCAPE_URI);
         }
@@ -1765,16 +1765,14 @@ ngx_http_proxy_rewrite_redirect_text(ngx_http_request_t *r, ngx_table_elt_t *h,
         return NGX_DECLINED;
     }
 
-    len = prefix + pr->replacement.text.len + h->value.len - pr->redirect.len;
+    len = pr->replacement.text.len + h->value.len - pr->redirect.len;
 
     data = ngx_pnalloc(r->pool, len);
     if (data == NULL) {
         return NGX_ERROR;
     }
 
-    p = data;
-
-    p = ngx_copy(p, h->value.data, prefix);
+    p = ngx_copy(data, h->value.data, prefix);
 
     if (pr->replacement.text.len) {
         p = ngx_copy(p, pr->replacement.text.data, pr->replacement.text.len);
@@ -1812,7 +1810,7 @@ ngx_http_proxy_rewrite_redirect_vars(ngx_http_request_t *r, ngx_table_elt_t *h,
     e.ip = pr->replacement.vars.lengths;
     e.request = r;
 
-    len = prefix + h->value.len - pr->redirect.len;
+    len = h->value.len - pr->redirect.len;
 
     while (*(uintptr_t *) e.ip) {
         lcode = *(ngx_http_script_len_code_pt *) e.ip;
@@ -1824,9 +1822,7 @@ ngx_http_proxy_rewrite_redirect_vars(ngx_http_request_t *r, ngx_table_elt_t *h,
         return NGX_ERROR;
     }
 
-    p = data;
-
-    p = ngx_copy(p, h->value.data, prefix);
+    p = ngx_copy(data, h->value.data, prefix);
 
     e.ip = pr->replacement.vars.values;
     e.pos = p;

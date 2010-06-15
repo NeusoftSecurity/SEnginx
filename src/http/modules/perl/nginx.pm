@@ -14,6 +14,7 @@ our @EXPORT = qw(
 
     HTTP_OK
     HTTP_CREATED
+    HTTP_ACCEPTED
     HTTP_NO_CONTENT
     HTTP_PARTIAL_CONTENT
 
@@ -47,7 +48,7 @@ our @EXPORT = qw(
     HTTP_INSUFFICIENT_STORAGE
 );
 
-our $VERSION = '0.8.40';
+our $VERSION = '0.8.41';
 
 require XSLoader;
 XSLoader::load('nginx', $VERSION);
@@ -59,6 +60,7 @@ use constant DECLINED                       => -5;
 
 use constant HTTP_OK                        => 200;
 use constant HTTP_CREATED                   => 201;
+use constant HTTP_ACCEPTED                  => 202;
 use constant HTTP_NO_CONTENT                => 204;
 use constant HTTP_PARTIAL_CONTENT           => 206;
 

@@ -429,6 +429,8 @@ struct ngx_http_location_tree_node_s {
 void ngx_http_core_run_phases(ngx_http_request_t *r);
 ngx_int_t ngx_http_core_generic_phase(ngx_http_request_t *r,
     ngx_http_phase_handler_t *ph);
+ngx_int_t ngx_http_core_rewrite_phase(ngx_http_request_t *r,
+    ngx_http_phase_handler_t *ph);
 ngx_int_t ngx_http_core_find_config_phase(ngx_http_request_t *r,
     ngx_http_phase_handler_t *ph);
 ngx_int_t ngx_http_core_post_rewrite_phase(ngx_http_request_t *r,
@@ -446,6 +448,8 @@ ngx_int_t ngx_http_core_content_phase(ngx_http_request_t *r,
 void *ngx_http_test_content_type(ngx_http_request_t *r, ngx_hash_t *types_hash);
 ngx_int_t ngx_http_set_content_type(ngx_http_request_t *r);
 void ngx_http_set_exten(ngx_http_request_t *r);
+ngx_int_t ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status,
+    ngx_str_t *ct, ngx_http_complex_value_t *cv);
 u_char *ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *name,
     size_t *root_length, size_t reserved);
 ngx_int_t ngx_http_auth_basic_user(ngx_http_request_t *r);

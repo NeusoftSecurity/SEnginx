@@ -1,4 +1,16 @@
 
+Changes with nginx 0.8.42                                        21 Jun 2010
+
+    *) Change: now nginx tests locations given by regular expressions, if 
+       request was matched exactly by a location given by a prefix string. 
+       The previous behavior has been introduced in 0.7.1.
+
+    *) Feature: the ngx_http_scgi_module.
+       Thanks to Manlio Perillo.
+
+    *) Feature: a text answer may be added to a "return" directive.
+
+
 Changes with nginx 0.8.41                                        15 Jun 2010
 
     *) Security: nginx/Windows worker might be terminated abnormally if a 

@@ -246,7 +246,14 @@ ngx_http_eval_handler(ngx_http_request_t *r)
         return rc;
     }
 
-    sr->discard_body = 1;
+    /*
+     * create a fake request body instead of discarding the real one
+     * in order to avoid attempts to read it
+     */
+    sr->request_body = ngx_pcalloc(r->pool, sizeof(ngx_http_request_body_t));
+    if (sr->request_body == NULL) {
+        return NGX_ERROR;
+    }
 
     ctx->in_progress = 1;
     ctx->done = 0;

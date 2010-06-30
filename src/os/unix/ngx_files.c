@@ -76,7 +76,7 @@ ngx_write_file(ngx_file_t *file, u_char *buf, size_t size, off_t offset)
 #if (NGX_HAVE_PWRITE)
 
     for ( ;; ) {
-        n = pwrite(file->fd, buf, size, offset);
+        n = pwrite(file->fd, buf + written, size, offset);
 
         if (n == -1) {
             ngx_log_error(NGX_LOG_CRIT, file->log, ngx_errno,
@@ -108,7 +108,7 @@ ngx_write_file(ngx_file_t *file, u_char *buf, size_t size, off_t offset)
     }
 
     for ( ;; ) {
-        n = write(file->fd, buf, size);
+        n = write(file->fd, buf + written, size);
 
         if (n == -1) {
             ngx_log_error(NGX_LOG_CRIT, file->log, ngx_errno,
@@ -255,6 +255,58 @@ ngx_set_file_time(u_char *name, ngx_fd_t fd, time_t s)
     }
 
     return NGX_ERROR;
+}
+
+
+ngx_int_t
+ngx_create_file_mapping(ngx_file_mapping_t *fm)
+{
+    fm->fd = ngx_open_file(fm->name, NGX_FILE_RDWR, NGX_FILE_TRUNCATE,
+                           NGX_FILE_DEFAULT_ACCESS);
+    if (fm->fd == NGX_INVALID_FILE) {
+        ngx_log_error(NGX_LOG_CRIT, fm->log, ngx_errno,
+                      ngx_open_file_n " \"%s\" failed", fm->name);
+        return NGX_ERROR;
+    }
+
+    if (ftruncate(fm->fd, fm->size) == -1) {
+        ngx_log_error(NGX_LOG_CRIT, fm->log, ngx_errno,
+                      "ftruncate() \"%s\" failed", fm->name);
+        goto failed;
+    }
+
+    fm->addr = mmap(NULL, fm->size, PROT_READ|PROT_WRITE, MAP_SHARED,
+                    fm->fd, 0);
+    if (fm->addr != MAP_FAILED) {
+        return NGX_OK;
+    }
+
+    ngx_log_error(NGX_LOG_CRIT, fm->log, ngx_errno,
+                  "mmap(%uz) \"%s\" failed", fm->size, fm->name);
+
+failed:
+
+    if (ngx_close_file(fm->fd) == NGX_FILE_ERROR) {
+        ngx_log_error(NGX_LOG_ALERT, fm->log, ngx_errno,
+                      ngx_close_file_n " \"%s\" failed", fm->name);
+    }
+
+    return NGX_ERROR;
+}
+
+
+void
+ngx_close_file_mapping(ngx_file_mapping_t *fm)
+{
+    if (munmap(fm->addr, fm->size) == -1) {
+        ngx_log_error(NGX_LOG_CRIT, fm->log, ngx_errno,
+                      "munmap(%uz) \"%s\" failed", fm->size, fm->name);
+    }
+
+    if (ngx_close_file(fm->fd) == NGX_FILE_ERROR) {
+        ngx_log_error(NGX_LOG_ALERT, fm->log, ngx_errno,
+                      ngx_close_file_n " \"%s\" failed", fm->name);
+    }
 }
 
 

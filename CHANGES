@@ -1,4 +1,20 @@
 
+Changes with nginx 0.8.43                                        30 Jun 2010
+
+    *) Feature: large geo ranges base loading speed-up.
+
+    *) Bugfix: an error_page redirection to "location /zero { return 204; 
+       }" without changing status code kept the error body; the bug had 
+       appeared in 0.8.42.
+
+    *) Bugfix: nginx might close IPv6 listen socket during 
+       reconfiguration.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: the $uid_set variable may be used at any request processing 
+       stage.
+
+
 Changes with nginx 0.8.42                                        21 Jun 2010
 
     *) Change: now nginx tests locations given by regular expressions, if 

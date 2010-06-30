@@ -89,7 +89,7 @@ ngx_strlchr(u_char *p, u_char *last, u_char c)
 #if (NGX_MEMCPY_LIMIT)
 
 void *ngx_memcpy(void *dst, void *src, size_t n);
-#define ngx_cpymem(dst, src, n)   ((u_char *) ngx_memcpy(dst, src, n)) + (n)
+#define ngx_cpymem(dst, src, n)   (((u_char *) ngx_memcpy(dst, src, n)) + (n))
 
 #else
 
@@ -99,7 +99,7 @@ void *ngx_memcpy(void *dst, void *src, size_t n);
  * icc8 compile memcpy(d, s, 4) to the inline "mov"es or XMM moves.
  */
 #define ngx_memcpy(dst, src, n)   (void) memcpy(dst, src, n)
-#define ngx_cpymem(dst, src, n)   ((u_char *) memcpy(dst, src, n)) + (n)
+#define ngx_cpymem(dst, src, n)   (((u_char *) memcpy(dst, src, n)) + (n))
 
 #endif
 
@@ -199,6 +199,17 @@ uintptr_t ngx_escape_uri(u_char *dst, u_char *src, size_t size,
 void ngx_unescape_uri(u_char **dst, u_char **src, size_t size, ngx_uint_t type);
 uintptr_t ngx_escape_html(u_char *dst, u_char *src, size_t size);
 
+
+typedef struct {
+    ngx_rbtree_node_t         node;
+    ngx_str_t                 str;
+} ngx_str_node_t;
+
+
+void ngx_str_rbtree_insert_value(ngx_rbtree_node_t *temp,
+    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
+ngx_str_node_t *ngx_str_rbtree_lookup(ngx_rbtree_t *rbtree, ngx_str_t *name,
+    uint32_t hash);
 
 
 void ngx_sort(void *base, size_t n, size_t size,

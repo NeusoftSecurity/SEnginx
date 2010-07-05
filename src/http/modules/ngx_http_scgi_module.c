@@ -70,15 +70,6 @@ static ngx_conf_bitmask_t ngx_http_scgi_next_upstream_masks[] = {
 };
 
 
-static ngx_conf_bitmask_t ngx_http_scgi_ignore_headers_masks[] = {
-    { ngx_string("X-Accel-Redirect"), NGX_HTTP_UPSTREAM_IGN_XA_REDIRECT },
-    { ngx_string("X-Accel-Expires"), NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES },
-    { ngx_string("Expires"), NGX_HTTP_UPSTREAM_IGN_EXPIRES },
-    { ngx_string("Cache-Control"), NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL },
-    { ngx_null_string, 0 }
-};
-
-
 ngx_module_t  ngx_http_scgi_module;
 
 
@@ -296,7 +287,7 @@ static ngx_command_t ngx_http_scgi_commands[] = {
       ngx_conf_set_bitmask_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_scgi_loc_conf_t, upstream.ignore_headers),
-      &ngx_http_scgi_ignore_headers_masks },
+      &ngx_http_upstream_ignore_headers_masks },
 
       ngx_null_command
 };
@@ -345,19 +336,6 @@ static ngx_str_t ngx_http_scgi_hide_headers[] = {
 
 
 #if (NGX_HTTP_CACHE)
-
-static ngx_str_t  ngx_http_scgi_hide_cache_headers[] = {
-    ngx_string("Status"),
-    ngx_string("X-Accel-Expires"),
-    ngx_string("X-Accel-Redirect"),
-    ngx_string("X-Accel-Limit-Rate"),
-    ngx_string("X-Accel-Buffering"),
-    ngx_string("X-Accel-Charset"),
-    ngx_string("Set-Cookie"),
-    ngx_string("P3P"),
-    ngx_null_string
-};
-
 
 static ngx_keyval_t  ngx_http_scgi_cache_headers[] = {
     { ngx_string("HTTP_IF_MODIFIED_SINCE"), ngx_string("") },
@@ -1061,7 +1039,6 @@ ngx_http_scgi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     u_char                       *p;
     size_t                        size;
     uintptr_t                    *code;
-    ngx_str_t                    *hide;
     ngx_uint_t                    i;
     ngx_array_t                   headers_names;
     ngx_keyval_t                 *src;
@@ -1280,18 +1257,8 @@ ngx_http_scgi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     hash.bucket_size = ngx_align(64, ngx_cacheline_size);
     hash.name = "scgi_hide_headers_hash";
 
-#if (NGX_HTTP_CACHE)
-
-    hide = conf->upstream.cache ? ngx_http_scgi_hide_cache_headers:
-                                  ngx_http_scgi_hide_headers;
-#else
-
-    hide = ngx_http_scgi_hide_headers;
-
-#endif
-
     if (ngx_http_upstream_hide_headers_hash(cf, &conf->upstream,
-                                            &prev->upstream, hide, &hash)
+            &prev->upstream, ngx_http_scgi_hide_headers, &hash)
         != NGX_OK)
     {
         return NGX_CONF_ERROR;

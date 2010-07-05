@@ -1,10 +1,29 @@
 
+Changes with nginx 0.8.44                                        05 Jul 2010
+
+    *) Change: now nginx does not cache by default backend responses, if 
+       they have a "Set-Cookie" header line.
+
+    *) Feature: the "listen" directive supports the "setfib" parameter. 
+       Thanks to Andrew Filonov.
+
+    *) Bugfix: the "sub_filter" directive might change character case on 
+       partial match.
+
+    *) Bugfix: compatibility with HP/UX.
+
+    *) Bugfix: compatibility with AIX xcl_r compiler.
+
+    *) Bugfix: nginx treated a large SSLv2 packets as plain requests.
+       Thanks to Miroslaw Jaworski.
+
+
 Changes with nginx 0.8.43                                        30 Jun 2010
 
     *) Feature: large geo ranges base loading speed-up.
 
-    *) Bugfix: an error_page redirection to "location /zero { return 204; 
-       }" without changing status code kept the error body; the bug had 
+    *) Bugfix: an error_page redirection to "location /zero {return 204;}" 
+       without changing status code kept the error body; the bug had 
        appeared in 0.8.42.
 
     *) Bugfix: nginx might close IPv6 listen socket during 

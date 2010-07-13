@@ -1,10 +1,23 @@
 
+Changes with nginx 0.8.45                                        13 Jul 2010
+
+    *) Feature: ngx_http_xslt_filter improvements.
+       Thanks to Laurence Rowe.
+
+    *) Bugfix: SSI response might be truncated after include with 
+       wait="yes"; the bug had appeared in 0.7.25.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: the "listen" directive did not support the "setfib=0" 
+       parameter.
+
+
 Changes with nginx 0.8.44                                        05 Jul 2010
 
     *) Change: now nginx does not cache by default backend responses, if 
        they have a "Set-Cookie" header line.
 
-    *) Feature: the "listen" directive supports the "setfib" parameter. 
+    *) Feature: the "listen" directive supports the "setfib" parameter.
        Thanks to Andrew Filonov.
 
     *) Bugfix: the "sub_filter" directive might change character case on 
@@ -14,7 +27,7 @@ Changes with nginx 0.8.44                                        05 Jul 2010
 
     *) Bugfix: compatibility with AIX xcl_r compiler.
 
-    *) Bugfix: nginx treated a large SSLv2 packets as plain requests.
+    *) Bugfix: nginx treated large SSLv2 packets as plain requests.
        Thanks to Miroslaw Jaworski.
 
 

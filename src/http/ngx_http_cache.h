@@ -14,11 +14,12 @@
 
 
 #define NGX_HTTP_CACHE_MISS          1
-#define NGX_HTTP_CACHE_EXPIRED       2
-#define NGX_HTTP_CACHE_STALE         3
-#define NGX_HTTP_CACHE_UPDATING      4
-#define NGX_HTTP_CACHE_HIT           5
-#define NGX_HTTP_CACHE_SCARCE        6
+#define NGX_HTTP_CACHE_BYPASS        2
+#define NGX_HTTP_CACHE_EXPIRED       3
+#define NGX_HTTP_CACHE_STALE         4
+#define NGX_HTTP_CACHE_UPDATING      5
+#define NGX_HTTP_CACHE_HIT           6
+#define NGX_HTTP_CACHE_SCARCE        7
 
 #define NGX_HTTP_CACHE_KEY_LEN       16
 
@@ -121,6 +122,8 @@ struct ngx_http_file_cache_s {
 };
 
 
+ngx_int_t ngx_http_file_cache_new(ngx_http_request_t *r);
+ngx_int_t ngx_http_file_cache_create(ngx_http_request_t *r);
 void ngx_http_file_cache_create_key(ngx_http_request_t *r);
 ngx_int_t ngx_http_file_cache_open(ngx_http_request_t *r);
 void ngx_http_file_cache_set_header(ngx_http_request_t *r, u_char *buf);
@@ -132,10 +135,6 @@ time_t ngx_http_file_cache_valid(ngx_array_t *cache_valid, ngx_uint_t status);
 char *ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 char *ngx_http_file_cache_valid_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
-    void *conf);
-
-ngx_int_t ngx_http_cache(ngx_http_request_t *r, ngx_array_t *no_cache);
-char *ngx_http_no_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 
 

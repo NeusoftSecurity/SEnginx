@@ -633,11 +633,17 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     if (c == NULL) {
 
-        if (u->conf->no_cache) {
-            rc = ngx_http_cache(r, u->conf->no_cache);
-            if (rc != NGX_OK) {
-                return rc;
-            }
+        switch (ngx_http_test_predicates(r, u->conf->cache_bypass)) {
+
+        case NGX_ERROR:
+            return NGX_ERROR;
+
+        case NGX_DECLINED:
+            u->cache_status = NGX_HTTP_CACHE_BYPASS;
+            return NGX_DECLINED;
+
+        default: /* NGX_OK */
+            break;
         }
 
         if (!(r->method & u->conf->cache_methods)) {
@@ -648,17 +654,9 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
             u->method = ngx_http_core_get_method;
         }
 
-        c = ngx_pcalloc(r->pool, sizeof(ngx_http_cache_t));
-        if (c == NULL) {
+        if (ngx_http_file_cache_new(r) != NGX_OK) {
             return NGX_ERROR;
         }
-
-        if (ngx_array_init(&c->keys, r->pool, 4, sizeof(ngx_str_t)) != NGX_OK) {
-            return NGX_ERROR;
-        }
-
-        r->cache = c;
-        c->file.log = r->connection->log;
 
         if (u->create_key(r) != NGX_OK) {
             return NGX_ERROR;
@@ -669,6 +667,8 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
         ngx_http_file_cache_create_key(r);
 
         u->cacheable = 1;
+
+        c = r->cache;
 
         c->min_uses = u->conf->cache_min_uses;
         c->body_start = u->conf->buffer_size;
@@ -2096,6 +2096,47 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
     if (r->cache && r->cache->file.fd != NGX_INVALID_FILE) {
         ngx_pool_run_cleanup_file(r->pool, r->cache->file.fd);
         r->cache->file.fd = NGX_INVALID_FILE;
+    }
+
+    switch (ngx_http_test_predicates(r, u->conf->no_cache)) {
+
+    case NGX_ERROR:
+        ngx_http_upstream_finalize_request(r, u, 0);
+        return;
+
+    case NGX_DECLINED:
+        u->cacheable = 0;
+        break;
+
+    default: /* NGX_OK */
+
+        if (u->cache_status == NGX_HTTP_CACHE_BYPASS) {
+
+            if (ngx_http_file_cache_new(r) != NGX_OK) {
+                ngx_http_upstream_finalize_request(r, u, 0);
+                return;
+            }
+
+            if (u->create_key(r) != NGX_OK) {
+                ngx_http_upstream_finalize_request(r, u, 0);
+                return;
+            }
+
+            /* TODO: add keys */
+
+            r->cache->min_uses = u->conf->cache_min_uses;
+            r->cache->body_start = u->conf->buffer_size;
+            r->cache->file_cache = u->conf->cache->data;
+
+            if (ngx_http_file_cache_create(r) != NGX_OK) {
+                ngx_http_upstream_finalize_request(r, u, 0);
+                return;
+            }
+
+            u->cacheable = 1;
+        }
+
+        break;
     }
 
     if (u->cacheable) {

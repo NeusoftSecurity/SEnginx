@@ -1720,6 +1720,21 @@ ngx_http_upstream_intercept_errors(ngx_http_request_t *r,
                 r->headers_out.www_authenticate = h;
             }
 
+#if (NGX_HTTP_CACHE)
+
+            if (r->cache) {
+                time_t  valid;
+
+                valid = ngx_http_file_cache_valid(u->conf->cache_valid, status);
+
+                if (valid) {
+                    r->cache->valid_sec = ngx_time() + valid;
+                    r->cache->error = status;
+                }
+
+                ngx_http_file_cache_free(r->cache, u->pipe->temp_file);
+            }
+#endif
             ngx_http_upstream_finalize_request(r, u, status);
 
             return NGX_OK;
@@ -1933,7 +1948,7 @@ ngx_http_upstream_process_body_in_memory(ngx_http_request_t *r,
 
         if (size == 0) {
             ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                          "upstream buffer is too small to read repsonse");
+                          "upstream buffer is too small to read response");
             ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
             return;
         }
@@ -2171,7 +2186,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
                    "http cacheable: %d", u->cacheable);
 
     if (u->cacheable == 0 && r->cache) {
-        ngx_http_file_cache_free(r, u->pipe->temp_file);
+        ngx_http_file_cache_free(r->cache, u->pipe->temp_file);
     }
 
 #endif
@@ -2646,7 +2661,7 @@ ngx_http_upstream_process_request(ngx_http_request_t *r)
                 ngx_http_file_cache_update(r, u->pipe->temp_file);
 
             } else if (p->upstream_error) {
-                ngx_http_file_cache_free(r, u->pipe->temp_file);
+                ngx_http_file_cache_free(r->cache, u->pipe->temp_file);
             }
         }
 
@@ -2974,10 +2989,6 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
     if (u->cacheable && r->cache) {
         time_t  valid;
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http upstream cache fd: %d",
-                       r->cache->file.fd);
-
         if (rc == NGX_HTTP_BAD_GATEWAY || rc == NGX_HTTP_GATEWAY_TIME_OUT) {
 
             valid = ngx_http_file_cache_valid(u->conf->cache_valid, rc);
@@ -2988,7 +2999,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
             }
         }
 
-        ngx_http_file_cache_free(r, u->pipe->temp_file);
+        ngx_http_file_cache_free(r->cache, u->pipe->temp_file);
     }
 
 #endif

@@ -1,9 +1,42 @@
 
+Changes with nginx 0.8.48                                        03 Aug 2010
+
+    *) Change: now the "server_name" directive default value is an empty 
+       name "".
+       Thanks to Gena Makhomed.
+
+    *) Change: now the "server_name_in_redirect" directive default value is 
+       "off".
+
+    *) Feature: the $geoip_dma_code, $geoip_area_code, and 
+       $geoip_region_name variables.
+       Thanks to Christine McGonagle.
+
+    *) Bugfix: the "proxy_pass", "fastcgi_pass", "uwsgi_pass", and 
+       "scgi_pass" directives were not inherited inside "limit_except" 
+       blocks.
+
+    *) Bugfix: the "proxy_cache_min_uses", "fastcgi_cache_min_uses" 
+       "uwsgi_cache_min_uses", and "scgi_cache_min_uses" directives did not 
+       work; the bug had appeared in 0.8.46.
+
+    *) Bugfix: the "fastcgi_split_path_info" directive used incorrectly 
+       captures, if only parts of an URI were captured.
+       Thanks to Yuriy Taraday and Frank Enderle.
+
+    *) Bugfix: the "rewrite" directive did not escape a ";" character 
+       during copying from URI to query string.
+       Thanks to Daisuke Murase.
+
+    *) Bugfix: the ngx_http_image_filter_module closed a connection, if an 
+       image was larger than "image_filter_buffer" size.
+
+
 Changes with nginx 0.8.47                                        28 Jul 2010
 
     *) Bugfix: $request_time variable had invalid values for subrequests.
 
-    *) Bugfix: errors intercepted by error_page could be cached.
+    *) Bugfix: errors intercepted by error_page could not be cached.
 
     *) Bugfix: a cache manager process my got caught in an endless loop, if 
        max_size parameter was used; the bug had appeared in 0.8.46.

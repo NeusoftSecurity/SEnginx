@@ -30,7 +30,11 @@ static ngx_int_t ngx_http_geoip_country_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_geoip_city_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_geoip_region_name_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_geoip_city_float_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_geoip_city_int_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static GeoIPRecord *ngx_http_geoip_get_city_record(ngx_http_request_t *r);
 
@@ -128,6 +132,10 @@ static ngx_http_variable_t  ngx_http_geoip_vars[] = {
       ngx_http_geoip_city_variable,
       offsetof(GeoIPRecord, region), 0, 0 },
 
+    { ngx_string("geoip_region_name"), NULL,
+      ngx_http_geoip_region_name_variable,
+      0, 0, 0 },
+
     { ngx_string("geoip_city"), NULL,
       ngx_http_geoip_city_variable,
       offsetof(GeoIPRecord, city), 0, 0 },
@@ -143,6 +151,14 @@ static ngx_http_variable_t  ngx_http_geoip_vars[] = {
     { ngx_string("geoip_longitude"), NULL,
       ngx_http_geoip_city_float_variable,
       offsetof(GeoIPRecord, longitude), 0, 0 },
+
+    { ngx_string("geoip_dma_code"), NULL,
+      ngx_http_geoip_city_int_variable,
+      offsetof(GeoIPRecord, dma_code), 0, 0 },
+
+    { ngx_string("geoip_area_code"), NULL,
+      ngx_http_geoip_city_int_variable,
+      offsetof(GeoIPRecord, area_code), 0, 0 },
 
     { ngx_null_string, NULL, NULL, 0, 0, 0 }
 };
@@ -245,6 +261,48 @@ not_found:
 
 
 static ngx_int_t
+ngx_http_geoip_region_name_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    size_t        len;
+    const char   *val;
+    GeoIPRecord  *gr;
+
+    gr = ngx_http_geoip_get_city_record(r);
+    if (gr == NULL) {
+        goto not_found;
+    }
+
+    val = GeoIP_region_name_by_code(gr->country_code, gr->region);
+
+    len = ngx_strlen(val);
+    v->data = ngx_pnalloc(r->pool, len);
+
+    if (v->data == NULL) {
+        GeoIPRecord_delete(gr);
+        return NGX_ERROR;
+    }
+
+    ngx_memcpy(v->data, val, len);
+
+    v->len = len;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    GeoIPRecord_delete(gr);
+
+    return NGX_OK;
+
+not_found:
+
+    v->not_found = 1;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 ngx_http_geoip_city_float_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -266,6 +324,35 @@ ngx_http_geoip_city_float_variable(ngx_http_request_t *r,
     val = *(float *) ((char *) gr + data);
 
     v->len = ngx_sprintf(v->data, "%.4f", val) - v->data;
+
+    GeoIPRecord_delete(gr);
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_geoip_city_int_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    int           val;
+    GeoIPRecord  *gr;
+
+    gr = ngx_http_geoip_get_city_record(r);
+    if (gr == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    v->data = ngx_pnalloc(r->pool, NGX_INT64_LEN);
+    if (v->data == NULL) {
+        GeoIPRecord_delete(gr);
+        return NGX_ERROR;
+    }
+
+    val = *(int *) ((char *) gr + data);
+
+    v->len = ngx_sprintf(v->data, "%d", val) - v->data;
 
     GeoIPRecord_delete(gr);
 

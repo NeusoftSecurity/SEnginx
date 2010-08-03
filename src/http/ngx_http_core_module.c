@@ -3011,7 +3011,7 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 
     if (conf->server_name.data == NULL) {
-        conf->server_name = cf->cycle->hostname;
+        ngx_str_set(&conf->server_name, "");
 
         sn = ngx_array_push(&conf->server_names);
         if (sn == NULL) {
@@ -3022,8 +3022,7 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
         sn->regex = NULL;
 #endif
         sn->server = conf;
-        sn->name.len = conf->server_name.len;
-        sn->name.data = conf->server_name.data;
+        ngx_str_set(&sn->name, "");
     }
 
     return NGX_CONF_OK;
@@ -3331,7 +3330,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->reset_timedout_connection,
                               prev->reset_timedout_connection, 0);
     ngx_conf_merge_value(conf->server_name_in_redirect,
-                              prev->server_name_in_redirect, 1);
+                              prev->server_name_in_redirect, 0);
     ngx_conf_merge_value(conf->port_in_redirect, prev->port_in_redirect, 1);
     ngx_conf_merge_value(conf->msie_padding, prev->msie_padding, 1);
     ngx_conf_merge_value(conf->msie_refresh, prev->msie_refresh, 0);
@@ -3609,23 +3608,16 @@ ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ch = value[1].data[0];
 
     if (cscf->server_name.data == NULL) {
-        if (value[1].len) {
-            name = value[1];
+        name = value[1];
 
-            if (ch == '.') {
-                name.len--;
-                name.data++;
-            }
+        if (ch == '.') {
+            name.len--;
+            name.data++;
+        }
 
-            cscf->server_name.len = name.len;
-            cscf->server_name.data = ngx_pstrdup(cf->pool, &name);
-            if (cscf->server_name.data == NULL) {
-                return NGX_CONF_ERROR;
-            }
-
-        } else {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "the first server name must not be empty");
+        cscf->server_name.len = name.len;
+        cscf->server_name.data = ngx_pstrdup(cf->pool, &name);
+        if (cscf->server_name.data == NULL) {
             return NGX_CONF_ERROR;
         }
     }
@@ -3916,6 +3908,7 @@ ngx_http_core_limit_except(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     clcf->loc_conf = ctx->loc_conf;
     clcf->name = pclcf->name;
     clcf->noname = 1;
+    clcf->lmt_excpt = 1;
 
     if (ngx_http_add_location(cf, &pclcf->locations, clcf) != NGX_OK) {
         return NGX_CONF_ERROR;

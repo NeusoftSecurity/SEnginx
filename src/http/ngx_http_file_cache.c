@@ -581,6 +581,7 @@ ngx_http_file_cache_exists(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
 
     fcn->uses = 1;
     fcn->count = 1;
+    fcn->updating = 0;
 
 renew:
 
@@ -927,9 +928,12 @@ ngx_http_file_cache_free(ngx_http_cache_t *c, ngx_temp_file_t *tf)
     }
 
     if (c->error) {
-        fcn->valid_sec = c->valid_sec;
-        fcn->valid_msec = c->valid_msec;
         fcn->error = c->error;
+
+        if (c->valid_sec) {
+            fcn->valid_sec = c->valid_sec;
+            fcn->valid_msec = c->valid_msec;
+        }
 
     } else if (!fcn->exists && fcn->count == 0 && c->min_uses == 1) {
         ngx_queue_remove(&fcn->queue);
@@ -1426,6 +1430,7 @@ ngx_http_file_cache_add(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
         fcn->valid_msec = c->valid_msec;
         fcn->error = 0;
         fcn->exists = 1;
+        fcn->updating = 0;
         fcn->uniq = c->uniq;
         fcn->valid_sec = c->valid_sec;
         fcn->body_start = c->body_start;

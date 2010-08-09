@@ -231,7 +231,6 @@ ngx_http_geoip_city_variable(ngx_http_request_t *r,
 
     len = ngx_strlen(val);
     v->data = ngx_pnalloc(r->pool, len);
-
     if (v->data == NULL) {
         GeoIPRecord_delete(gr);
         return NGX_ERROR;
@@ -275,11 +274,15 @@ ngx_http_geoip_region_name_variable(ngx_http_request_t *r,
 
     val = GeoIP_region_name_by_code(gr->country_code, gr->region);
 
+    GeoIPRecord_delete(gr);
+
+    if (val == NULL) {
+        goto not_found;
+    }
+
     len = ngx_strlen(val);
     v->data = ngx_pnalloc(r->pool, len);
-
     if (v->data == NULL) {
-        GeoIPRecord_delete(gr);
         return NGX_ERROR;
     }
 
@@ -289,8 +292,6 @@ ngx_http_geoip_region_name_variable(ngx_http_request_t *r,
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
-
-    GeoIPRecord_delete(gr);
 
     return NGX_OK;
 

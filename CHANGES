@@ -1,4 +1,17 @@
 
+Changes with nginx 0.8.49                                        09 Aug 2010
+
+    *) Feature: the "image_filter_jpeg_quality" directive supports 
+       variables.
+
+    *) Bugfix: a segmentation fault might occur in a worker process, if the 
+       $geoip_region_name variables was used; the bug had appeared in 
+       0.8.48.
+
+    *) Bugfix: errors intercepted by error_page were cached only for next 
+       request; the bug had appeared in 0.8.48.
+
+
 Changes with nginx 0.8.48                                        03 Aug 2010
 
     *) Change: now the "server_name" directive default value is an empty 

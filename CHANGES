@@ -1,4 +1,23 @@
 
+Changes with nginx 0.8.50                                        02 Sep 2010
+
+    *) Feature: the "secure_link", "secure_link_md5", and 
+       "secure_link_expires" directives of the ngx_http_secure_link_module.
+
+    *) Feature: the -q switch.
+       Thanks to Gena Makhomed.
+
+    *) Bugfix: worker processes may got caught in an endless loop during 
+       reconfiguration, if a caching was used; the bug had appeared in 
+       0.8.48.
+
+    *) Bugfix: in the "gzip_disable" directive.
+       Thanks to Derrick Petzold.
+
+    *) Bugfix: nginx/Windows could not send stop, quit, reopen, and reload 
+       signals to a process run in other session.
+
+
 Changes with nginx 0.8.49                                        09 Aug 2010
 
     *) Feature: the "image_filter_jpeg_quality" directive supports 
@@ -51,8 +70,8 @@ Changes with nginx 0.8.47                                        28 Jul 2010
 
     *) Bugfix: errors intercepted by error_page could not be cached.
 
-    *) Bugfix: a cache manager process my got caught in an endless loop, if 
-       max_size parameter was used; the bug had appeared in 0.8.46.
+    *) Bugfix: a cache manager process may got caught in an endless loop, 
+       if max_size parameter was used; the bug had appeared in 0.8.46.
 
 
 Changes with nginx 0.8.46                                        19 Jul 2010

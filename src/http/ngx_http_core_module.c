@@ -3111,8 +3111,8 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     clcf->gzip_http_version = NGX_CONF_UNSET_UINT;
 #if (NGX_PCRE)
     clcf->gzip_disable = NGX_CONF_UNSET_PTR;
-    clcf->gzip_disable_msie6 = 3;
 #endif
+    clcf->gzip_disable_msie6 = 3;
 #endif
 
     return clcf;
@@ -3788,13 +3788,19 @@ ngx_http_core_root(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     n = ngx_http_script_variables_count(&clcf->root);
 
     ngx_memzero(&sc, sizeof(ngx_http_script_compile_t));
+    sc.variables = n;
+
+#if (NGX_PCRE)
+    if (alias && clcf->regex) {
+        n = 1;
+    }
+#endif
 
     if (n) {
         sc.cf = cf;
         sc.source = &clcf->root;
         sc.lengths = &clcf->root_lengths;
         sc.values = &clcf->root_values;
-        sc.variables = n;
         sc.complete_lengths = 1;
         sc.complete_values = 1;
 
@@ -4384,7 +4390,7 @@ ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     for (i = 1; i < cf->args->nelts; i++) {
 
-        if (ngx_strcmp(value[1].data, "msie6") == 0) {
+        if (ngx_strcmp(value[i].data, "msie6") == 0) {
             clcf->gzip_disable_msie6 = 1;
             continue;
         }
@@ -4394,7 +4400,7 @@ ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             return NGX_CONF_ERROR;
         }
 
-        rc.pattern = value[1];
+        rc.pattern = value[i];
         rc.options = NGX_REGEX_CASELESS;
 
         if (ngx_regex_compile(&rc) != NGX_OK) {

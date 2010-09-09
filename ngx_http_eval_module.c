@@ -232,7 +232,12 @@ ngx_http_eval_handler(ngx_http_request_t *r)
     /*
      * Wait for subrequest to complete
      */
+
+#if defined nginx_version && nginx_version >= 8042
+    return NGX_DONE;
+#else
     return NGX_AGAIN;
+#endif
 }
 
 static ngx_int_t

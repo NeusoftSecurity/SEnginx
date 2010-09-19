@@ -173,7 +173,11 @@ ngx_http_eval_handler(ngx_http_request_t *r)
     }
 
     if(ctx->in_progress) {
+#if defined nginx_version && nginx_version >= 8042
+        return NGX_DONE;
+#else
         return NGX_AGAIN;
+#endif
     }
 
     /*

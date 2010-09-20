@@ -7,6 +7,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#include <nginx.h>
 
 typedef struct {
     ngx_http_variable_t        *variable;
@@ -369,6 +370,10 @@ ngx_http_eval_set_variable_value(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx
     variable = ctx->current_block->variables->elts;
 
     for(i = 0;i<ctx->current_block->variables->nelts;i++) {
+        if(variable[i].variable->name.len != name->len) {
+            continue;
+        }
+
         if(!ngx_strncasecmp(variable[i].variable->name.data, name->data, variable[i].variable->name.len)) {
             ctx->values[i]->len = value->len;
             ctx->values[i]->data = value->data;

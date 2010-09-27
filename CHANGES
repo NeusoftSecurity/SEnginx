@@ -1,4 +1,15 @@
 
+Changes with nginx 0.8.51                                        27 Sep 2010
+
+    *) Change: the "secure_link_expires" directive has been canceled.
+
+    *) Change: a logging level of resolver errors has been lowered from 
+       "alert" to "error".
+
+    *) Feature: now a listen socket "ssl" parameter may be set several 
+       times.
+
+
 Changes with nginx 0.8.50                                        02 Sep 2010
 
     *) Feature: the "secure_link", "secure_link_md5", and 

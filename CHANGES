@@ -1,4 +1,10 @@
 
+Changes with nginx 0.8.52                                        28 Sep 2010
+
+    *) Bugfix: nginx used SSL mode for a listen socket if any listen option 
+       was set; the bug had appeared in 0.8.51.
+
+
 Changes with nginx 0.8.51                                        27 Sep 2010
 
     *) Change: the "secure_link_expires" directive has been canceled.

@@ -216,7 +216,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
 
     flags |= NGX_HTTP_SUBREQUEST_IN_MEMORY|NGX_HTTP_SUBREQUEST_WAITED;
 
-    rc = ngx_http_subrequest(r, &block->eval_location, &args, &sr, psr, flags);
+    rc = ngx_http_subrequest(r, &block->eval_location, &r->args, &sr, psr, flags);
 
     if (rc == NGX_ERROR || rc == NGX_DONE) {
         return rc;

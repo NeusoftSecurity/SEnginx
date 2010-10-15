@@ -397,7 +397,7 @@ ngx_http_eval_parse_param(ngx_http_request_t *r, ngx_http_eval_ctx_t *ctx, ngx_s
     ngx_str_t                  name;
     ngx_str_t                  value;
 
-    p = (u_char *) ngx_strchr(param->data, '=');
+    p = (u_char *) ngx_strlchr(param->data, param->data + param->len, '=');
 
     if(p == NULL) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,

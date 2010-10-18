@@ -1,4 +1,20 @@
 
+Changes with nginx 0.8.53                                        18 Oct 2010
+
+    *) Feature: now the "error_page" directive allows to change a status 
+       code in a redirect.
+
+    *) Feature: the "gzip_disable" directive supports special "degradation" 
+       mask.
+
+    *) Bugfix: a socket leak might occurred if file AIO was used.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: if the first server had no "listen" directive and there was 
+       no explicit default server, then a next server with a "listen" 
+       directive became the default server; the bug had appeared in 0.8.21.
+
+
 Changes with nginx 0.8.52                                        28 Sep 2010
 
     *) Bugfix: nginx used SSL mode for a listen socket if any listen option 
@@ -131,7 +147,7 @@ Changes with nginx 0.8.44                                        05 Jul 2010
 
     *) Bugfix: compatibility with HP/UX.
 
-    *) Bugfix: compatibility with AIX xcl_r compiler.
+    *) Bugfix: compatibility with AIX xlC_r compiler.
 
     *) Bugfix: nginx treated large SSLv2 packets as plain requests.
        Thanks to Miroslaw Jaworski.

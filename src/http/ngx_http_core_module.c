@@ -2427,7 +2427,9 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     ngx_uint_t                   i;
     ngx_conf_t                   pcf;
     ngx_http_module_t           *module;
+    struct sockaddr_in          *sin;
     ngx_http_conf_ctx_t         *ctx, *http_ctx;
+    ngx_http_listen_opt_t        lsopt;
     ngx_http_core_srv_conf_t    *cscf, **cscfp;
     ngx_http_core_main_conf_t   *cmcf;
 
@@ -2505,6 +2507,37 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     rv = ngx_conf_parse(cf, NULL);
 
     *cf = pcf;
+
+    if (rv == NGX_CONF_OK && !cscf->listen) {
+        ngx_memzero(&lsopt, sizeof(ngx_http_listen_opt_t));
+
+        sin = &lsopt.u.sockaddr_in;
+
+        sin->sin_family = AF_INET;
+#if (NGX_WIN32)
+        sin->sin_port = htons(80);
+#else
+        sin->sin_port = htons((getuid() == 0) ? 80 : 8000);
+#endif
+        sin->sin_addr.s_addr = INADDR_ANY;
+
+        lsopt.socklen = sizeof(struct sockaddr_in);
+
+        lsopt.backlog = NGX_LISTEN_BACKLOG;
+        lsopt.rcvbuf = -1;
+        lsopt.sndbuf = -1;
+#if (NGX_HAVE_SETFIB)
+        lsopt.setfib = -1;
+#endif
+        lsopt.wildcard = 1;
+
+        (void) ngx_sock_ntop(&lsopt.u.sockaddr, lsopt.addr,
+                             NGX_SOCKADDR_STRLEN, 1);
+
+        if (ngx_http_add_listen(cf, cscf, &lsopt) != NGX_OK) {
+            return NGX_CONF_ERROR;
+        }
+    }
 
     return rv;
 }
@@ -2946,8 +2979,6 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_core_srv_conf_t *prev = parent;
     ngx_http_core_srv_conf_t *conf = child;
 
-    struct sockaddr_in      *sin;
-    ngx_http_listen_opt_t    lsopt;
     ngx_http_server_name_t  *sn;
 
     /* TODO: it does not merge, it inits only */
@@ -2978,37 +3009,6 @@ ngx_http_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->underscores_in_headers,
                               prev->underscores_in_headers, 0);
-
-    if (!conf->listen) {
-        ngx_memzero(&lsopt, sizeof(ngx_http_listen_opt_t));
-
-        sin = &lsopt.u.sockaddr_in;
-
-        sin->sin_family = AF_INET;
-#if (NGX_WIN32)
-        sin->sin_port = htons(80);
-#else
-        sin->sin_port = htons((getuid() == 0) ? 80 : 8000);
-#endif
-        sin->sin_addr.s_addr = INADDR_ANY;
-
-        lsopt.socklen = sizeof(struct sockaddr_in);
-
-        lsopt.backlog = NGX_LISTEN_BACKLOG;
-        lsopt.rcvbuf = -1;
-        lsopt.sndbuf = -1;
-#if (NGX_HAVE_SETFIB)
-        lsopt.setfib = -1;
-#endif
-        lsopt.wildcard = 1;
-
-        (void) ngx_sock_ntop(&lsopt.u.sockaddr, lsopt.addr,
-                             NGX_SOCKADDR_STRLEN, 1);
-
-        if (ngx_http_add_listen(cf, conf, &lsopt) == NGX_OK) {
-            return NGX_CONF_OK;
-        }
-    }
 
     if (conf->server_name.data == NULL) {
         ngx_str_set(&conf->server_name, "");
@@ -3113,6 +3113,9 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     clcf->gzip_disable = NGX_CONF_UNSET_PTR;
 #endif
     clcf->gzip_disable_msie6 = 3;
+#if (NGX_HTTP_DEGRADATION)
+    clcf->gzip_disable_degradation = 3;
+#endif
 #endif
 
     return clcf;
@@ -3373,6 +3376,15 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
             (prev->gzip_disable_msie6 == 3) ? 0 : prev->gzip_disable_msie6;
     }
 
+#if (NGX_HTTP_DEGRADATION)
+
+    if (conf->gzip_disable_degradation == 3) {
+        conf->gzip_disable_degradation =
+            (prev->gzip_disable_degradation == 3) ?
+                 0 : prev->gzip_disable_degradation;
+    }
+
+#endif
 #endif
 
     return NGX_CONF_OK;
@@ -4057,19 +4069,15 @@ ngx_http_core_error_page(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             return NGX_CONF_ERROR;
         }
 
-        if (overwrite >= 0) {
-            err->overwrite = overwrite;
+        err->overwrite = overwrite;
 
-        } else {
+        if (overwrite == -1) {
             switch (err->status) {
                 case NGX_HTTP_TO_HTTPS:
                 case NGX_HTTPS_CERT_ERROR:
                 case NGX_HTTPS_NO_CERT:
                     err->overwrite = NGX_HTTP_BAD_REQUEST;
-                    break;
-
                 default:
-                    err->overwrite = err->status;
                     break;
             }
         }
@@ -4394,6 +4402,15 @@ ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
+#if (NGX_HTTP_DEGRADATION)
+
+        if (ngx_strcmp(value[i].data, "degradation") == 0) {
+            clcf->gzip_disable_degradation = 1;
+            continue;
+        }
+
+#endif
+
         re = ngx_array_push(clcf->gzip_disable);
         if (re == NULL) {
             return NGX_CONF_ERROR;
@@ -4414,20 +4431,35 @@ ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 
 #else
-    ngx_str_t  *value;
+    ngx_str_t   *value;
+    ngx_uint_t   i;
 
     value = cf->args->elts;
 
-    if (cf->args->nelts == 2 && ngx_strcmp(value[1].data, "msie6") == 0) {
-        clcf->gzip_disable_msie6 = 1;
-        return NGX_CONF_OK;
+    for (i = 1; i < cf->args->nelts; i++) {
+        if (ngx_strcmp(value[i].data, "msie6") == 0) {
+            clcf->gzip_disable_msie6 = 1;
+            continue;
+        }
+
+#if (NGX_HTTP_DEGRADATION)
+
+        if (ngx_strcmp(value[i].data, "degradation") == 0) {
+            clcf->gzip_disable_degradation = 1;
+            continue;
+        }
+
+#endif
+
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "without PCRE library \"gzip_disable\" supports "
+                           "builtin \"msie6\" and \"degradation\" mask only");
+
+        return NGX_CONF_ERROR;
     }
 
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "without PCRE library \"gzip_disable\" supports "
-                       "builtin \"msie6\" mask only");
+    return NGX_CONF_OK;
 
-    return NGX_CONF_ERROR;
 #endif
 }
 

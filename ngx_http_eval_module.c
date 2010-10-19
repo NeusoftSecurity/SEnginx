@@ -145,6 +145,9 @@ ngx_http_eval_handler(ngx_http_request_t *r)
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_eval_module);
 
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "eval module: r=%p, ctx=%p", r, ctx);
+
     if(ctx == NULL) {
         ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_eval_ctx_t));
         if (ctx == NULL) {
@@ -237,6 +240,10 @@ ngx_http_eval_handler(ngx_http_request_t *r)
     /*
      * Wait for subrequest to complete
      */
+
+#if defined nginx_version && nginx_version >= 8011
+    r->main->count++;
+#endif
 
 #if defined nginx_version && nginx_version >= 8042
     return NGX_DONE;

@@ -141,7 +141,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
     ngx_http_eval_block_t      *block;
     u_char                     *p;
 
-    if(r != r->main && ngx_memn2cmp(r->uri.data, "/eval_", r->uri.len, 6 - 1) == 0) {
+    if(r != r->main && ngx_memn2cmp(r->uri.data, "/eval_", r->uri.len, sizeof("/eval_") - 1) == 0) {
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
         loc_len = r->valid_location ? clcf->name.len : 0;

@@ -1,4 +1,34 @@
 
+Changes with nginx 0.9.0                                         29 Nov 2010
+
+    *) Feature: the "keepalive_disable" directive.
+
+    *) Feature: the "map" directive supports variables as value of a 
+       defined variable.
+
+    *) Feature: the "map" directive supports empty strings as value of the 
+       first parameter.
+
+    *) Feature: the "map" directive supports expressions as the first 
+       parameter.
+
+    *) Feature: nginx(8) manual page.
+       Thanks to Sergey Osokin.
+
+    *) Feature: Linux accept4() support.
+       Thanks to Simon Liu.
+
+    *) Workaround: elimination of Linux linker warning about "sys_errlist" 
+       and "sys_nerr"; the warning had appeared in 0.8.35.
+
+    *) Bugfix: a segmentation fault might occur in a worker process, if the 
+       "auth_basic" directive was used.
+       Thanks to Michail Laletin.
+
+    *) Bugfix: compatibility with ngx_http_eval_module; the bug had 
+       appeared in 0.8.42.
+
+
 Changes with nginx 0.8.53                                        18 Oct 2010
 
     *) Feature: now the "error_page" directive allows to change a status 
@@ -1558,7 +1588,7 @@ Changes with nginx 0.7.18                                        13 Oct 2008
     *) Bugfix: the "http_503" parameter of the "proxy_next_upstream" or 
        "fastcgi_next_upstream" directives did not work.
 
-    *) Bugfix: nginx might send a "Transfer-Encoding: chunked" heaer line 
+    *) Bugfix: nginx might send a "Transfer-Encoding: chunked" header line 
        for HEAD requests.
 
     *) Bugfix: now accept threshold depends on worker_connections.

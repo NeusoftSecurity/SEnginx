@@ -19,15 +19,17 @@ typedef struct {
     ngx_hash_keys_arrays_t      keys;
 
     ngx_array_t                *values_hash;
+    ngx_array_t                 var_values;
 
     ngx_http_variable_value_t  *default_value;
+    ngx_conf_t                 *cf;
     ngx_uint_t                  hostnames;      /* unsigned  hostnames:1 */
 } ngx_http_map_conf_ctx_t;
 
 
 typedef struct {
     ngx_hash_combined_t         hash;
-    ngx_int_t                   index;
+    ngx_http_complex_value_t    value;
     ngx_http_variable_value_t  *default_value;
     ngx_uint_t                  hostnames;      /* unsigned  hostnames:1 */
 } ngx_http_map_ctx_t;
@@ -105,49 +107,43 @@ ngx_http_map_variable(ngx_http_request_t *r, ngx_http_variable_value_t *v,
     ngx_http_map_ctx_t  *map = (ngx_http_map_ctx_t *) data;
 
     size_t                      len;
-    u_char                     *name;
+    ngx_str_t                   val;
     ngx_uint_t                  key;
-    ngx_http_variable_value_t  *vv, *value;
+    ngx_http_variable_value_t  *value;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http map started");
 
-    vv = ngx_http_get_flushed_variable(r, map->index);
-
-    if (vv == NULL || vv->not_found) {
-        *v = *map->default_value;
-        return NGX_OK;
-    }
-
-    len = vv->len;
-
-    if (len && map->hostnames && vv->data[len - 1] == '.') {
-        len--;
-    }
-
-    if (len == 0) {
-        *v = *map->default_value;
-        return NGX_OK;
-    }
-
-    name = ngx_pnalloc(r->pool, len);
-    if (name == NULL) {
+    if (ngx_http_complex_value(r, &map->value, &val) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    key = ngx_hash_strlow(name, vv->data, len);
+    len = val.len;
 
-    value = ngx_hash_find_combined(&map->hash, key, name, len);
-
-    if (value) {
-        *v = *value;
-
-    } else {
-        *v = *map->default_value;
+    if (len && map->hostnames && val.data[len - 1] == '.') {
+        len--;
     }
 
+    key = ngx_hash_strlow(val.data, val.data, len);
+
+    value = ngx_hash_find_combined(&map->hash, key, val.data, len);
+
+    if (value == NULL) {
+        value = map->default_value;
+    }
+
+    if (!value->valid) {
+        value = ngx_http_get_flushed_variable(r, (ngx_uint_t) value->data);
+
+        if (value == NULL || value->not_found) {
+            value = &ngx_http_variable_null_value;
+        }
+    }
+
+    *v = *value;
+
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http map: \"%v\" \"%v\"", vv, v);
+                   "http map: \"%v\" \"%v\"", &val, v);
 
     return NGX_OK;
 }
@@ -175,14 +171,15 @@ ngx_http_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_map_conf_t  *mcf = conf;
 
-    char                      *rv;
-    ngx_str_t                 *value, name;
-    ngx_conf_t                 save;
-    ngx_pool_t                *pool;
-    ngx_hash_init_t            hash;
-    ngx_http_map_ctx_t        *map;
-    ngx_http_variable_t       *var;
-    ngx_http_map_conf_ctx_t    ctx;
+    char                              *rv;
+    ngx_str_t                         *value, name;
+    ngx_conf_t                         save;
+    ngx_pool_t                        *pool;
+    ngx_hash_init_t                    hash;
+    ngx_http_map_ctx_t                *map;
+    ngx_http_variable_t               *var;
+    ngx_http_map_conf_ctx_t            ctx;
+    ngx_http_compile_complex_value_t   ccv;
 
     if (mcf->hash_max_size == NGX_CONF_UNSET_UINT) {
         mcf->hash_max_size = 2048;
@@ -203,13 +200,13 @@ ngx_http_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    name = value[1];
-    name.len--;
-    name.data++;
+    ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
-    map->index = ngx_http_get_variable_index(cf, &name);
+    ccv.cf = cf;
+    ccv.value = &value[1];
+    ccv.complex_value = &map->value;
 
-    if (map->index == NGX_ERROR) {
+    if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
@@ -244,7 +241,16 @@ ngx_http_map_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
+    if (ngx_array_init(&ctx.var_values, cf->pool, 2,
+                       sizeof(ngx_http_variable_value_t))
+        != NGX_OK)
+    {
+        ngx_destroy_pool(pool);
+        return NGX_CONF_ERROR;
+    }
+
     ctx.default_value = NULL;
+    ctx.cf = &save;
     ctx.hostnames = 0;
 
     save = *cf;
@@ -344,8 +350,8 @@ ngx_http_map_cmp_dns_wildcards(const void *one, const void *two)
 static char *
 ngx_http_map(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 {
-    ngx_int_t                   rc;
-    ngx_str_t                  *value, file;
+    ngx_int_t                   rc, index;
+    ngx_str_t                  *value, file, name;
     ngx_uint_t                  i, key;
     ngx_http_map_conf_ctx_t    *ctx;
     ngx_http_variable_value_t  *var, **vp;
@@ -364,11 +370,6 @@ ngx_http_map(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "invalid number of the map parameters");
         return NGX_CONF_ERROR;
-
-    } else if (value[0].len == 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "invalid first parameter");
-        return NGX_CONF_ERROR;
     }
 
     if (ngx_strcmp(value[0].data, "include") == 0) {
@@ -381,6 +382,45 @@ ngx_http_map(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
         ngx_log_debug1(NGX_LOG_DEBUG_CORE, cf->log, 0, "include %s", file.data);
 
         return ngx_conf_parse(cf, &file);
+    }
+
+    if (value[1].data[0] == '$') {
+        name = value[1];
+        name.len--;
+        name.data++;
+
+        index = ngx_http_get_variable_index(ctx->cf, &name);
+        if (index == NGX_ERROR) {
+            return NGX_CONF_ERROR;
+        }
+
+        var = ctx->var_values.elts;
+
+        for (i = 0; i < ctx->var_values.nelts; i++) {
+            if (index == (ngx_int_t) var[i].data) {
+                goto found;
+            }
+        }
+
+        var = ngx_palloc(ctx->keys.pool, sizeof(ngx_http_variable_value_t));
+        if (var == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        var->valid = 0;
+        var->no_cacheable = 0;
+        var->not_found = 0;
+        var->len = 0;
+        var->data = (u_char *) index;
+
+        vp = ngx_array_push(&ctx->var_values);
+        if (vp == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        *vp = var;
+
+        goto found;
     }
 
     key = 0;
@@ -451,7 +491,7 @@ found:
         return NGX_CONF_OK;
     }
 
-    if (value[0].len && value[0].data[0] == '!') {
+    if (value[0].len && value[0].data[0] == '\\') {
         value[0].len--;
         value[0].data++;
     }

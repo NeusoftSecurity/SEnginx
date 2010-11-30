@@ -1,4 +1,10 @@
 
+Changes with nginx 0.9.1                                         30 Nov 2010
+
+    *) Bugfix: "return CODE message" directrives did not work; the bug had 
+       appeared in 0.9.0.
+
+
 Changes with nginx 0.9.0                                         29 Nov 2010
 
     *) Feature: the "keepalive_disable" directive.

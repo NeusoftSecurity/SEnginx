@@ -128,14 +128,35 @@ ngx_module_t  ngx_http_eval_module = {
 static ngx_int_t
 ngx_http_eval_handler(ngx_http_request_t *r)
 {
+    size_t                      loc_len;
     ngx_str_t                   args; 
+    ngx_str_t                   subrequest_uri;
     ngx_uint_t                  flags;
+    ngx_http_core_loc_conf_t   *clcf;
     ngx_http_eval_loc_conf_t   *ecf;
     ngx_http_eval_ctx_t        *ctx;
     ngx_http_request_t         *sr; 
     ngx_int_t                   rc;
     ngx_http_post_subrequest_t *psr;
     ngx_http_eval_block_t      *block;
+    u_char                     *p;
+
+    if(r != r->main && r->uri.len > 6 && r->uri.data[0] == '/' && r->uri.data[1] == 'e'
+        && r->uri.data[2] == 'v' && r->uri.data[3] == 'a' && r->uri.data[4] == 'l'
+        && r->uri.data[5] == '_')
+    {
+        clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+
+        loc_len = r->valid_location ? clcf->name.len : 0;
+
+        if(r->uri.len != loc_len) {
+            r->uri.data += loc_len;
+            r->uri.len -= loc_len;
+        }
+        else {
+            r->uri.len = 1;
+        }
+    }
 
     ecf = ngx_http_get_module_loc_conf(r, ngx_http_eval_module);
 
@@ -206,11 +227,22 @@ ngx_http_eval_handler(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    args.len = 0;
-    args.data = NULL;
+    args.len = r->args.len;
+    args.data = r->args.data;
     flags = 0;
 
-    if (ngx_http_parse_unsafe_uri(r, &block->eval_location, &args, &flags) != NGX_OK) {
+    subrequest_uri.len = block->eval_location.len + r->uri.len;
+
+    p = subrequest_uri.data = ngx_palloc(r->pool, subrequest_uri.len);
+
+    if(p == NULL) {
+        return NGX_ERROR;
+    }
+
+    p = ngx_copy(p, block->eval_location.data, block->eval_location.len);
+    p = ngx_copy(p, r->uri.data, r->uri.len);
+
+    if (ngx_http_parse_unsafe_uri(r, &subrequest_uri, &args, &flags) != NGX_OK) {
         return NGX_ERROR;
     }
 
@@ -219,7 +251,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
 
     flags |= NGX_HTTP_SUBREQUEST_IN_MEMORY|NGX_HTTP_SUBREQUEST_WAITED;
 
-    rc = ngx_http_subrequest(r, &block->eval_location, &r->args, &sr, psr, flags);
+    rc = ngx_http_subrequest(r, &subrequest_uri, &args, &sr, psr, flags);
 
     if (rc == NGX_ERROR || rc == NGX_DONE) {
         return rc;
@@ -665,7 +697,7 @@ ngx_http_eval_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     clcf->loc_conf = ctx->loc_conf;
     clcf->name = name;
-    clcf->exact_match = 1;
+    clcf->exact_match = 0;
     clcf->noname = 0;
     clcf->internal = 1;
     clcf->noregex = 1;

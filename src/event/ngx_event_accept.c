@@ -26,6 +26,9 @@ ngx_event_accept(ngx_event_t *ev)
     ngx_connection_t  *c, *lc;
     ngx_event_conf_t  *ecf;
     u_char             sa[NGX_SOCKADDRLEN];
+#if (NGX_HAVE_ACCEPT4)
+    static ngx_uint_t  use_accept4 = 1;
+#endif
 
     ecf = ngx_event_get_conf(ngx_cycle->conf_ctx, ngx_event_core_module);
 
@@ -47,7 +50,12 @@ ngx_event_accept(ngx_event_t *ev)
         socklen = NGX_SOCKADDRLEN;
 
 #if (NGX_HAVE_ACCEPT4)
-        s = accept4(lc->fd, (struct sockaddr *) sa, &socklen, SOCK_NONBLOCK);
+        if (use_accept4) {
+            s = accept4(lc->fd, (struct sockaddr *) sa, &socklen,
+                        SOCK_NONBLOCK);
+        } else {
+            s = accept(lc->fd, (struct sockaddr *) sa, &socklen);
+        }
 #else
         s = accept(lc->fd, (struct sockaddr *) sa, &socklen);
 #endif
@@ -61,9 +69,22 @@ ngx_event_accept(ngx_event_t *ev)
                 return;
             }
 
+#if (NGX_HAVE_ACCEPT4)
+            ngx_log_error((ngx_uint_t) ((err == NGX_ECONNABORTED) ?
+                                             NGX_LOG_ERR : NGX_LOG_ALERT),
+                          ev->log, err,
+                          use_accept4 ? "accept4() failed" : "accept() failed");
+
+            if (use_accept4 && err == NGX_ENOSYS) {
+                use_accept4 = 0;
+                ngx_inherited_nonblocking = 0;
+                continue;
+            }
+#else
             ngx_log_error((ngx_uint_t) ((err == NGX_ECONNABORTED) ?
                                              NGX_LOG_ERR : NGX_LOG_ALERT),
                           ev->log, err, "accept() failed");
+#endif
 
             if (err == NGX_ECONNABORTED) {
                 if (ngx_event_flags & NGX_USE_KQUEUE_EVENT) {

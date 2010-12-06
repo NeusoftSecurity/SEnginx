@@ -183,6 +183,15 @@ ngx_http_eval_handler(ngx_http_request_t *r)
         ngx_http_set_ctx(r, ctx, ngx_http_eval_module);
     }
 
+    if (ecf != ctx->base_conf) {
+        ngx_memzero(ctx, sizeof(ngx_http_eval_ctx_t));
+
+        ctx->base_conf = ecf;
+
+        ctx->current_block = ecf->blocks->elts;
+        ctx->last_block = ctx->current_block + ecf->blocks->nelts - 1;
+    }
+        
     if(ctx->done) {
         ctx->in_progress = 0;
 

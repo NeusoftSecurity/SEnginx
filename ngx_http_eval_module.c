@@ -282,7 +282,7 @@ ngx_http_eval_handler(ngx_http_request_t *r)
      * Wait for subrequest to complete
      */
 
-#if defined nginx_version && nginx_version >= 8011
+#if defined nginx_version && nginx_version >= 8011 && nginx_version < 9000
     r->main->count++;
 #endif
 

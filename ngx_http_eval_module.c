@@ -22,6 +22,7 @@ typedef struct {
 typedef struct {
     ngx_array_t                *blocks;
     ngx_flag_t                  escalate;
+    ngx_flag_t                  inherit_body;
     ngx_str_t                   override_content_type;
 } ngx_http_eval_loc_conf_t;
 
@@ -84,6 +85,13 @@ static ngx_command_t  ngx_http_eval_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_eval_loc_conf_t, escalate),
+      NULL },
+
+    { ngx_string("eval_inherit_body"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_eval_loc_conf_t, inherit_body),
       NULL },
 
     { ngx_string("eval_override_content_type"),
@@ -166,8 +174,8 @@ ngx_http_eval_handler(ngx_http_request_t *r)
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_eval_module);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "eval module: r=%p, ctx=%p", r, ctx);
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "eval module: r=%p, ctx=%p, uri=%p", r, ctx, &r->uri);
 
     if(ctx == NULL) {
         ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_eval_ctx_t));
@@ -266,13 +274,21 @@ ngx_http_eval_handler(ngx_http_request_t *r)
         return rc;
     }
 
-    /*
-     * create a fake request body instead of discarding the real one
-     * in order to avoid attempts to read it
-     */
-    sr->request_body = ngx_pcalloc(r->pool, sizeof(ngx_http_request_body_t));
-    if (sr->request_body == NULL) {
-        return NGX_ERROR;
+    if (!ecf->inherit_body) {
+        /*
+         * create a fake request body instead of discarding the real one
+         * in order to avoid attempts to read it
+         */
+        sr->request_body = ngx_pcalloc(r->pool, sizeof(ngx_http_request_body_t));
+        if (sr->request_body == NULL) {
+            return NGX_ERROR;
+        }
+    }
+    else {
+        sr->request_body = r->request_body;
+        sr->header_in = r->header_in;
+
+        r->discard_body = 1;
     }
 
     ctx->in_progress = 1;
@@ -528,6 +544,7 @@ ngx_http_eval_create_loc_conf(ngx_conf_t *cf)
     }
 
     conf->escalate = NGX_CONF_UNSET;
+    conf->inherit_body = NGX_CONF_UNSET;
 
     return conf;
 }
@@ -539,6 +556,7 @@ ngx_http_eval_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_eval_loc_conf_t *conf = child;
 
     ngx_conf_merge_value(conf->escalate, prev->escalate, 0);
+    ngx_conf_merge_value(conf->inherit_body, prev->inherit_body, 0);
     ngx_conf_merge_str_value(conf->override_content_type, prev->override_content_type, "");
 
     return NGX_CONF_OK;

@@ -287,6 +287,11 @@ ngx_http_eval_handler(ngx_http_request_t *r)
     else {
         sr->request_body = r->request_body;
         sr->header_in = r->header_in;
+        sr->headers_in.content_length_n = r->headers_in.content_length_n;
+        sr->headers_in.content_length = r->headers_in.content_length;
+
+        r->headers_in.content_length_n = 0;
+        r->headers_in.content_length = NULL;
 
         r->discard_body = 1;
     }

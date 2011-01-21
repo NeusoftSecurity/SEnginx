@@ -1,4 +1,11 @@
 
+Changes with nginx 0.9.4                                         21 Jan 2011
+
+    *) Feature: the "server_name" directive supports the $hostname variable.
+
+    *) Feature: 494 code for "Request Header Too Large" error.
+
+
 Changes with nginx 0.9.3                                         13 Dec 2010
 
     *) Bugfix: if there was a single server for given IPv6 address:port 
@@ -5028,7 +5035,7 @@ Changes with nginx 0.1.11                                        02 Dec 2004
 Changes with nginx 0.1.10                                        26 Nov 2004
 
     *) Bugfix: if the request without arguments contains "//", "/./", 
-       "/../" or "%XX" then the lost character in the request line was 
+       "/../" or "%XX" then the last character in the request line was 
        lost; the bug had appeared in 0.1.9.
 
     *) Bugfix: the fix in 0.1.9 for the files bigger than 2G on Linux did 

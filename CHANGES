@@ -1,4 +1,23 @@
 
+Changes with nginx 0.9.5                                         21 Feb 2011
+
+    *) Change: now nginx uses a default listen backlog value -1 on 
+       Linux.
+       Thanks to Andrei Nigmatulin.
+
+    *) Feature: the "utf8" parameter of "geoip_country" and "geoip_city" 
+       directives.
+       Thanks to Denis F. Latypoff.
+
+    *) Bugfix: in a default "proxy_redirect" directive if "proxy_pass" 
+       directive has no URI part.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: an "error_page" directive did not work with nonstandard 
+       error codes; the bug had appeared in 0.8.53.
+       Thanks to Maxim Dounin.
+
+
 Changes with nginx 0.9.4                                         21 Jan 2011
 
     *) Feature: the "server_name" directive supports the $hostname variable.

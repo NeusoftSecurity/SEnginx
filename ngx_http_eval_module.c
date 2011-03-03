@@ -292,8 +292,6 @@ ngx_http_eval_handler(ngx_http_request_t *r)
 
         r->headers_in.content_length_n = 0;
         r->headers_in.content_length = NULL;
-
-        r->discard_body = 1;
     }
 
     ctx->in_progress = 1;

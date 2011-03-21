@@ -1,4 +1,13 @@
 
+Changes with nginx 0.9.6                                         21 Mar 2011
+
+    *) Feature: the "map" directive supports regular expressions as value 
+       of the first parameter.
+
+    *) Feature: $time_iso8601 access_log variable.
+       Thanks to Michael Lustfield.
+
+
 Changes with nginx 0.9.5                                         21 Feb 2011
 
     *) Change: now nginx uses a default listen backlog value -1 on 

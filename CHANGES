@@ -1,4 +1,18 @@
 
+Changes with nginx 0.9.7                                         04 Apr 2011
+
+    *) Feature: now keepalive connections may be closed premature, if there 
+       are no free worker connections.
+       Thanks to Maxim Dounin.
+
+    *) Feature: the "rotate" parameter of the "image_filter" directive.
+       Thanks to Adam Bocim.
+
+    *) Bugfix: a case when a backend in "fastcgi_pass", "scgi_pass", or 
+       "uwsgi_pass" directives is given by expression and refers to a 
+       defined upstream.
+
+
 Changes with nginx 0.9.6                                         21 Mar 2011
 
     *) Feature: the "map" directive supports regular expressions as value 

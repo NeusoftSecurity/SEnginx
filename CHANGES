@@ -1,4 +1,15 @@
 
+Changes with nginx 1.0.0                                         12 Apr 2011
+
+    *) Bugfix: a cache manager might hog CPU after reload.
+       Thanks to Maxim Dounin.
+
+    *) Bugfix: an "image_filter crop" directive worked incorrectly coupled 
+       with an "image_filter rotate 180" directive.
+
+    *) Bugfix: a "satisfy any" directive disabled custom 401 error page.
+
+
 Changes with nginx 0.9.7                                         04 Apr 2011
 
     *) Feature: now keepalive connections may be closed premature, if there 

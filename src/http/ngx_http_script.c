@@ -265,7 +265,7 @@ ngx_http_test_predicates(ngx_http_request_t *r, ngx_array_t *predicates)
             return NGX_ERROR;
         }
 
-        if (val.len && val.data[0] != '0') {
+        if (val.len && (val.len != 1 || val.data[0] != '0')) {
             return NGX_DECLINED;
         }
     }
@@ -1395,7 +1395,7 @@ ngx_http_script_if_code(ngx_http_script_engine_t *e)
 
     e->sp--;
 
-    if (e->sp->len && e->sp->data[0] != '0') {
+    if (e->sp->len && (e->sp->len !=1 || e->sp->data[0] != '0')) {
         if (code->loc_conf) {
             e->request->loc_conf = code->loc_conf;
             ngx_http_update_location_config(e->request);

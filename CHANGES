@@ -1,4 +1,15 @@
 
+Changes with nginx 1.0.2                                         10 May 2011
+
+    *) Feature: now shared zones and caches use POSIX semaphores.
+
+    *) Bugfix: in the "rotate" parameter of the "image_filter" directive. 
+       Thanks to Adam Bocim.
+
+    *) Bugfix: nginx could not be built on Solaris; the bug had appeared in 
+       1.0.1.
+
+
 Changes with nginx 1.0.1                                         03 May 2011
 
     *) Change: now the "split_clients" directive uses MurmurHash2 algorithm 
@@ -69,8 +80,7 @@ Changes with nginx 0.9.6                                         21 Mar 2011
 
 Changes with nginx 0.9.5                                         21 Feb 2011
 
-    *) Change: now nginx uses a default listen backlog value -1 on 
-       Linux.
+    *) Change: now nginx uses a default listen backlog value -1 on Linux. 
        Thanks to Andrei Nigmatulin.
 
     *) Feature: the "utf8" parameter of "geoip_country" and "geoip_city" 

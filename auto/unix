@@ -141,7 +141,7 @@ if [ $ngx_found = no ]; then
     ngx_feature_name=NGX_SYS_NERR
     ngx_feature_run=value
     ngx_feature_incs='#include <errno.h>
-                      #include <string.h>'
+                      #include <string.h>
                       #include <stdio.h>'
     ngx_feature_path=
     ngx_feature_libs=
@@ -231,6 +231,18 @@ ngx_feature_test="int  id;
                   id = shmget(IPC_PRIVATE, 4096, (SHM_R|SHM_W|IPC_CREAT));
                   if (id == -1) return 1;
                   shmctl(id, IPC_RMID, NULL);"
+. auto/feature
+
+
+ngx_feature="POSIX semaphores"
+ngx_feature_name="NGX_HAVE_POSIX_SEM"
+ngx_feature_run=yes
+ngx_feature_incs="#include <semaphore.h>"
+ngx_feature_path=
+ngx_feature_libs=
+ngx_feature_test="sem_t  sem;
+                  if (sem_init(&sem, 1, 0) == -1) return 1;
+                  sem_destroy(&sem);"
 . auto/feature
 
 

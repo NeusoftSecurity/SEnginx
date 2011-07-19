@@ -661,6 +661,15 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
         ngx_http_file_cache_create_key(r);
 
+        if (r->cache->header_start >= u->conf->buffer_size) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                "cache key too large, increase upstream buffer size %uz",
+                u->conf->buffer_size);
+
+            r->cache = NULL;
+            return NGX_DECLINED;
+        }
+
         switch (ngx_http_test_predicates(r, u->conf->cache_bypass)) {
 
         case NGX_ERROR:
@@ -2031,15 +2040,6 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
             c->error = 1;
 
         } else {
-
-#if (NGX_HTTP_CACHE)
-
-            if (r->cache) {
-                ngx_http_file_cache_free(r->cache, u->pipe->temp_file);
-            }
-
-#endif
-
             ngx_http_upstream_finalize_request(r, u, rc);
             return;
         }
@@ -2991,16 +2991,19 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
 
 #if (NGX_HTTP_CACHE)
 
-    if (u->cacheable && r->cache) {
-        time_t  valid;
+    if (r->cache) {
 
-        if (rc == NGX_HTTP_BAD_GATEWAY || rc == NGX_HTTP_GATEWAY_TIME_OUT) {
+        if (u->cacheable) {
 
-            valid = ngx_http_file_cache_valid(u->conf->cache_valid, rc);
+            if (rc == NGX_HTTP_BAD_GATEWAY || rc == NGX_HTTP_GATEWAY_TIME_OUT) {
+                time_t  valid;
 
-            if (valid) {
-                r->cache->valid_sec = ngx_time() + valid;
-                r->cache->error = rc;
+                valid = ngx_http_file_cache_valid(u->conf->cache_valid, rc);
+
+                if (valid) {
+                    r->cache->valid_sec = ngx_time() + valid;
+                    r->cache->error = rc;
+                }
             }
         }
 

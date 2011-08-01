@@ -70,6 +70,7 @@ static char *ngx_http_core_internal(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *ngx_http_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 #if (NGX_HTTP_GZIP)
+static ngx_int_t ngx_http_gzip_accept_encoding(ngx_str_t *ae);
 static char *ngx_http_gzip_disable(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 #endif
@@ -121,6 +122,14 @@ static ngx_conf_enum_t  ngx_http_core_aio[] = {
 static ngx_conf_enum_t  ngx_http_core_satisfy[] = {
     { ngx_string("all"), NGX_HTTP_SATISFY_ALL },
     { ngx_string("any"), NGX_HTTP_SATISFY_ANY },
+    { ngx_null_string, 0 }
+};
+
+
+static ngx_conf_enum_t  ngx_http_core_lingering_close[] = {
+    { ngx_string("off"), NGX_HTTP_LINGERING_OFF },
+    { ngx_string("on"), NGX_HTTP_LINGERING_ON },
+    { ngx_string("always"), NGX_HTTP_LINGERING_ALWAYS },
     { ngx_null_string, 0 }
 };
 
@@ -529,6 +538,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
+
+    { ngx_string("lingering_close"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_enum_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, lingering_close),
+      &ngx_http_core_lingering_close },
 
     { ngx_string("lingering_time"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
@@ -2016,24 +2032,35 @@ ngx_http_gzip_ok(ngx_http_request_t *r)
     time_t                     date, expires;
     ngx_uint_t                 p;
     ngx_array_t               *cc;
-    ngx_table_elt_t           *e, *d;
+    ngx_table_elt_t           *e, *d, *ae;
     ngx_http_core_loc_conf_t  *clcf;
 
     r->gzip_tested = 1;
 
-    if (r != r->main
-        || r->headers_in.accept_encoding == NULL
-        || ngx_strcasestrn(r->headers_in.accept_encoding->value.data,
-                           "gzip", 4 - 1)
-           == NULL
+    if (r != r->main) {
+        return NGX_DECLINED;
+    }
 
-        /*
-         * if the URL (without the "http://" prefix) is longer than 253 bytes,
-         * then MSIE 4.x can not handle the compressed stream - it waits
-         * too long, hangs up or crashes
-         */
+    ae = r->headers_in.accept_encoding;
+    if (ae == NULL) {
+        return NGX_DECLINED;
+    }
 
-        || (r->headers_in.msie4 && r->unparsed_uri.len > 200))
+    if (ae->value.len < sizeof("gzip") - 1) {
+        return NGX_DECLINED;
+    }
+
+    /*
+     * test first for the most common case "gzip,...":
+     *   MSIE:    "gzip, deflate"
+     *   Firefox: "gzip,deflate"
+     *   Chrome:  "gzip,deflate,sdch"
+     *   Safari:  "gzip, deflate"
+     *   Opera:   "gzip, deflate"
+     */
+
+    if (ngx_memcmp(ae->value.data, "gzip,", 5) != 0
+        && ngx_http_gzip_accept_encoding(&ae->value) != NGX_OK)
     {
         return NGX_DECLINED;
     }
@@ -2157,6 +2184,127 @@ ok:
     r->gzip_ok = 1;
 
     return NGX_OK;
+}
+
+
+/*
+ * gzip is enabled for the following quantities:
+ *     "gzip; q=0.001" ... "gzip; q=0.999", "gzip; q=1"
+ * gzip is disabled for the following quantities:
+ *     "gzip; q=0" ... "gzip; q=0.000", and for any invalid cases
+ */
+
+static ngx_int_t
+ngx_http_gzip_accept_encoding(ngx_str_t *ae)
+{
+    u_char      c, *p, *start, *last;
+    ngx_uint_t  n, q;
+
+    start = ae->data;
+    last = start + ae->len;
+
+    for ( ;; ) {
+        p = ngx_strcasestrn(start, "gzip", 4 - 1);
+        if (p == NULL) {
+            return NGX_DECLINED;
+        }
+
+        if (p == start || (*(p - 1) == ',' || *(p - 1) == ' ')) {
+            break;
+        }
+
+        start = p + 4;
+    }
+
+    p += 4;
+
+    while (p < last) {
+        switch(*p++) {
+        case ',':
+            return NGX_OK;
+        case ';':
+            goto quantity;
+        case ' ':
+            continue;
+        default:
+            return NGX_DECLINED;
+        }
+    }
+
+    return NGX_OK;
+
+quantity:
+
+    while (p < last) {
+        switch(*p++) {
+        case 'q':
+        case 'Q':
+            goto equal;
+        case ' ':
+            continue;
+        default:
+            return NGX_DECLINED;
+        }
+    }
+
+    return NGX_OK;
+
+equal:
+
+    if (p + 2 > last || *p++ != '=') {
+        return NGX_DECLINED;
+    }
+
+    c = *p++;
+
+    if (c == '1') {
+        if (p == last || *p == ',' || *p == ' ') {
+            return NGX_OK;
+        }
+        return NGX_DECLINED;
+    }
+
+    if (c != '0') {
+        return NGX_DECLINED;
+    }
+
+    if (p == last) {
+        return NGX_DECLINED;
+    }
+
+    if (*p++ != '.') {
+        return NGX_DECLINED;
+    }
+
+    n = 0;
+    q = 0;
+
+    while (p < last) {
+        c = *p++;
+
+        if (c == ',') {
+            break;
+        }
+
+        if (c >= '1' && c <= '9') {
+            n++;
+            q++;
+            continue;
+        }
+
+        if (c == '0') {
+            n++;
+            continue;
+        }
+
+        return NGX_DECLINED;
+    }
+
+    if (n < 4 && q != 0) {
+        return NGX_OK;
+    }
+
+    return NGX_DECLINED;
 }
 
 #endif
@@ -3117,6 +3265,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     clcf->keepalive_timeout = NGX_CONF_UNSET_MSEC;
     clcf->keepalive_header = NGX_CONF_UNSET;
     clcf->keepalive_requests = NGX_CONF_UNSET_UINT;
+    clcf->lingering_close = NGX_CONF_UNSET_UINT;
     clcf->lingering_time = NGX_CONF_UNSET_MSEC;
     clcf->lingering_timeout = NGX_CONF_UNSET_MSEC;
     clcf->resolver_timeout = NGX_CONF_UNSET_MSEC;
@@ -3333,6 +3482,8 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               prev->keepalive_header, 0);
     ngx_conf_merge_uint_value(conf->keepalive_requests,
                               prev->keepalive_requests, 100);
+    ngx_conf_merge_msec_value(conf->lingering_close,
+                              prev->lingering_close, NGX_HTTP_LINGERING_ON);
     ngx_conf_merge_msec_value(conf->lingering_time,
                               prev->lingering_time, 30000);
     ngx_conf_merge_msec_value(conf->lingering_timeout,

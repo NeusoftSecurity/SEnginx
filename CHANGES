@@ -1,4 +1,26 @@
 
+Changes with nginx 1.1.4                                         20 Sep 2011
+
+    *) Feature: the ngx_http_upstream_keepalive module.
+
+    *) Feature: the "proxy_http_version" directive.
+
+    *) Feature: the "fastcgi_keep_conn" directive.
+
+    *) Feature: the "worker_aio_requests" directive.
+
+    *) Bugfix: if nginx was built --with-file-aio it could not be run on
+       Linux kernel which did not support AIO.
+
+    *) Bugfix: in Linux AIO error processing.
+       Thanks to Hagai Avrahami.
+
+    *) Bugfix: reduced memory consumption for long-lived requests.
+
+    *) Bugfix: the module ngx_http_mp4_module did not support 64-bit MP4
+       "co64" atom.
+
+
 Changes with nginx 1.1.3                                         14 Sep 2011
 
     *) Feature: the module ngx_http_mp4_module.

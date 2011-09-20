@@ -392,7 +392,31 @@ ngx_event_pipe_read_upstream(ngx_event_pipe_t *p)
                        cl->buf->file_last - cl->buf->file_pos);
     }
 
+    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, p->log, 0,
+                   "pipe length: %O", p->length);
+
 #endif
+
+    if (p->free_raw_bufs && p->length != -1) {
+        cl = p->free_raw_bufs;
+
+        if (cl->buf->last - cl->buf->pos >= p->length) {
+
+            /* STUB */ cl->buf->num = p->num++;
+
+            if (p->input_filter(p, cl->buf) == NGX_ERROR) {
+                 return NGX_ABORT;
+            }
+
+            p->free_raw_bufs = cl->next;
+            ngx_free_chain(p->pool, cl);
+        }
+    }
+
+    if (p->length == 0) {
+        p->upstream_done = 1;
+        p->read = 1;
+    }
 
     if ((p->upstream_eof || p->upstream_error) && p->free_raw_bufs) {
 
@@ -633,12 +657,12 @@ ngx_event_pipe_write_to_downstream(ngx_event_pipe_t *p)
 
         rc = p->output_filter(p->output_ctx, out);
 
+        ngx_chain_update_chains(p->pool, &p->free, &p->busy, &out, p->tag);
+
         if (rc == NGX_ERROR) {
             p->downstream_error = 1;
             return ngx_event_pipe_drain_chains(p);
         }
-
-        ngx_chain_update_chains(&p->free, &p->busy, &out, p->tag);
 
         for (cl = p->free; cl; cl = cl->next) {
 
@@ -847,6 +871,12 @@ ngx_event_pipe_copy_input_filter(ngx_event_pipe_t *p, ngx_buf_t *buf)
         p->in = cl;
     }
     p->last_in = &cl->next;
+
+    if (p->length == -1) {
+        return NGX_OK;
+    }
+
+    p->length -= b->last - b->pos;
 
     return NGX_OK;
 }

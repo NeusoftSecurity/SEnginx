@@ -217,6 +217,7 @@ typedef struct {
     ngx_table_elt_t                 *location;
     ngx_table_elt_t                 *accept_ranges;
     ngx_table_elt_t                 *www_authenticate;
+    ngx_table_elt_t                 *transfer_encoding;
 
 #if (NGX_HTTP_GZIP)
     ngx_table_elt_t                 *content_encoding;
@@ -225,6 +226,9 @@ typedef struct {
     off_t                            content_length_n;
 
     ngx_array_t                      cache_control;
+
+    unsigned                         connection_close:1;
+    unsigned                         chunked:1;
 } ngx_http_upstream_headers_in_t;
 
 
@@ -267,7 +271,7 @@ struct ngx_http_upstream_s {
     ngx_http_upstream_resolved_t    *resolved;
 
     ngx_buf_t                        buffer;
-    size_t                           length;
+    off_t                            length;
 
     ngx_chain_t                     *out_bufs;
     ngx_chain_t                     *busy_bufs;
@@ -308,6 +312,7 @@ struct ngx_http_upstream_s {
 #endif
 
     unsigned                         buffering:1;
+    unsigned                         keepalive:1;
 
     unsigned                         request_sent:1;
     unsigned                         header_sent:1;

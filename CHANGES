@@ -1,4 +1,27 @@
 
+Changes with nginx 1.1.5                                         05 Oct 2011
+
+    *) Feature: the "uwsgi_buffering" and "scgi_buffering" directives.
+       Thanks to Peter Smit.
+
+    *) Bugfix: non-cacheable responses might be cached if
+       "proxy_cache_bypass" directive was used.
+       Thanks to John Ferlito.
+
+    *) Bugfix: in HTTP/1.1 support in the ngx_http_proxy_module.
+
+    *) Bugfix: cached responses with an empty body were returned
+       incorrectly; the bug had appeared in 0.8.31.
+
+    *) Bugfix: 201 responses of the ngx_http_dav_module were incorrect; the
+       bug had appeared in 0.8.32.
+
+    *) Bugfix: in the "return" directive.
+
+    *) Bugfix: the "ssl_session_cache builtin" directive caused segmentation
+       fault; the bug had appeared in 1.1.1.
+
+
 Changes with nginx 1.1.4                                         20 Sep 2011
 
     *) Feature: the ngx_http_upstream_keepalive module.

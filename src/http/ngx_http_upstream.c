@@ -683,6 +683,8 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
             return NGX_DECLINED;
         }
 
+        u->cacheable = 1;
+
         switch (ngx_http_test_predicates(r, u->conf->cache_bypass)) {
 
         case NGX_ERROR:
@@ -695,8 +697,6 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
         default: /* NGX_OK */
             break;
         }
-
-        u->cacheable = 1;
 
         c = r->cache;
 
@@ -2181,8 +2181,6 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
                 ngx_http_upstream_finalize_request(r, u, 0);
                 return;
             }
-
-            u->cacheable = 1;
         }
 
         break;
@@ -2927,6 +2925,7 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
         }
 
         ngx_close_connection(u->peer.connection);
+        u->peer.connection = NULL;
     }
 
 #if 0
@@ -3071,7 +3070,12 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
 
     r->connection->log->action = "sending to client";
 
-    if (rc == 0) {
+    if (rc == 0
+#if (NGX_HTTP_CACHE)
+        && !r->cached
+#endif
+       )
+    {
         rc = ngx_http_send_special(r, NGX_HTTP_LAST);
     }
 
@@ -4327,6 +4331,10 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
             && uscfp[i]->default_port != u->default_port)
         {
             continue;
+        }
+
+        if (flags & NGX_HTTP_UPSTREAM_CREATE) {
+            uscfp[i]->flags = flags;
         }
 
         return uscfp[i];

@@ -1,4 +1,40 @@
 
+Changes with nginx 1.1.6                                         17 Oct 2011
+
+    *) Change in internal API: now module context data are cleared while
+       internal redirect to named location.
+       Requested by Yichun Zhang.
+
+    *) Change: if a server in an upstream failed, only one request will be
+       sent to it after fail_timeout; the server will be considered alive if
+       it will successfully respond to the request.
+
+    *) Change: now the 0x7F-0x1F characters are escaped as \xXX in an
+       access_log.
+
+    *) Feature: "proxy/fastcgi/scgi/uwsgi_ignore_headers" directives support
+       the following additional values: X-Accel-Limit-Rate,
+       X-Accel-Buffering, X-Accel-Charset.
+
+    *) Feature: decrease of memory consumption if SSL is used.
+
+    *) Bugfix: some UTF-8 characters were processed incorrectly.
+       Thanks to Alexey Kuts.
+
+    *) Bugfix: the ngx_http_rewrite_module directives specified at "server"
+       level were executed twice if no matching locations were defined.
+
+    *) Bugfix: a socket leak might occurred if "aio sendfile" was used.
+
+    *) Bugfix: connections with fast clients might be closed after
+       send_timeout if file AIO was used.
+
+    *) Bugfix: in the ngx_http_autoindex_module.
+
+    *) Bugfix: the module ngx_http_mp4_module did not support seeking on
+       32-bit platforms.
+
+
 Changes with nginx 1.1.5                                         05 Oct 2011
 
     *) Feature: the "uwsgi_buffering" and "scgi_buffering" directives.

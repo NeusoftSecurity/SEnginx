@@ -375,7 +375,7 @@ ngx_http_special_response_handler(ngx_http_request_t *r, ngx_int_t error)
         }
     }
 
-    if (r->lingering_close == 1) {
+    if (r->lingering_close) {
         switch (error) {
             case NGX_HTTP_BAD_REQUEST:
             case NGX_HTTP_TO_HTTPS:
@@ -581,6 +581,8 @@ ngx_http_send_error_page(ngx_http_request_t *r, ngx_http_err_page_t *err_page)
     location->hash = 1;
     ngx_str_set(&location->key, "Location");
     location->value = uri;
+
+    ngx_http_clear_location(r);
 
     r->headers_out.location = location;
 

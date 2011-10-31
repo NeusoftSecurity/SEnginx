@@ -14,6 +14,8 @@ int     ngx_darwin_hw_ncpu;
 int     ngx_darwin_kern_ipc_somaxconn;
 u_long  ngx_darwin_net_inet_tcp_sendspace;
 
+ngx_uint_t  ngx_debug_malloc;
+
 
 static ngx_os_io_t ngx_darwin_io = {
     ngx_unix_recv,
@@ -55,10 +57,37 @@ sysctl_t sysctls[] = {
 };
 
 
+void
+ngx_debug_init()
+{
+#if (NGX_DEBUG_MALLOC)
+
+    /*
+     * MacOSX 10.6, 10.7:  MallocScribble fills freed memory with 0x55
+     *                     and fills allocated memory with 0xAA.
+     * MacOSX 10.4, 10.5:  MallocScribble fills freed memory with 0x55,
+     *                     MallocPreScribble fills allocated memory with 0xAA.
+     * MacOSX 10.3:        MallocScribble fills freed memory with 0x55,
+     *                     and no way to fill allocated memory.
+     */
+
+    setenv("MallocScribble", "1", 0);
+
+    ngx_debug_malloc = 1;
+
+#else
+
+    if (getenv("MallocScribble")) {
+        ngx_debug_malloc = 1;
+    }
+
+#endif
+}
+
+
 ngx_int_t
 ngx_os_specific_init(ngx_log_t *log)
 {
-    int         somaxconn;
     size_t      size;
     ngx_err_t   err;
     ngx_uint_t  i;
@@ -125,12 +154,9 @@ ngx_os_specific_init(ngx_log_t *log)
 
     ngx_ncpu = ngx_darwin_hw_ncpu;
 
-    somaxconn = 32676;
-
-    if (ngx_darwin_kern_ipc_somaxconn > somaxconn) {
+    if (ngx_darwin_kern_ipc_somaxconn > 32767) {
         ngx_log_error(NGX_LOG_ALERT, log, 0,
-                      "sysctl kern.ipc.somaxconn must be no more than %d",
-                      somaxconn);
+                      "sysctl kern.ipc.somaxconn must be less than 32768");
         return NGX_ERROR;
     }
 

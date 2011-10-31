@@ -1,4 +1,22 @@
 
+Changes with nginx 1.1.7                                         31 Oct 2011
+
+    *) Feature: support of several resolvers in the "resolver" directive.
+       Thanks to Kirill A. Korinskiy.
+
+    *) Bugfix: a segmentation fault occurred on start or while
+       reconfiguration if the "ssl" directive was used at http level and
+       there was no "ssl_certificate" defined.
+
+    *) Bugfix: reduced memory consumption while proxying of big files if
+       they were buffered to disk.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if
+       "proxy_http_version 1.1" directive was used.
+
+    *) Bugfix: in the "expires @time" directive.
+
+
 Changes with nginx 1.1.6                                         17 Oct 2011
 
     *) Change in internal API: now module context data are cleared while

@@ -115,7 +115,7 @@ static ngx_int_t ngx_http_image_filter_init(ngx_conf_t *cf);
 static ngx_command_t  ngx_http_image_filter_commands[] = {
 
     { ngx_string("image_filter"),
-      NGX_HTTP_LOC_CONF|NGX_CONF_TAKE13|NGX_CONF_TAKE2,
+      NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
       ngx_http_image_filter,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -1262,7 +1262,11 @@ ngx_http_image_filter(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     } else if (cf->args->nelts == 3) {
 
         if (ngx_strcmp(value[i].data, "rotate") == 0) {
-            imcf->filter = NGX_HTTP_IMAGE_ROTATE;
+            if (imcf->filter != NGX_HTTP_IMAGE_RESIZE
+                && imcf->filter != NGX_HTTP_IMAGE_CROP)
+            {
+                imcf->filter = NGX_HTTP_IMAGE_ROTATE;
+            }
 
             ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
 
@@ -1405,7 +1409,7 @@ ngx_http_image_filter_jpeg_quality(ngx_conf_t *cf, ngx_command_t *cmd,
 
         if (n <= 0) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid parameter \"%V\"", &value[1]);
+                               "invalid value \"%V\"", &value[1]);
             return NGX_CONF_ERROR;
         }
 
@@ -1452,7 +1456,7 @@ ngx_http_image_filter_sharpen(ngx_conf_t *cf, ngx_command_t *cmd,
 
         if (n < 0) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid parameter \"%V\"", &value[1]);
+                               "invalid value \"%V\"", &value[1]);
             return NGX_CONF_ERROR;
         }
 

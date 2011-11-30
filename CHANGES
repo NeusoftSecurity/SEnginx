@@ -1,4 +1,10 @@
 
+Changes with nginx 1.1.10                                        30 Nov 2011
+
+    *) Bugfix: a segmentation fault occured in a worker process if AIO was
+       used on Linux; the bug had appeared in 1.1.9.
+
+
 Changes with nginx 1.1.9                                         28 Nov 2011
 
     *) Change: now double quotes are encoded in an "echo" SSI-command

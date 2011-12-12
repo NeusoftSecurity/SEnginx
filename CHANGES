@@ -1,4 +1,33 @@
 
+Changes with nginx 1.1.11                                        12 Dec 2011
+
+    *) Feature: the "so_keepalive" parameter of the "listen" directive.
+       Thanks to Vsevolod Stakhov.
+
+    *) Feature: the "if_not_empty" parameter of the
+       "fastcgi/scgi/uwsgi_param" directives.
+
+    *) Feature: the $https variable.
+
+    *) Feature: the "proxy_redirect" directive supports variables in the
+       first parameter.
+
+    *) Feature: the "proxy_redirect" directive supports regular expressions.
+
+    *) Bugfix: the $sent_http_cache_control variable might contain a wrong
+       value if the "expires" directive was used.
+       Thanks to Yichun Zhang.
+
+    *) Bugfix: the "read_ahead" directive might not work combined with
+       "try_files" and "open_file_cache".
+
+    *) Bugfix: a segmentation fault might occur in a worker process if small
+       time was used in the "inactive" parameter of the "proxy_cache_path"
+       directive.
+
+    *) Bugfix: responses from cache might hang.
+
+
 Changes with nginx 1.1.10                                        30 Nov 2011
 
     *) Bugfix: a segmentation fault occured in a worker process if AIO was

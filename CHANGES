@@ -1,4 +1,44 @@
 
+Changes with nginx 1.1.12                                        26 Dec 2011
+
+    *) Change: a "proxy_pass" directive without URI part now uses changed
+       URI after redirection with the "error_page" directive;
+       Thanks to Lanshun Zhou.
+
+    *) Feature: the "proxy/fastcgi/scgi/uwsgi_cache_lock",
+       "proxy/fastcgi/scgi/uwsgi_cache_lock_timeout" directives.
+
+    *) Feature: the "pcre_jit" directive.
+
+    *) Feature: the "if" SSI command supports captures in regular
+       expressions.
+
+    *) Bugfix: the "if" SSI command did not work inside the "block" command.
+
+    *) Bugfix: the "limit_conn_log_level" and "limit_req_log_level"
+       directives might not work.
+
+    *) Bugfix: the "limit_rate" directive did not allow to use full
+       throughput, even if limit value was very high.
+
+    *) Bugfix: the "sendfile_max_chunk" directive did not work, if the
+       "limit_rate" directive was used.
+
+    *) Bugfix: a "proxy_pass" directive without URI part always used
+       original request URI if variables were used.
+
+    *) Bugfix: a "proxy_pass" directive without URI part might use original
+       request after redirection with the "try_files" directive;
+       Thanks to Lanshun Zhou.
+
+    *) Bugfix: in the ngx_http_scgi_module.
+
+    *) Bugfix: in the ngx_http_mp4_module.
+
+    *) Bugfix: nginx could not be built on Solaris; the bug had appeared in
+       1.1.9.
+
+
 Changes with nginx 1.1.11                                        12 Dec 2011
 
     *) Feature: the "so_keepalive" parameter of the "listen" directive.
@@ -4564,8 +4604,8 @@ Changes with nginx 0.3.6                                         24 Oct 2005
     *) Bugfix: if at least in one server was no the "listen" directive, then
        nginx did not listen on the 80 port; the bug had appeared in 0.3.3.
 
-    *) Bugfix: if the URI part is omitted in "proxy_pass" directive, the the
-       80 port was always used.
+    *) Bugfix: if the URI part is omitted in "proxy_pass" directive, the 80
+       port was always used.
 
 
 Changes with nginx 0.3.5                                         21 Oct 2005
@@ -4810,7 +4850,7 @@ Changes with nginx 0.1.43                                        30 Aug 2005
     *) Bugfix: the segmentation fault occurred or the worker process may got
        caught in an endless loop if the proxied or FastCGI server sent the
        "Cache-Control" header line and the "expires" directive was used; in
-       the proxied mode the the bug had appeared in 0.1.29.
+       the proxied mode the bug had appeared in 0.1.29.
 
 
 Changes with nginx 0.1.42                                        23 Aug 2005
@@ -4885,8 +4925,8 @@ Changes with nginx 0.1.39                                        14 Jul 2005
 
 Changes with nginx 0.1.38                                        08 Jul 2005
 
-    *) Feature: the "limit_rate" directive is supported in in proxy and
-       FastCGI mode.
+    *) Feature: the "limit_rate" directive is supported in proxy and FastCGI
+       mode.
 
     *) Feature: the "X-Accel-Limit-Rate" response header line is supported
        in proxy and FastCGI mode.
@@ -5038,8 +5078,7 @@ Changes with nginx 0.1.30                                        14 May 2005
 
     *) Bugfix: if the length of the response part received at once from
        proxied or FastCGI server was equal to 500, then nginx returns the
-       500 response code; in proxy mode the the bug had appeared in 0.1.29
-       only.
+       500 response code; in proxy mode the bug had appeared in 0.1.29 only.
 
     *) Bugfix: nginx did not consider the directives with 8 or 9 parameters
        as invalid.
@@ -5282,7 +5321,7 @@ Changes with nginx 0.1.19                                        16 Feb 2005
 
     *) Bugfix: nginx could not be built on NetBSD 2.0.
 
-    *) Bugfix: the timeout may occur while reading of the the client request
+    *) Bugfix: the timeout may occur while reading of the client request
        body via SSL connections.
 
 

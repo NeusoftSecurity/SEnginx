@@ -1,8 +1,30 @@
 
+Changes with nginx 1.1.13                                        16 Jan 2012
+
+    *) Feature: the "TLSv1.1" and "TLSv1.2" parameters of the
+       "ssl_protocols" directive.
+
+    *) Bugfix: the "limit_req" directive parameters were not inherited
+       correctly; the bug had appeared in 1.1.12.
+
+    *) Bugfix: the "proxy_redirect" directive incorrectly processed
+       "Refresh" header if regular expression were used.
+
+    *) Bugfix: the "proxy_cache_use_stale" directive with "error" parameter
+       did not return answer from cache if there were no live upstreams.
+
+    *) Bugfix: the "worker_cpu_affinity" directive might not work.
+
+    *) Bugfix: nginx could not be built on Solaris; the bug had appeared in
+       1.1.12.
+
+    *) Bugfix: in the ngx_http_mp4_module.
+
+
 Changes with nginx 1.1.12                                        26 Dec 2011
 
     *) Change: a "proxy_pass" directive without URI part now uses changed
-       URI after redirection with the "error_page" directive;
+       URI after redirection with the "error_page" directive.
        Thanks to Lanshun Zhou.
 
     *) Feature: the "proxy/fastcgi/scgi/uwsgi_cache_lock",
@@ -28,7 +50,7 @@ Changes with nginx 1.1.12                                        26 Dec 2011
        original request URI if variables were used.
 
     *) Bugfix: a "proxy_pass" directive without URI part might use original
-       request after redirection with the "try_files" directive;
+       request after redirection with the "try_files" directive.
        Thanks to Lanshun Zhou.
 
     *) Bugfix: in the ngx_http_scgi_module.

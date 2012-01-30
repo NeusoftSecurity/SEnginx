@@ -1,4 +1,22 @@
 
+Changes with nginx 1.1.14                                        30 Jan 2012
+
+    *) Feature: multiple "limit_req" limits may be used simultaneously.
+
+    *) Bugfix: in error handling while connecting to a backend.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: in AIO error handling on FreeBSD.
+
+    *) Bugfix: in the OpenSSL library initialization.
+
+    *) Bugfix: the "proxy_redirect" directives might not be correctly
+       inherited.
+
+    *) Bugfix: memory leak during reconfiguration if the "pcre_jit"
+       directive was used.
+
+
 Changes with nginx 1.1.13                                        16 Jan 2012
 
     *) Feature: the "TLSv1.1" and "TLSv1.2" parameters of the

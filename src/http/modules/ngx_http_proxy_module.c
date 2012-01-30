@@ -1,6 +1,7 @@
 
 /*
  * Copyright (C) Igor Sysoev
+ * Copyright (C) Nginx, Inc.
  */
 
 
@@ -3290,6 +3291,8 @@ ngx_http_proxy_redirect(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (plcf->redirect == 0) {
         return NGX_CONF_OK;
     }
+
+    plcf->redirect = 1;
 
     value = cf->args->elts;
 

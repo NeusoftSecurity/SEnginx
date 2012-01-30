@@ -1,6 +1,7 @@
 
 /*
  * Copyright (C) Igor Sysoev
+ * Copyright (C) Nginx, Inc.
  */
 
 
@@ -15,6 +16,9 @@ typedef struct {
 
 static void * ngx_libc_cdecl ngx_regex_malloc(size_t size);
 static void ngx_libc_cdecl ngx_regex_free(void *p);
+#if (NGX_HAVE_PCRE_JIT)
+static void ngx_pcre_free_studies(void *data);
+#endif
 
 static ngx_int_t ngx_regex_module_init(ngx_cycle_t *cycle);
 
@@ -273,6 +277,41 @@ ngx_regex_free(void *p)
 }
 
 
+#if (NGX_HAVE_PCRE_JIT)
+
+static void
+ngx_pcre_free_studies(void *data)
+{
+    ngx_list_t *studies = data;
+
+    ngx_uint_t        i;
+    ngx_list_part_t  *part;
+    ngx_regex_elt_t  *elts;
+
+    part = &studies->part;
+    elts = part->elts;
+
+    for (i = 0 ; /* void */ ; i++) {
+
+        if (i >= part->nelts) {
+            if (part->next == NULL) {
+                break;
+            }
+
+            part = part->next;
+            elts = part->elts;
+            i = 0;
+        }
+
+        if (elts[i].regex->extra != NULL) {
+            pcre_free_study(elts[i].regex->extra);
+        }
+    }
+}
+
+#endif
+
+
 static ngx_int_t
 ngx_regex_module_init(ngx_cycle_t *cycle)
 {
@@ -286,12 +325,27 @@ ngx_regex_module_init(ngx_cycle_t *cycle)
 
 #if (NGX_HAVE_PCRE_JIT)
     {
-    ngx_regex_conf_t  *rcf;
+    ngx_regex_conf_t    *rcf;
+    ngx_pool_cleanup_t  *cln;
 
     rcf = (ngx_regex_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_regex_module);
 
     if (rcf->pcre_jit) {
         opt = PCRE_STUDY_JIT_COMPILE;
+
+        /*
+         * The PCRE JIT compiler uses mmap for its executable codes, so we
+         * have to explicitly call the pcre_free_study() function to free
+         * this memory.
+         */
+
+        cln = ngx_pool_cleanup_add(cycle->pool, 0);
+        if (cln == NULL) {
+            return NGX_ERROR;
+        }
+
+        cln->handler = ngx_pcre_free_studies;
+        cln->data = ngx_pcre_studies;
     }
     }
 #endif
@@ -402,7 +456,7 @@ ngx_regex_pcre_jit(ngx_conf_t *cf, void *post, void *data)
     }
 #else
     ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                       "nginx was build without PCRE JIT support");
+                       "nginx was built without PCRE JIT support");
     *fp = 0;
 #endif
 

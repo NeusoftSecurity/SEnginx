@@ -2010,6 +2010,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
         if (r == c->data) {
 
             r->main->count--;
+            r->main->subrequests++;
 
             if (!r->logged) {
 
@@ -2924,6 +2925,10 @@ ngx_http_post_action(ngx_http_request_t *r)
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     if (clcf->post_action.data == NULL) {
+        return NGX_DECLINED;
+    }
+
+    if (r->post_action && r->uri_changes == 0) {
         return NGX_DECLINED;
     }
 

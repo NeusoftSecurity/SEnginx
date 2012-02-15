@@ -187,6 +187,18 @@ static ngx_str_t  ngx_http_gzip_private = ngx_string("private");
 #endif
 
 
+#if (NGX_HAVE_OPENAT)
+
+static ngx_conf_enum_t  ngx_http_core_disable_symlinks[] = {
+    { ngx_string("off"), NGX_DISABLE_SYMLINKS_OFF },
+    { ngx_string("if_not_owner"), NGX_DISABLE_SYMLINKS_NOTOWNER },
+    { ngx_string("on"), NGX_DISABLE_SYMLINKS_ON },
+    { ngx_null_string, 0 }
+};
+
+#endif
+
+
 static ngx_command_t  ngx_http_core_commands[] = {
 
     { ngx_string("variables_hash_max_size"),
@@ -764,6 +776,17 @@ static ngx_command_t  ngx_http_core_commands[] = {
 
 #endif
 
+#if (NGX_HAVE_OPENAT)
+
+    { ngx_string("disable_symlinks"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_enum_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, disable_symlinks),
+      &ngx_http_core_disable_symlinks },
+
+#endif
+
       ngx_null_command
 };
 
@@ -1297,6 +1320,9 @@ ngx_http_core_try_files_phase(ngx_http_request_t *r,
         of.test_only = 1;
         of.errors = clcf->open_file_cache_errors;
         of.events = clcf->open_file_cache_events;
+#if (NGX_HAVE_OPENAT)
+        of.disable_symlinks = clcf->disable_symlinks;
+#endif
 
         if (ngx_open_cached_file(clcf->open_file_cache, &path, &of, r->pool)
             != NGX_OK)
@@ -2453,7 +2479,6 @@ ngx_http_subrequest(ngx_http_request_t *r,
     sr->start_sec = tp->sec;
     sr->start_msec = tp->msec;
 
-    r->main->subrequests++;
     r->main->count++;
 
     *psr = sr;
@@ -2525,6 +2550,16 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
     ngx_http_core_main_conf_t   *cmcf;
 
     r->main->count++;
+    r->uri_changes--;
+
+    if (r->uri_changes == 0) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "rewrite or internal redirection cycle "
+                      "while redirect to named location \"%V\"", name);
+
+        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+        return NGX_DONE;
+    }
 
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
@@ -3335,6 +3370,10 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
 #endif
 #endif
 
+#if (NGX_HAVE_OPENAT)
+    clcf->disable_symlinks = NGX_CONF_UNSET_UINT;
+#endif
+
     return clcf;
 }
 
@@ -3614,6 +3653,11 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 #endif
 #endif
 
+#if (NGX_HAVE_OPENAT)
+    ngx_conf_merge_uint_value(conf->disable_symlinks, prev->disable_symlinks,
+                              NGX_DISABLE_SYMLINKS_OFF);
+#endif
+
     return NGX_CONF_OK;
 }
 
@@ -3844,7 +3888,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                     s.len = p - s.data;
 
                     lsopt.tcp_keepidle = ngx_parse_time(&s, 1);
-                    if (lsopt.tcp_keepidle == NGX_ERROR) {
+                    if (lsopt.tcp_keepidle == (time_t) NGX_ERROR) {
                         goto invalid_so_keepalive;
                     }
                 }
@@ -3860,7 +3904,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                     s.len = p - s.data;
 
                     lsopt.tcp_keepintvl = ngx_parse_time(&s, 1);
-                    if (lsopt.tcp_keepintvl == NGX_ERROR) {
+                    if (lsopt.tcp_keepintvl == (time_t) NGX_ERROR) {
                         goto invalid_so_keepalive;
                     }
                 }
@@ -4507,7 +4551,7 @@ ngx_http_core_open_file_cache(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             s.data = value[i].data + 9;
 
             inactive = ngx_parse_time(&s, 1);
-            if (inactive < 0) {
+            if (inactive == (time_t) NGX_ERROR) {
                 goto failed;
             }
 
@@ -4594,22 +4638,14 @@ ngx_http_core_keepalive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return "invalid value";
     }
 
-    if (clcf->keepalive_timeout == (ngx_msec_t) NGX_PARSE_LARGE_TIME) {
-        return "value must be less than 597 hours";
-    }
-
     if (cf->args->nelts == 2) {
         return NGX_CONF_OK;
     }
 
     clcf->keepalive_header = ngx_parse_time(&value[2], 1);
 
-    if (clcf->keepalive_header == NGX_ERROR) {
+    if (clcf->keepalive_header == (time_t) NGX_ERROR) {
         return "invalid value";
-    }
-
-    if (clcf->keepalive_header == NGX_PARSE_LARGE_TIME) {
-        return "value must be less than 68 years";
     }
 
     return NGX_CONF_OK;

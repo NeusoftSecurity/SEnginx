@@ -1,4 +1,34 @@
 
+Changes with nginx 1.1.15                                        15 Feb 2012
+
+    *) Feature: the "disable_symlinks" directive.
+
+    *) Feature: the "proxy_cookie_domain" and "proxy_cookie_path"
+       directives.
+
+    *) Bugfix: nginx might log incorrect error "upstream prematurely closed
+       connection" instead of correct "upstream sent too big header" one.
+       Thanks to Feibo Li.
+
+    *) Bugfix: nginx could not be built with the ngx_http_perl_module if the
+       --with-openssl option was used.
+
+    *) Bugfix: internal redirects to named locations were not limited.
+
+    *) Bugfix: calling $r->flush() multiple times might cause errors in the
+       ngx_http_gzip_filter_module.
+
+    *) Bugfix: temporary files might be not removed if the "proxy_store"
+       directive were used with SSI includes.
+
+    *) Bugfix: in some cases non-cacheable variables (such as the $args
+       variable) returned old empty cached value.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if too
+       many SSI subrequests were issued simultaneously; the bug had appeared
+       in 0.7.25.
+
+
 Changes with nginx 1.1.14                                        30 Jan 2012
 
     *) Feature: multiple "limit_req" limits may be used simultaneously.

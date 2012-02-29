@@ -406,6 +406,7 @@ struct ngx_http_core_loc_conf_s {
 
 #if (NGX_HAVE_OPENAT)
     ngx_uint_t    disable_symlinks;        /* disable_symlinks */
+    ngx_http_complex_value_t  *disable_symlinks_from;
 #endif
 
     ngx_array_t  *error_pages;             /* error_page */
@@ -507,6 +508,10 @@ typedef ngx_int_t (*ngx_http_output_body_filter_pt)
 
 ngx_int_t ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *chain);
 ngx_int_t ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *chain);
+
+
+ngx_int_t ngx_http_set_disable_symlinks(ngx_http_request_t *r,
+    ngx_http_core_loc_conf_t *clcf, ngx_str_t *path, ngx_open_file_info_t *of);
 
 
 extern ngx_module_t  ngx_http_core_module;

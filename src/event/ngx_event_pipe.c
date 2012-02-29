@@ -401,13 +401,14 @@ ngx_event_pipe_read_upstream(ngx_event_pipe_t *p)
 
         if (cl->buf->last - cl->buf->pos >= p->length) {
 
+            p->free_raw_bufs = cl->next;
+
             /* STUB */ cl->buf->num = p->num++;
 
             if (p->input_filter(p, cl->buf) == NGX_ERROR) {
                  return NGX_ABORT;
             }
 
-            p->free_raw_bufs = cl->next;
             ngx_free_chain(p->pool, cl);
         }
     }
@@ -968,7 +969,7 @@ ngx_event_pipe_add_free_buf(ngx_event_pipe_t *p, ngx_buf_t *b)
         return NGX_OK;
     }
 
-    /* the first free buf is partialy filled, thus add the free buf after it */
+    /* the first free buf is partially filled, thus add the free buf after it */
 
     cl->next = p->free_raw_bufs->next;
     p->free_raw_bufs->next = cl;

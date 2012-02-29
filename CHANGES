@@ -1,4 +1,36 @@
 
+Changes with nginx 1.1.16                                        29 Feb 2012
+
+    *) Change: the simultaneous subrequest limit has been raised to 200.
+
+    *) Feature: the "from" parameter of the "disable_symlinks" directive.
+
+    *) Feature: the "return" and "error_page" directives can be used to
+       return 307 redirections.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       "resolver" directive was used and there was no "error_log" directive
+       specified at global level.
+       Thanks to Roman Arutyunyan.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       "proxy_http_version 1.1" or "fastcgi_keep_conn on" directives were
+       used.
+
+    *) Bugfix: memory leaks.
+       Thanks to Lanshun Zhou.
+
+    *) Bugfix: in the "disable_symlinks" directive.
+
+    *) Bugfix: on ZFS filesystem disk cache size might be calculated
+       incorrectly; the bug had appeared in 1.0.1.
+
+    *) Bugfix: nginx could not be built by the icc 12.1 compiler.
+
+    *) Bugfix: nginx could not be built by gcc on Solaris; the bug had
+       appeared in 1.1.15.
+
+
 Changes with nginx 1.1.15                                        15 Feb 2012
 
     *) Feature: the "disable_symlinks" directive.

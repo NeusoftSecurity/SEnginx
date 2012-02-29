@@ -78,7 +78,24 @@ typedef struct {
 
 #if (NGX_HAVE_OPENAT)
 #define NGX_FILE_NOFOLLOW        O_NOFOLLOW
+
+#if defined(O_DIRECTORY)
+#define NGX_FILE_DIRECTORY       O_DIRECTORY
+#else
+#define NGX_FILE_DIRECTORY       0
 #endif
+
+#if defined(O_SEARCH)
+#define NGX_FILE_SEARCH          O_SEARCH|NGX_FILE_DIRECTORY
+
+#elif defined(O_EXEC)
+#define NGX_FILE_SEARCH          O_EXEC|NGX_FILE_DIRECTORY
+
+#else
+#define NGX_FILE_SEARCH          O_RDONLY|NGX_FILE_DIRECTORY
+#endif
+
+#endif /* NGX_HAVE_OPENAT */
 
 #define NGX_FILE_DEFAULT_ACCESS  0644
 #define NGX_FILE_OWNER_ACCESS    0600
@@ -163,7 +180,7 @@ ngx_int_t ngx_set_file_time(u_char *name, ngx_fd_t fd, time_t s);
 #define ngx_is_exec(sb)          (((sb)->st_mode & S_IXUSR) == S_IXUSR)
 #define ngx_file_access(sb)      ((sb)->st_mode & 0777)
 #define ngx_file_size(sb)        (sb)->st_size
-#define ngx_file_fs_size(sb)     ((sb)->st_blocks * 512)
+#define ngx_file_fs_size(sb)     ngx_max((sb)->st_size, (sb)->st_blocks * 512)
 #define ngx_file_mtime(sb)       (sb)->st_mtime
 #define ngx_file_uniq(sb)        (sb)->st_ino
 
@@ -259,7 +276,8 @@ ngx_de_info(u_char *name, ngx_dir_t *dir)
 
 #define ngx_de_access(dir)       (((dir)->info.st_mode) & 0777)
 #define ngx_de_size(dir)         (dir)->info.st_size
-#define ngx_de_fs_size(dir)      ((dir)->info.st_blocks * 512)
+#define ngx_de_fs_size(dir)                                                  \
+    ngx_max((dir)->info.st_size, (dir)->info.st_blocks * 512)
 #define ngx_de_mtime(dir)        (dir)->info.st_mtime
 
 
@@ -339,6 +357,8 @@ size_t ngx_fs_bsize(u_char *name);
     fstatat(fd, (const char *) name, sb, flag)
 
 #define ngx_file_at_info_n       "fstatat()"
+
+#define NGX_AT_FDCWD             (ngx_fd_t) AT_FDCWD
 
 #endif
 

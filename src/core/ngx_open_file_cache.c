@@ -229,6 +229,7 @@ ngx_open_cached_file(ngx_open_file_cache_t *cache, ngx_str_t *name,
                 && now - file->created < of->valid
 #if (NGX_HAVE_OPENAT)
                 && of->disable_symlinks == file->disable_symlinks
+                && of->disable_symlinks_from == file->disable_symlinks_from
 #endif
             ))
         {
@@ -395,6 +396,7 @@ update:
     file->err = of->err;
 #if (NGX_HAVE_OPENAT)
     file->disable_symlinks = of->disable_symlinks;
+    file->disable_symlinks_from = of->disable_symlinks_from;
 #endif
 
     if (of->err == 0) {
@@ -504,8 +506,8 @@ ngx_openat_file_owner(ngx_fd_t at_fd, const u_char *name,
 
     fd = ngx_openat_file(at_fd, name, mode, create, access);
 
-    if (fd == NGX_FILE_ERROR) {
-        return NGX_FILE_ERROR;
+    if (fd == NGX_INVALID_FILE) {
+        return NGX_INVALID_FILE;
     }
 
     if (ngx_file_at_info(at_fd, name, &atfi, AT_SYMLINK_NOFOLLOW)
@@ -565,7 +567,6 @@ ngx_open_file_wrapper(ngx_str_t *name, ngx_open_file_info_t *of,
     u_char           *p, *cp, *end;
     ngx_fd_t          at_fd;
     ngx_str_t         at_name;
-    ngx_file_info_t   fi;
 
     if (of->disable_symlinks == NGX_DISABLE_SYMLINKS_OFF) {
         fd = ngx_open_file(name->data, mode, create, access);
@@ -582,22 +583,45 @@ ngx_open_file_wrapper(ngx_str_t *name, ngx_open_file_info_t *of,
     p = name->data;
     end = p + name->len;
 
-    at_fd = AT_FDCWD;
     at_name = *name;
 
-    if (p[0] == '/') {
-        at_fd = ngx_openat_file(at_fd, "/",
-                                NGX_FILE_RDONLY|NGX_FILE_NONBLOCK,
-                                NGX_FILE_OPEN, 0);
+    if (of->disable_symlinks_from) {
 
-        if (at_fd == NGX_FILE_ERROR) {
+        cp = p + of->disable_symlinks_from;
+
+        *cp = '\0';
+
+        at_fd = ngx_open_file(p, NGX_FILE_SEARCH|NGX_FILE_NONBLOCK,
+                              NGX_FILE_OPEN, 0);
+
+        *cp = '/';
+
+        if (at_fd == NGX_INVALID_FILE) {
+            of->err = ngx_errno;
+            of->failed = ngx_open_file_n;
+            return NGX_INVALID_FILE;
+        }
+
+        at_name.len = of->disable_symlinks_from;
+        p = cp + 1;
+
+    } else if (*p == '/') {
+
+        at_fd = ngx_open_file("/",
+                              NGX_FILE_SEARCH|NGX_FILE_NONBLOCK,
+                              NGX_FILE_OPEN, 0);
+
+        if (at_fd == NGX_INVALID_FILE) {
             of->err = ngx_errno;
             of->failed = ngx_openat_file_n;
-            return NGX_FILE_ERROR;
+            return NGX_INVALID_FILE;
         }
 
         at_name.len = 1;
         p++;
+
+    } else {
+        at_fd = NGX_AT_FDCWD;
     }
 
     for ( ;; ) {
@@ -615,12 +639,12 @@ ngx_open_file_wrapper(ngx_str_t *name, ngx_open_file_info_t *of,
 
         if (of->disable_symlinks == NGX_DISABLE_SYMLINKS_NOTOWNER) {
             fd = ngx_openat_file_owner(at_fd, p,
-                                       NGX_FILE_RDONLY|NGX_FILE_NONBLOCK,
+                                       NGX_FILE_SEARCH|NGX_FILE_NONBLOCK,
                                        NGX_FILE_OPEN, 0, log);
 
         } else {
             fd = ngx_openat_file(at_fd, p,
-                           NGX_FILE_RDONLY|NGX_FILE_NONBLOCK|NGX_FILE_NOFOLLOW,
+                           NGX_FILE_SEARCH|NGX_FILE_NONBLOCK|NGX_FILE_NOFOLLOW,
                            NGX_FILE_OPEN, 0);
         }
 
@@ -632,9 +656,9 @@ ngx_open_file_wrapper(ngx_str_t *name, ngx_open_file_info_t *of,
             goto failed;
         }
 
-        if (at_fd != AT_FDCWD && ngx_close_file(at_fd) == NGX_FILE_ERROR) {
+        if (at_fd != NGX_AT_FDCWD && ngx_close_file(at_fd) == NGX_FILE_ERROR) {
             ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
-                          ngx_close_file_n " \"%V\" failed", at_name);
+                          ngx_close_file_n " \"%V\" failed", &at_name);
         }
 
         p = cp + 1;
@@ -642,46 +666,33 @@ ngx_open_file_wrapper(ngx_str_t *name, ngx_open_file_info_t *of,
         at_name.len = cp - at_name.data;
     }
 
-    if (p == end && at_fd != AT_FDCWD) {
+    if (p == end) {
 
         /*
-         * If pathname ends with a trailing slash, check if last path
-         * component is a directory; if not, fail with ENOTDIR as per
-         * POSIX.
+         * If pathname ends with a trailing slash, assume the last path
+         * component is a directory and reopen it with requested flags;
+         * if not, fail with ENOTDIR as per POSIX.
          *
-         * We use separate check instead of O_DIRECTORY in the loop above,
-         * as O_DIRECTORY doesn't work on FreeBSD 8.
-         *
-         * Note this returns already opened file descriptor, with different
-         * mode/create/access.  This is believed to be safe as we don't
-         * use this codepath to create directories.
+         * We cannot rely on O_DIRECTORY in the loop above to check
+         * that the last path component is a directory because
+         * O_DIRECTORY doesn't work on FreeBSD 8.  Fortunately, by
+         * reopening a directory, we don't depend on it at all.
          */
 
-        if (ngx_fd_info(at_fd, &fi) == NGX_FILE_ERROR) {
-            of->err = ngx_errno;
-            of->failed = ngx_fd_info_n;
-            fd = NGX_INVALID_FILE;
-
-            goto failed;
-        }
-
-        if (ngx_is_dir(&fi)) {
-            return at_fd;
-        }
-
-        of->err = ENOTDIR;
-        of->failed = ngx_openat_file_n;
-        fd = NGX_INVALID_FILE;
-
-        goto failed;
+        fd = ngx_openat_file(at_fd, ".", mode, create, access);
+        goto done;
     }
 
-    if (of->disable_symlinks == NGX_DISABLE_SYMLINKS_NOTOWNER) {
+    if (of->disable_symlinks == NGX_DISABLE_SYMLINKS_NOTOWNER
+        && !(create & (NGX_FILE_CREATE_OR_OPEN|NGX_FILE_TRUNCATE)))
+    {
         fd = ngx_openat_file_owner(at_fd, p, mode, create, access, log);
 
     } else {
         fd = ngx_openat_file(at_fd, p, mode|NGX_FILE_NOFOLLOW, create, access);
     }
+
+done:
 
     if (fd == NGX_INVALID_FILE) {
         of->err = ngx_errno;
@@ -690,9 +701,9 @@ ngx_open_file_wrapper(ngx_str_t *name, ngx_open_file_info_t *of,
 
 failed:
 
-    if (at_fd != AT_FDCWD && ngx_close_file(at_fd) == NGX_FILE_ERROR) {
+    if (at_fd != NGX_AT_FDCWD && ngx_close_file(at_fd) == NGX_FILE_ERROR) {
         ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
-                      ngx_close_file_n " \"%V\" failed", at_name);
+                      ngx_close_file_n " \"%V\" failed", &at_name);
     }
 
     return fd;
@@ -1131,20 +1142,15 @@ ngx_open_file_lookup(ngx_open_file_cache_t *cache, ngx_str_t *name,
 
         /* hash == node->key */
 
-        do {
-            file = (ngx_cached_open_file_t *) node;
+        file = (ngx_cached_open_file_t *) node;
 
-            rc = ngx_strcmp(name->data, file->name);
+        rc = ngx_strcmp(name->data, file->name);
 
-            if (rc == 0) {
-                return file;
-            }
+        if (rc == 0) {
+            return file;
+        }
 
-            node = (rc < 0) ? node->left : node->right;
-
-        } while (node != sentinel && hash == node->key);
-
-        break;
+        node = (rc < 0) ? node->left : node->right;
     }
 
     return NULL;

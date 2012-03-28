@@ -1,4 +1,27 @@
 
+Changes with nginx 1.1.18                                        28 Mar 2012
+
+    *) Change: keepalive connections are no longer disabled for Safari by
+       default.
+
+    *) Feature: the $connection_requests variable.
+
+    *) Feature: $tcpinfo_rtt, $tcpinfo_rttvar, $tcpinfo_snd_cwnd and
+       $tcpinfo_rcv_space variables.
+
+    *) Feature: the "worker_cpu_affinity" directive now works on FreeBSD.
+
+    *) Feature: the "xslt_param" and "xslt_string_param" directives.
+       Thanks to Samuel Behan.
+
+    *) Bugfix: in configure tests.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: in the ngx_http_xslt_filter_module.
+
+    *) Bugfix: nginx could not be built on Debian GNU/Hurd.
+
+
 Changes with nginx 1.1.17                                        15 Mar 2012
 
     *) Security: content of previously freed memory might be sent to a

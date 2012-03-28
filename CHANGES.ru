@@ -1,4 +1,27 @@
 
+Изменения в nginx 1.1.18                                          28.03.2012
+
+    *) Изменение: теперь keepalive соединения не запрещены для Safari по
+       умолчанию.
+
+    *) Добавление: переменная $connection_requests.
+
+    *) Добавление: переменные $tcpinfo_rtt, $tcpinfo_rttvar,
+       $tcpinfo_snd_cwnd и $tcpinfo_rcv_space.
+
+    *) Добавление: директива worker_cpu_affinity теперь работает на FreeBSD.
+
+    *) Добавление: директивы xslt_param и xslt_string_param.
+       Спасибо Samuel Behan.
+
+    *) Исправление: в configure.
+       Спасибо Piotr Sikora.
+
+    *) Исправление: в модуле ngx_http_xslt_filter_module.
+
+    *) Исправление: nginx не собирался на Debian GNU/Hurd.
+
+
 Изменения в nginx 1.1.17                                          15.03.2012
 
     *) Безопасность: содержимое ранее освобождённой памяти могло быть

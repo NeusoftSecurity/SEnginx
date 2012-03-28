@@ -3568,8 +3568,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_bitmask_value(conf->keepalive_disable,
                               prev->keepalive_disable,
                               (NGX_CONF_BITMASK_SET
-                               |NGX_HTTP_KEEPALIVE_DISABLE_MSIE6
-                               |NGX_HTTP_KEEPALIVE_DISABLE_SAFARI));
+                               |NGX_HTTP_KEEPALIVE_DISABLE_MSIE6));
     ngx_conf_merge_uint_value(conf->satisfy, prev->satisfy,
                               NGX_HTTP_SATISFY_ALL);
     ngx_conf_merge_uint_value(conf->if_modified_since, prev->if_modified_since,
@@ -4647,7 +4646,7 @@ ngx_http_core_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_core_loc_conf_t *clcf = conf;
 
-    ngx_str_t  *value;
+    ngx_str_t  *value, name;
 
     if (clcf->error_log) {
         return "is duplicate";
@@ -4655,7 +4654,14 @@ ngx_http_core_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    clcf->error_log = ngx_log_create(cf->cycle, &value[1]);
+    if (ngx_strcmp(value[1].data, "stderr") == 0) {
+        ngx_str_null(&name);
+
+    } else {
+        name = value[1];
+    }
+
+    clcf->error_log = ngx_log_create(cf->cycle, &name);
     if (clcf->error_log == NULL) {
         return NGX_CONF_ERROR;
     }

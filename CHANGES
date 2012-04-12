@@ -1,4 +1,28 @@
 
+Changes with nginx 1.1.19                                        12 Apr 2012
+
+    *) Security: specially crafted mp4 file might allow to overwrite memory
+       locations in a worker process if the ngx_http_mp4_module was used,
+       potentially resulting in arbitrary code execution (CVE-2012-2089).
+       Thanks to Matthew Daley.
+
+    *) Bugfix: nginx/Windows might be terminated abnormally.
+       Thanks to Vincent Lee.
+
+    *) Bugfix: nginx hogged CPU if all servers in an upstream were marked as
+       "backup".
+
+    *) Bugfix: the "allow" and "deny" directives might be inherited
+       incorrectly if they were used with IPv6 addresses.
+
+    *) Bugfix: the "modern_browser" and "ancient_browser" directives might
+       be inherited incorrectly.
+
+    *) Bugfix: timeouts might be handled incorrectly on Solaris/SPARC.
+
+    *) Bugfix: in the ngx_http_mp4_module.
+
+
 Changes with nginx 1.1.18                                        28 Mar 2012
 
     *) Change: keepalive connections are no longer disabled for Safari by

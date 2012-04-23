@@ -1497,6 +1497,10 @@ ngx_http_proxy_input_filter_init(void *data)
     u = r->upstream;
     ctx = ngx_http_get_module_ctx(r, ngx_http_proxy_module);
 
+    if (ctx == NULL) {
+        return NGX_ERROR;
+    }
+
     ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http proxy filter init s:%d h:%d c:%d l:%O",
                    u->headers_in.status_n, ctx->head, u->headers_in.chunked,
@@ -1636,6 +1640,11 @@ ngx_http_proxy_parse_chunked(ngx_http_request_t *r, ngx_buf_t *buf)
     } state;
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_proxy_module);
+
+    if (ctx == NULL) {
+        return NGX_ERROR;
+    }
+
     state = ctx->state;
 
     if (state == sw_chunk_data && ctx->size == 0) {
@@ -1883,6 +1892,10 @@ ngx_http_proxy_chunked_filter(ngx_event_pipe_t *p, ngx_buf_t *buf)
     r = p->input_ctx;
     ctx = ngx_http_get_module_ctx(r, ngx_http_proxy_module);
 
+    if (ctx == NULL) {
+        return NGX_ERROR;
+    }
+
     b = NULL;
     prev = &buf->shadow;
 
@@ -2064,6 +2077,11 @@ ngx_http_proxy_non_buffered_chunked_filter(void *data, ssize_t bytes)
     ngx_http_proxy_ctx_t  *ctx;
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_proxy_module);
+
+    if (ctx == NULL) {
+        return NGX_ERROR;
+    }
+
     u = r->upstream;
     buf = &u->buffer;
 
@@ -2734,8 +2752,8 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     if (conf->upstream.busy_buffers_size < size) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-             "\"proxy_busy_buffers_size\" must be equal or bigger than "
-             "maximum of the value of \"proxy_buffer_size\" and "
+             "\"proxy_busy_buffers_size\" must be equal to or greater than "
+             "the maximum of the value of \"proxy_buffer_size\" and "
              "one of the \"proxy_buffers\"");
 
         return NGX_CONF_ERROR;
@@ -2765,8 +2783,8 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     if (conf->upstream.temp_file_write_size < size) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-             "\"proxy_temp_file_write_size\" must be equal or bigger than "
-             "maximum of the value of \"proxy_buffer_size\" and "
+             "\"proxy_temp_file_write_size\" must be equal to or greater "
+             "than the maximum of the value of \"proxy_buffer_size\" and "
              "one of the \"proxy_buffers\"");
 
         return NGX_CONF_ERROR;
@@ -2788,8 +2806,8 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
              "\"proxy_max_temp_file_size\" must be equal to zero to disable "
-             "the temporary files usage or must be equal or bigger than "
-             "maximum of the value of \"proxy_buffer_size\" and "
+             "temporary files usage or must be equal to or greater than "
+             "the maximum of the value of \"proxy_buffer_size\" and "
              "one of the \"proxy_buffers\"");
 
         return NGX_CONF_ERROR;
@@ -3425,11 +3443,11 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     {
         if (plcf->vars.uri.len) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"proxy_pass\" may not have URI part in "
+                               "\"proxy_pass\" cannot have URI part in "
                                "location given by regular expression, "
                                "or inside named location, "
-                               "or inside the \"if\" statement, "
-                               "or inside the \"limit_except\" block");
+                               "or inside \"if\" statement, "
+                               "or inside \"limit_except\" block");
             return NGX_CONF_ERROR;
         }
 
@@ -3498,14 +3516,14 @@ ngx_http_proxy_redirect(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (ngx_strcmp(value[1].data, "default") == 0) {
         if (plcf->proxy_lengths) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"proxy_redirect default\" may not be used "
+                               "\"proxy_redirect default\" cannot be used "
                                "with \"proxy_pass\" directive with variables");
             return NGX_CONF_ERROR;
         }
 
         if (plcf->url.data == NULL) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "\"proxy_redirect default\" must go "
+                               "\"proxy_redirect default\" should be placed "
                                "after the \"proxy_pass\" directive");
             return NGX_CONF_ERROR;
         }

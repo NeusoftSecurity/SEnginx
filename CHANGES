@@ -1,4 +1,16 @@
 
+Changes with nginx 1.2.0                                         23 Apr 2012
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       "try_files" directive was used; the bug had appeared in 1.1.19.
+
+    *) Bugfix: response might be truncated if there were more than IOV_MAX
+       buffers used.
+
+    *) Bugfix: in the "crop" parameter of the "image_filter" directive.
+       Thanks to Maxim Bublis.
+
+
 Changes with nginx 1.1.19                                        12 Apr 2012
 
     *) Security: specially crafted mp4 file might allow to overwrite memory

@@ -1933,6 +1933,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
 
     if (rc == NGX_OK && r->filter_finalize) {
         c->error = 1;
+        ngx_http_finalize_connection(r);
         return;
     }
 
@@ -2001,14 +2002,6 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
             return;
         }
 
-#if (NGX_DEBUG)
-        if (r != c->data) {
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                           "http finalize non-active request: \"%V?%V\"",
-                           &r->uri, &r->args);
-        }
-#endif
-
         pr = r->parent;
 
         if (r == c->data) {
@@ -2041,6 +2034,10 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
             c->data = pr;
 
         } else {
+
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                           "http finalize non-active request: \"%V?%V\"",
+                           &r->uri, &r->args);
 
             r->write_event_handler = ngx_http_request_finalizer;
 

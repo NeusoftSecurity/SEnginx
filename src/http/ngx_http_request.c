@@ -812,7 +812,28 @@ ngx_http_process_request_line(ngx_event_t *rev)
 
 #if (NGX_WIN32)
             {
-            u_char  *p;
+            u_char  *p, *last;
+
+            p = r->uri.data;
+            last = r->uri.data + r->uri.len;
+
+            while (p < last) {
+
+                if (*p++ == ':') {
+
+                    /*
+                     * this check covers "::$data", "::$index_allocation" and
+                     * ":$i30:$index_allocation"
+                     */
+
+                    if (p < last && *p == '$') {
+                        ngx_log_error(NGX_LOG_INFO, c->log, 0,
+                                      "client sent unsafe win32 URI");
+                        ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+                        return;
+                    }
+                }
+            }
 
             p = r->uri.data + r->uri.len - 1;
 
@@ -825,11 +846,6 @@ ngx_http_process_request_line(ngx_event_t *rev)
 
                 if (*p == '.') {
                     p--;
-                    continue;
-                }
-
-                if (ngx_strncasecmp(p - 6, (u_char *) "::$data", 7) == 0) {
-                    p -= 7;
                     continue;
                 }
 
@@ -1933,8 +1949,6 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
 
     if (rc == NGX_OK && r->filter_finalize) {
         c->error = 1;
-        ngx_http_finalize_connection(r);
-        return;
     }
 
     if (rc == NGX_DECLINED) {

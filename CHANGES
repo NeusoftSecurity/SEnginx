@@ -1,4 +1,42 @@
 
+Changes with nginx 1.3.1                                         05 Jun 2012
+
+    *) Security: now nginx/Windows ignores trailing dot in URI path
+       component, and does not allow URIs with ":$" in it.
+       Thanks to Vladimir Kochetkov, Positive Research Center.
+
+    *) Feature: the "proxy_pass", "fastcgi_pass", "scgi_pass", "uwsgi_pass"
+       directives, and the "server" directive inside the "upstream" block,
+       now support IPv6 addresses.
+
+    *) Feature: the "resolver" directive now support IPv6 addresses and an
+       optional port specification.
+
+    *) Feature: the "least_conn" directive inside the "upstream" block.
+
+    *) Feature: it is now possible to specify a weight for servers while
+       using the "ip_hash" directive.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       "image_filter" directive was used; the bug had appeared in 1.3.0.
+
+    *) Bugfix: nginx could not be built with ngx_cpp_test_module; the bug
+       had appeared in 1.1.12.
+
+    *) Bugfix: access to variables from SSI and embedded perl module might
+       not work after reconfiguration.
+       Thanks to Yichun Zhang.
+
+    *) Bugfix: in the ngx_http_xslt_filter_module.
+       Thanks to Kuramoto Eiji.
+
+    *) Bugfix: memory leak if $geoip_org variable was used.
+       Thanks to Denis F. Latypoff.
+
+    *) Bugfix: in the "proxy_cookie_domain" and "proxy_cookie_path"
+       directives.
+
+
 Changes with nginx 1.3.0                                         15 May 2012
 
     *) Feature: the "debug_connection" directive now supports IPv6 addresses

@@ -1,4 +1,36 @@
 
+Changes with nginx 1.3.2                                         26 Jun 2012
+
+    *) Change: the "single" parameter of the "keepalive" directive is now
+       ignored.
+
+    *) Change: SSL compression is now disabled when using all versions of
+       OpenSSL, including ones prior to 1.0.0.
+
+    *) Feature: it is now possible to use the "ip_hash" directive to balance
+       IPv6 clients.
+
+    *) Feature: the $status variable can now be used not only in the
+       "log_format" directive.
+
+    *) Bugfix: a segmentation fault might occur in a worker process on
+       shutdown if the "resolver" directive was used.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       ngx_http_mp4_module was used.
+
+    *) Bugfix: in the ngx_http_mp4_module.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if
+       conflicting wildcard server names were used.
+
+    *) Bugfix: nginx might be terminated abnormally on a SIGBUS signal on
+       ARM platform.
+
+    *) Bugfix: an alert "sendmsg() failed (9: Bad file number)" on HP-UX
+       while reconfiguration.
+
+
 Changes with nginx 1.3.1                                         05 Jun 2012
 
     *) Security: now nginx/Windows ignores trailing dot in URI path

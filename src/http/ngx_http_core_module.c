@@ -650,6 +650,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
       offsetof(ngx_http_core_loc_conf_t, chunked_transfer_encoding),
       NULL },
 
+    { ngx_string("etag"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_core_loc_conf_t, etag),
+      NULL },
+
     { ngx_string("error_page"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
                         |NGX_CONF_2MORE,
@@ -1809,6 +1816,42 @@ ngx_http_set_exten(ngx_http_request_t *r)
 
 
 ngx_int_t
+ngx_http_set_etag(ngx_http_request_t *r)
+{
+    ngx_table_elt_t           *etag;
+    ngx_http_core_loc_conf_t  *clcf;
+    
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+ 
+    if (!clcf->etag) {
+        return NGX_OK;
+    }
+
+    etag = ngx_list_push(&r->headers_out.headers);
+    if (etag == NULL) {
+        return NGX_ERROR;
+    }
+
+    etag->hash = 1;
+    ngx_str_set(&etag->key, "ETag");
+
+    etag->value.data = ngx_pnalloc(r->pool, NGX_OFF_T_LEN + NGX_TIME_T_LEN + 3);
+    if (etag->value.data == NULL) {
+        return NGX_ERROR;
+    }
+
+    etag->value.len = ngx_sprintf(etag->value.data, "\"%xT-%xO\"",
+                                  r->headers_out.last_modified_time,
+                                  r->headers_out.content_length_n)
+                      - etag->value.data;
+
+    r->headers_out.etag = etag;
+
+    return NGX_OK;
+}
+
+
+ngx_int_t
 ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status,
     ngx_str_t *ct, ngx_http_complex_value_t *cv)
 {
@@ -2588,6 +2631,7 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
 
             r->internal = 1;
             r->content_handler = NULL;
+            r->uri_changed = 0;
             r->loc_conf = (*clcfp)->loc_conf;
 
             /* clear the modules contexts */
@@ -3509,6 +3553,7 @@ ngx_http_core_create_loc_conf(ngx_conf_t *cf)
     clcf->recursive_error_pages = NGX_CONF_UNSET;
     clcf->server_tokens = NGX_CONF_UNSET;
     clcf->chunked_transfer_encoding = NGX_CONF_UNSET;
+    clcf->etag = NGX_CONF_UNSET;
     clcf->types_hash_max_size = NGX_CONF_UNSET_UINT;
     clcf->types_hash_bucket_size = NGX_CONF_UNSET_UINT;
 
@@ -3770,6 +3815,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->server_tokens, prev->server_tokens, 1);
     ngx_conf_merge_value(conf->chunked_transfer_encoding,
                               prev->chunked_transfer_encoding, 1);
+    ngx_conf_merge_value(conf->etag, prev->etag, 1);
 
     ngx_conf_merge_ptr_value(conf->open_file_cache,
                               prev->open_file_cache, NULL);

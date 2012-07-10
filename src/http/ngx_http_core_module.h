@@ -392,6 +392,7 @@ struct ngx_http_core_loc_conf_s {
     ngx_flag_t    recursive_error_pages;   /* recursive_error_pages */
     ngx_flag_t    server_tokens;           /* server_tokens */
     ngx_flag_t    chunked_transfer_encoding; /* chunked_transfer_encoding */
+    ngx_flag_t    etag;                    /* etag */
 
 #if (NGX_HTTP_GZIP)
     ngx_flag_t    gzip_vary;               /* gzip_vary */
@@ -480,6 +481,7 @@ ngx_int_t ngx_http_core_content_phase(ngx_http_request_t *r,
 void *ngx_http_test_content_type(ngx_http_request_t *r, ngx_hash_t *types_hash);
 ngx_int_t ngx_http_set_content_type(ngx_http_request_t *r);
 void ngx_http_set_exten(ngx_http_request_t *r);
+ngx_int_t ngx_http_set_etag(ngx_http_request_t *r);
 ngx_int_t ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status,
     ngx_str_t *ct, ngx_http_complex_value_t *cv);
 u_char *ngx_http_map_uri_to_path(ngx_http_request_t *r, ngx_str_t *name,
@@ -553,6 +555,13 @@ extern ngx_str_t  ngx_http_core_get_method;
     if (r->headers_out.location) {                                            \
         r->headers_out.location->hash = 0;                                    \
         r->headers_out.location = NULL;                                       \
+    }
+
+#define ngx_http_clear_etag(r)                                                \
+                                                                              \
+    if (r->headers_out.etag) {                                                \
+        r->headers_out.etag->hash = 0;                                        \
+        r->headers_out.etag = NULL;                                           \
     }
 
 

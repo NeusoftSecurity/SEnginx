@@ -1,4 +1,24 @@
 
+Changes with nginx 1.3.4                                         31 Jul 2012
+
+    *) Change: the "ipv6only" parameter is now turned on by default for
+       listening IPv6 sockets.
+
+    *) Feature: the Clang compiler support.
+
+    *) Bugfix: extra listening sockets might be created.
+       Thanks to Roman Odaisky.
+
+    *) Bugfix: nginx/Windows might hog CPU if a worker process failed to
+       start.
+       Thanks to Ricardo Villalobos Guevara.
+
+    *) Bugfix: the "proxy_pass_header", "fastcgi_pass_header",
+       "scgi_pass_header", "uwsgi_pass_header", "proxy_hide_header",
+       "fastcgi_hide_header", "scgi_hide_header", and "uwsgi_hide_header"
+       directives might be inherited incorrectly.
+
+
 Changes with nginx 1.3.3                                         10 Jul 2012
 
     *) Feature: entity tags support and the "etag" directive.

@@ -1,4 +1,19 @@
 
+Changes with nginx 1.3.6                                         12 Sep 2012
+
+    *) Feature: the ngx_http_gunzip_filter_module.
+
+    *) Feature: the "memcached_gzip_flag" directive.
+
+    *) Feature: the "always" parameter of the "gzip_static" directive.
+
+    *) Bugfix: in the "limit_req" directive; the bug had appeared in 1.1.14.
+       Thanks to Charles Chen.
+
+    *) Bugfix: nginx could not be built by gcc 4.7 with -O2 optimization if
+       the --with-ipv6 option was used.
+
+
 Changes with nginx 1.3.5                                         21 Aug 2012
 
     *) Change: the ngx_http_mp4_module module no longer skips tracks in

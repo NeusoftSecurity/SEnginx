@@ -1,4 +1,23 @@
 
+Changes with nginx 1.3.8                                         30 Oct 2012
+
+    *) Feature: the "optional_no_ca" parameter of the "ssl_verify_client"
+       directive.
+       Thanks to Mike Kazantsev and Eric O'Connor.
+
+    *) Feature: the $bytes_sent, $connection, and $connection_requests
+       variables can now be used not only in the "log_format" directive.
+       Thanks to Benjamin Grössing.
+
+    *) Feature: the "auto" parameter of the "worker_processes" directive.
+
+    *) Bugfix: "cache file ... has md5 collision" alert.
+
+    *) Bugfix: in the ngx_http_gunzip_filter_module.
+
+    *) Bugfix: in the "ssl_stapling" directive.
+
+
 Changes with nginx 1.3.7                                         02 Oct 2012
 
     *) Feature: OCSP stapling support.

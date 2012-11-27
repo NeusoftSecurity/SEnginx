@@ -1,4 +1,18 @@
 
+Changes with nginx 1.3.9                                         27 Nov 2012
+
+    *) Feature: support for chunked transfer encoding while reading client
+       request body.
+
+    *) Feature: the $request_time and $msec variables can now be used not
+       only in the "log_format" directive.
+
+    *) Bugfix: cache manager and cache loader processes might not be able to
+       start if more than 512 listen sockets were used.
+
+    *) Bugfix: in the ngx_http_dav_module.
+
+
 Changes with nginx 1.3.8                                         30 Oct 2012
 
     *) Feature: the "optional_no_ca" parameter of the "ssl_verify_client"

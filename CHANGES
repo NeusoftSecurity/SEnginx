@@ -1,4 +1,56 @@
 
+Changes with nginx 1.3.10                                        25 Dec 2012
+
+    *) Change: domain names specified in configuration file are now resolved
+       to IPv6 addresses as well as IPv4 ones.
+
+    *) Change: now if the "include" directive with mask is used on Unix
+       systems, included files are sorted in alphabetical order.
+
+    *) Change: the "add_header" directive adds headers to 201 responses.
+
+    *) Feature: the "geo" directive now supports IPv6 addresses in CIDR
+       notation.
+
+    *) Feature: the "flush" and "gzip" parameters of the "access_log"
+       directive.
+
+    *) Feature: variables support in the "auth_basic" directive.
+
+    *) Bugfix: nginx could not be built with the ngx_http_perl_module in
+       some cases.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       ngx_http_xslt_module was used.
+
+    *) Bugfix: nginx could not be built on MacOSX in some cases.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: the "limit_rate" directive with high rates might result in
+       truncated responses on 32-bit platforms.
+       Thanks to Alexey Antropov.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       "if" directive was used.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: a "100 Continue" response was issued with "413 Request Entity
+       Too Large" responses.
+
+    *) Bugfix: the "image_filter", "image_filter_jpeg_quality" and
+       "image_filter_sharpen" directives might be inherited incorrectly.
+       Thanks to Ian Babrou.
+
+    *) Bugfix: "crypt_r() failed" errors might appear if the "auth_basic"
+       directive was used on Linux.
+
+    *) Bugfix: in backup servers handling.
+       Thanks to Thomas Chen.
+
+    *) Bugfix: proxied HEAD requests might return incorrect response if the
+       "gzip" directive was used.
+
+
 Changes with nginx 1.3.9                                         27 Nov 2012
 
     *) Feature: support for chunked transfer encoding while reading client

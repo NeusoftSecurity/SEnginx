@@ -837,7 +837,7 @@ ngx_http_proxy_create_key(ngx_http_request_t *r)
         return NGX_ERROR;
     }
 
-    if (plcf->cache_key.value.len) {
+    if (plcf->cache_key.value.data) {
 
         if (ngx_http_complex_value(r, &plcf->cache_key, key) != NGX_OK) {
             return NGX_ERROR;
@@ -1614,7 +1614,8 @@ ngx_http_proxy_copy_filter(ngx_event_pipe_t *p, ngx_buf_t *buf)
         p->upstream_done = 1;
 
         ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
-                      "upstream sent too much data");
+                      "upstream sent more data than specified in "
+                      "\"Content-Length\" header");
     }
 
     return NGX_OK;
@@ -3651,7 +3652,7 @@ ngx_http_proxy_cache_key(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    if (plcf->cache_key.value.len) {
+    if (plcf->cache_key.value.data) {
         return "is duplicate";
     }
 

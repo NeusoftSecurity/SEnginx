@@ -1,4 +1,20 @@
 
+Changes with nginx 1.3.11                                        10 Jan 2013
+
+    *) Bugfix: a segmentation fault might occur if logging was used; the bug
+       had appeared in 1.3.10.
+
+    *) Bugfix: the "proxy_pass" directive did not work with IP addresses
+       without port specified; the bug had appeared in 1.3.10.
+
+    *) Bugfix: a segmentation fault occurred on start or during
+       reconfiguration if the "keepalive" directive was specified more than
+       once in a single upstream block.
+
+    *) Bugfix: parameter "default" of the "geo" directive did not set
+       default value for IPv6 addresses.
+
+
 Changes with nginx 1.3.10                                        25 Dec 2012
 
     *) Change: domain names specified in configuration file are now resolved

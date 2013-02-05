@@ -1,4 +1,35 @@
 
+Изменения в nginx 1.3.12                                          05.02.2013
+
+    *) Добавление: директивы proxy_bind, fastcgi_bind, memcached_bind,
+       scgi_bind и uwsgi_bind поддерживают переменные.
+
+    *) Добавление: переменные $pipe, $request_length, $time_iso8601 и
+       $time_local теперь можно использовать не только в директиве
+       log_format.
+       Спасибо Kiril Kalchev.
+
+    *) Добавление: поддержка IPv6 в модуле ngx_http_geoip_module.
+       Спасибо Gregor Kališnik.
+
+    *) Исправление: директива proxy_method работала неверно, если была
+       указана на уровне http.
+
+    *) Исправление: в рабочем процессе мог произойти segmentation fault,
+       если использовался resolver и метод poll.
+
+    *) Исправление: nginx мог нагружать процессор во время SSL handshake с
+       бэкендом при использовании методов обработки соединений select, poll
+       и /dev/poll.
+
+    *) Исправление: ошибка "[crit] SSL_write() failed (SSL:)".
+
+    *) Исправление: в диркетиве client_body_in_file_only; ошибка появилась в
+       1.3.9.
+
+    *) Исправление: в директиве fastcgi_keep_conn.
+
+
 Изменения в nginx 1.3.11                                          10.01.2013
 
     *) Исправление: при записи в лог мог происходить segmentation fault;

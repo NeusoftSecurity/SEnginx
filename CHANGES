@@ -1,4 +1,32 @@
 
+Changes with nginx 1.3.12                                        05 Feb 2013
+
+    *) Feature: variables support in the "proxy_bind", "fastcgi_bind",
+       "memcached_bind", "scgi_bind", and "uwsgi_bind" directives.
+
+    *) Feature: the $pipe, $request_length, $time_iso8601, and $time_local
+       variables can now be used not only in the "log_format" directive.
+       Thanks to Kiril Kalchev.
+
+    *) Feature: IPv6 support in the ngx_http_geoip_module.
+       Thanks to Gregor Kališnik.
+
+    *) Bugfix: in the "proxy_method" directive.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if
+       resolver was used with the poll method.
+
+    *) Bugfix: nginx might hog CPU during SSL handshake with a backend if
+       the select, poll, or /dev/poll methods were used.
+
+    *) Bugfix: the "[crit] SSL_write() failed (SSL:)" error.
+
+    *) Bugfix: in the "client_body_in_file_only" directive; the bug had
+       appeared in 1.3.9.
+
+    *) Bugfix: in the "fastcgi_keep_conn" directive.
+
+
 Changes with nginx 1.3.11                                        10 Jan 2013
 
     *) Bugfix: a segmentation fault might occur if logging was used; the bug

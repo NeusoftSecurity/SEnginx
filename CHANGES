@@ -1,4 +1,16 @@
 
+Changes with nginx 1.3.13                                        19 Feb 2013
+
+    *) Change: a compiler with name "cc" is now used by default.
+
+    *) Feature: support for proxying of WebSocket connections.
+       Thanks to Apcera and CloudBees for sponsoring this work.
+
+    *) Feature: the "auth_basic_user_file" directive supports "{SHA}"
+       password encryption method.
+       Thanks to Louis Opter.
+
+
 Changes with nginx 1.3.12                                        05 Feb 2013
 
     *) Feature: variables support in the "proxy_bind", "fastcgi_bind",

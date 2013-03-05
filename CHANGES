@@ -1,4 +1,26 @@
 
+Changes with nginx 1.3.14                                        05 Mar 2013
+
+    *) Feature: $connections_active, $connections_reading, and
+       $connections_writing variables in the ngx_http_stub_status_module.
+
+    *) Feature: support of WebSocket connections in the
+       ngx_http_uwsgi_module and ngx_http_scgi_module.
+
+    *) Bugfix: in virtual servers handling with SNI.
+
+    *) Bugfix: new sessions were not always stored if the "ssl_session_cache
+       shared" directive was used and there was no free space in shared
+       memory.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: multiple X-Forwarded-For headers were handled incorrectly.
+       Thanks to Neal Poole for sponsoring this work.
+
+    *) Bugfix: in the ngx_http_mp4_module.
+       Thanks to Gernot Vormayr.
+
+
 Changes with nginx 1.3.13                                        19 Feb 2013
 
     *) Change: a compiler with name "cc" is now used by default.

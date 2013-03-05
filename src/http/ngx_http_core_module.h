@@ -209,6 +209,23 @@ typedef struct {
 
 
 typedef struct {
+#if (NGX_PCRE)
+    ngx_http_regex_t          *regex;
+#endif
+    ngx_http_core_srv_conf_t  *server;   /* virtual name server conf */
+    ngx_str_t                  name;
+} ngx_http_server_name_t;
+
+
+typedef struct {
+     ngx_hash_combined_t       names;
+
+     ngx_uint_t                nregex;
+     ngx_http_server_name_t   *regex;
+} ngx_http_virtual_names_t;
+
+
+struct ngx_http_addr_conf_s {
     /* the default server configuration for this address:port */
     ngx_http_core_srv_conf_t  *default_server;
 
@@ -217,7 +234,7 @@ typedef struct {
 #if (NGX_HTTP_SSL)
     ngx_uint_t                 ssl;   /* unsigned  ssl:1; */
 #endif
-} ngx_http_addr_conf_t;
+};
 
 
 typedef struct {
@@ -266,15 +283,6 @@ typedef struct {
     ngx_http_core_srv_conf_t  *default_server;
     ngx_array_t                servers;  /* array of ngx_http_core_srv_conf_t */
 } ngx_http_conf_addr_t;
-
-
-struct ngx_http_server_name_s {
-#if (NGX_PCRE)
-    ngx_http_regex_t          *regex;
-#endif
-    ngx_http_core_srv_conf_t  *server;   /* virtual name server conf */
-    ngx_str_t                  name;
-};
 
 
 typedef struct {
@@ -516,7 +524,8 @@ ngx_int_t ngx_http_set_disable_symlinks(ngx_http_request_t *r,
     ngx_http_core_loc_conf_t *clcf, ngx_str_t *path, ngx_open_file_info_t *of);
 
 ngx_int_t ngx_http_get_forwarded_addr(ngx_http_request_t *r, ngx_addr_t *addr,
-    u_char *xff, size_t xfflen, ngx_array_t *proxies, int recursive);
+    ngx_array_t *headers, ngx_str_t *value, ngx_array_t *proxies,
+    int recursive);
 
 
 extern ngx_module_t  ngx_http_core_module;

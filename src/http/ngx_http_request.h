@@ -200,7 +200,7 @@ typedef struct {
     ngx_table_elt_t                  *keep_alive;
 
 #if (NGX_HTTP_X_FORWARDED_FOR)
-    ngx_table_elt_t                  *x_forwarded_for;
+    ngx_array_t                       x_forwarded_for;
 #endif
 
 #if (NGX_HTTP_REALIP)
@@ -289,8 +289,18 @@ typedef struct {
 } ngx_http_request_body_t;
 
 
+typedef struct ngx_http_addr_conf_s  ngx_http_addr_conf_t;
+
 typedef struct {
-    ngx_http_request_t               *request;
+    ngx_http_addr_conf_t             *addr_conf;
+    ngx_http_conf_ctx_t              *conf_ctx;
+
+#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+    ngx_str_t                        *ssl_servername;
+#if (NGX_PCRE)
+    ngx_http_regex_t                 *ssl_servername_regex;
+#endif
+#endif
 
     ngx_buf_t                       **busy;
     ngx_int_t                         nbusy;
@@ -298,19 +308,9 @@ typedef struct {
     ngx_buf_t                       **free;
     ngx_int_t                         nfree;
 
-    ngx_uint_t                        pipeline;    /* unsigned  pipeline:1; */
+    unsigned                          pipeline:1;
+    unsigned                          ssl:1;
 } ngx_http_connection_t;
-
-
-typedef struct ngx_http_server_name_s  ngx_http_server_name_t;
-
-
-typedef struct {
-     ngx_hash_combined_t              names;
-
-     ngx_uint_t                       nregex;
-     ngx_http_server_name_t          *regex;
-} ngx_http_virtual_names_t;
 
 
 typedef void (*ngx_http_cleanup_pt)(void *data);
@@ -406,8 +406,6 @@ struct ngx_http_request_s {
     ngx_http_post_subrequest_t       *post_subrequest;
     ngx_http_posted_request_t        *posted_requests;
 
-    ngx_http_virtual_names_t         *virtual_names;
-
     ngx_int_t                         phase_handler;
     ngx_http_handler_pt               content_handler;
     ngx_uint_t                        access_code;
@@ -500,7 +498,6 @@ struct ngx_http_request_s {
 #endif
 
     unsigned                          pipeline:1;
-    unsigned                          plain_http:1;
     unsigned                          chunked:1;
     unsigned                          header_only:1;
     unsigned                          keepalive:1;
@@ -578,6 +575,14 @@ typedef struct {
 
 extern ngx_http_header_t       ngx_http_headers_in[];
 extern ngx_http_header_out_t   ngx_http_headers_out[];
+
+
+#define ngx_http_set_connection_log(c, l)                                     \
+                                                                              \
+    c->log->file = l->file;                                                   \
+    if (!(c->log->log_level & NGX_LOG_DEBUG_CONNECTION)) {                    \
+        c->log->log_level = l->log_level;                                     \
+    }
 
 
 #endif /* _NGX_HTTP_REQUEST_H_INCLUDED_ */

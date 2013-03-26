@@ -412,7 +412,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 }
 
                 if (ngx_test_config) {
-                    if (ngx_delete_file(name) == -1) {
+                    if (ngx_delete_file(name) == NGX_FILE_ERROR) {
                         ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
                                       ngx_delete_file_n " %s failed", name);
                     }
@@ -739,7 +739,7 @@ ngx_close_listening_sockets(ngx_cycle_t *cycle)
         {
             u_char *name = ls[i].addr_text.data + sizeof("unix:") - 1;
 
-            if (ngx_delete_file(name) == -1) {
+            if (ngx_delete_file(name) == NGX_FILE_ERROR) {
                 ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_socket_errno,
                               ngx_delete_file_n " %s failed", name);
             }
@@ -900,11 +900,9 @@ ngx_close_connection(ngx_connection_t *c)
     c->read->closed = 1;
     c->write->closed = 1;
 
-    if (c->single_connection) {
-        ngx_unlock(&c->lock);
-        c->read->locked = 0;
-        c->write->locked = 0;
-    }
+    ngx_unlock(&c->lock);
+    c->read->locked = 0;
+    c->write->locked = 0;
 
     ngx_mutex_unlock(ngx_posted_events_mutex);
 
@@ -972,6 +970,10 @@ ngx_reusable_connection(ngx_connection_t *c, ngx_uint_t reusable)
 
     if (c->reusable) {
         ngx_queue_remove(&c->queue);
+
+#if (NGX_STAT_STUB)
+        (void) ngx_atomic_fetch_add(ngx_stat_waiting, -1);
+#endif
     }
 
     c->reusable = reusable;
@@ -981,6 +983,10 @@ ngx_reusable_connection(ngx_connection_t *c, ngx_uint_t reusable)
 
         ngx_queue_insert_head(
             (ngx_queue_t *) &ngx_cycle->reusable_connections_queue, &c->queue);
+
+#if (NGX_STAT_STUB)
+        (void) ngx_atomic_fetch_add(ngx_stat_waiting, 1);
+#endif
     }
 }
 

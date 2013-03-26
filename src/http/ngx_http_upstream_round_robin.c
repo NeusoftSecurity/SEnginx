@@ -10,8 +10,6 @@
 #include <ngx_http.h>
 
 
-static ngx_int_t ngx_http_upstream_cmp_servers(const void *one,
-    const void *two);
 static ngx_http_upstream_rr_peer_t *ngx_http_upstream_get_peer(
     ngx_http_upstream_rr_peer_data_t *rrp);
 
@@ -93,10 +91,6 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
 
         us->peer.data = peers;
 
-        ngx_sort(&peers->peer[0], (size_t) n,
-                 sizeof(ngx_http_upstream_rr_peer_t),
-                 ngx_http_upstream_cmp_servers);
-
         /* backup servers */
 
         n = 0;
@@ -150,10 +144,6 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
         }
 
         peers->next = backup;
-
-        ngx_sort(&backup->peer[0], (size_t) n,
-                 sizeof(ngx_http_upstream_rr_peer_t),
-                 ngx_http_upstream_cmp_servers);
 
         return NGX_OK;
     }
@@ -213,18 +203,6 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     /* implicitly defined upstream has no backup servers */
 
     return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_upstream_cmp_servers(const void *one, const void *two)
-{
-    ngx_http_upstream_rr_peer_t  *first, *second;
-
-    first = (ngx_http_upstream_rr_peer_t *) one;
-    second = (ngx_http_upstream_rr_peer_t *) two;
-
-    return (first->weight < second->weight);
 }
 
 
@@ -395,7 +373,6 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
 
     ngx_int_t                      rc;
     ngx_uint_t                     i, n;
-    ngx_connection_t              *c;
     ngx_http_upstream_rr_peer_t   *peer;
     ngx_http_upstream_rr_peers_t  *peers;
 
@@ -403,26 +380,6 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
                    "get rr peer, try: %ui", pc->tries);
 
     /* ngx_lock_mutex(rrp->peers->mutex); */
-
-    if (rrp->peers->last_cached) {
-
-        /* cached connection */
-
-        c = rrp->peers->cached[rrp->peers->last_cached];
-        rrp->peers->last_cached--;
-
-        /* ngx_unlock_mutex(ppr->peers->mutex); */
-
-#if (NGX_THREADS)
-        c->read->lock = c->read->own_lock;
-        c->write->lock = c->write->own_lock;
-#endif
-
-        pc->connection = c;
-        pc->cached = 1;
-
-        return NGX_OK;
-    }
 
     pc->cached = 0;
     pc->connection = NULL;
@@ -583,10 +540,6 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0,
                    "free rr peer %ui %ui", pc->tries, state);
-
-    if (state == 0 && pc->tries == 0) {
-        return;
-    }
 
     /* TODO: NGX_PEER_KEEPALIVE */
 

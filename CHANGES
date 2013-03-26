@@ -1,4 +1,37 @@
 
+Changes with nginx 1.3.15                                        26 Mar 2013
+
+    *) Change: opening and closing a connection without sending any data in
+       it is no longer logged to access_log with error code 400.
+
+    *) Feature: the ngx_http_spdy_module.
+       Thanks to Automattic for sponsoring this work.
+
+    *) Feature: the "limit_req_status" and "limit_conn_status" directives.
+       Thanks to Nick Marden.
+
+    *) Feature: the "image_filter_interlace" directive.
+       Thanks to Ian Babrou.
+
+    *) Feature: $connections_waiting variable in the
+       ngx_http_stub_status_module.
+
+    *) Feature: the mail proxy module now supports IPv6 backends.
+
+    *) Bugfix: request body might be transmitted incorrectly when retrying a
+       request to the next upstream server; the bug had appeared in 1.3.9.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: in the "client_body_in_file_only" directive; the bug had
+       appeared in 1.3.9.
+
+    *) Bugfix: responses might hang if subrequests were used and a DNS error
+       happened during subrequest processing.
+       Thanks to Lanshun Zhou.
+
+    *) Bugfix: in backend usage accounting.
+
+
 Changes with nginx 1.3.14                                        05 Mar 2013
 
     *) Feature: $connections_active, $connections_reading, and

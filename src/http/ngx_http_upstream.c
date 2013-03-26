@@ -440,6 +440,13 @@ ngx_http_upstream_init(ngx_http_request_t *r)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "http init upstream, client timer: %d", c->read->timer_set);
 
+#if (NGX_HTTP_SPDY)
+    if (r->spdy_stream) {
+        ngx_http_upstream_init_request(r);
+        return;
+    }
+#endif
+
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }
@@ -878,11 +885,13 @@ ngx_http_upstream_cache_send(ngx_http_request_t *r, ngx_http_upstream_t *u)
 static void
 ngx_http_upstream_resolve_handler(ngx_resolver_ctx_t *ctx)
 {
+    ngx_connection_t              *c;
     ngx_http_request_t            *r;
     ngx_http_upstream_t           *u;
     ngx_http_upstream_resolved_t  *ur;
 
     r = ctx->data;
+    c = r->connection;
 
     u = r->upstream;
     ur = u->resolved;
@@ -894,7 +903,7 @@ ngx_http_upstream_resolve_handler(ngx_resolver_ctx_t *ctx)
                       ngx_resolver_strerror(ctx->state));
 
         ngx_http_upstream_finalize_request(r, u, NGX_HTTP_BAD_GATEWAY);
-        return;
+        goto failed;
     }
 
     ur->naddrs = ctx->naddrs;
@@ -919,13 +928,17 @@ ngx_http_upstream_resolve_handler(ngx_resolver_ctx_t *ctx)
     if (ngx_http_upstream_create_round_robin_peer(r, ur) != NGX_OK) {
         ngx_http_upstream_finalize_request(r, u,
                                            NGX_HTTP_INTERNAL_SERVER_ERROR);
-        return;
+        goto failed;
     }
 
     ngx_resolve_name_done(ctx);
     ur->ctx = NULL;
 
     ngx_http_upstream_connect(r, u);
+
+failed:
+
+    ngx_http_run_posted_requests(c);
 }
 
 
@@ -1011,6 +1024,12 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
 
         return;
     }
+
+#if (NGX_HTTP_SPDY)
+    if (r->spdy_stream) {
+        return;
+    }
+#endif
 
 #if (NGX_HAVE_KQUEUE)
 
@@ -1117,8 +1136,6 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     ngx_connection_t  *c;
 
     r->connection->log->action = "connecting to upstream";
-
-    r->connection->single_connection = 0;
 
     if (u->state && u->state->response_sec) {
         tp = ngx_timeofday();
@@ -3130,14 +3147,16 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
     ngx_http_busy_unlock(u->conf->busy_lock, &u->busy_lock);
 #endif
 
-    if (ft_type == NGX_HTTP_UPSTREAM_FT_HTTP_404) {
-        state = NGX_PEER_NEXT;
-    } else {
-        state = NGX_PEER_FAILED;
-    }
+    if (u->peer.sockaddr) {
 
-    if (ft_type != NGX_HTTP_UPSTREAM_FT_NOLIVE) {
+        if (ft_type == NGX_HTTP_UPSTREAM_FT_HTTP_404) {
+            state = NGX_PEER_NEXT;
+        } else {
+            state = NGX_PEER_FAILED;
+        }
+
         u->peer.free(&u->peer, u->peer.data, state);
+        u->peer.sockaddr = NULL;
     }
 
     if (ft_type == NGX_HTTP_UPSTREAM_FT_TIMEOUT) {
@@ -3297,8 +3316,9 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
 
     u->finalize_request(r, rc);
 
-    if (u->peer.free) {
+    if (u->peer.free && u->peer.sockaddr) {
         u->peer.free(&u->peer, u->peer.data, 0);
+        u->peer.sockaddr = NULL;
     }
 
     if (u->peer.connection) {

@@ -34,7 +34,7 @@ static ngx_conf_deprecated_t  ngx_conf_deprecated_so_keepalive = {
 static ngx_command_t  ngx_mail_core_commands[] = {
 
     { ngx_string("server"),
-      NGX_MAIL_MAIN_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      NGX_MAIL_MAIN_CONF|NGX_CONF_BLOCK|NGX_CONF_MULTI|NGX_CONF_NOARGS,
       ngx_mail_core_server,
       0,
       0,
@@ -48,7 +48,7 @@ static ngx_command_t  ngx_mail_core_commands[] = {
       NULL },
 
     { ngx_string("protocol"),
-      NGX_MAIL_SRV_CONF|NGX_CONF_TAKE1,
+      NGX_MAIL_SRV_CONF|NGX_CONF_MULTI|NGX_CONF_TAKE1,
       ngx_mail_core_protocol,
       NGX_MAIL_SRV_CONF_OFFSET,
       0,

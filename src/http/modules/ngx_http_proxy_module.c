@@ -68,6 +68,11 @@ typedef struct {
     ngx_http_complex_value_t       cache_key;
 #endif
 
+#if (NGX_HTTP_CACHE_EXTEND)
+    ngx_array_t                   *types_keys;
+    ngx_hash_t                     types;
+#endif
+
     ngx_http_proxy_vars_t          vars;
 
     ngx_flag_t                     redirect;
@@ -165,6 +170,10 @@ static ngx_int_t ngx_http_proxy_set_ssl(ngx_conf_t *cf,
 #endif
 static void ngx_http_proxy_set_vars(ngx_url_t *u, ngx_http_proxy_vars_t *v);
 
+#if (NGX_HTTP_CACHE_EXTEND)
+ngx_int_t
+ngx_http_proxy_test_content_type(ngx_http_request_t *r);
+#endif
 
 static ngx_conf_post_t  ngx_http_proxy_lowat_post =
     { ngx_http_proxy_lowat_check };
@@ -205,7 +214,8 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NULL },
 
     { ngx_string("proxy_redirect"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12
+	  |NGX_HTTP_LIF_CONF,
       ngx_http_proxy_redirect,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -289,7 +299,8 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NULL },
 
     { ngx_string("proxy_set_header"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2|
+          NGX_HTTP_LIF_CONF,
       ngx_conf_set_keyval_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_proxy_loc_conf_t, headers_source),
@@ -511,6 +522,15 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       offsetof(ngx_http_proxy_loc_conf_t, upstream.ssl_session_reuse),
       NULL },
 
+#endif
+
+#if (NGX_HTTP_CACHE_EXTEND)
+    { ngx_string("proxy_cache_types"),
+      NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
+      ngx_http_types_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_proxy_loc_conf_t, types_keys),
+      NULL },
 #endif
 
       ngx_null_command
@@ -2828,6 +2848,16 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         return NGX_CONF_ERROR;
     }
 
+#if (NGX_HTTP_CACHE_EXTEND)
+    if (ngx_http_merge_types(cf, &conf->types_keys, &conf->types,
+                             &prev->types_keys, &prev->types,
+                             ngx_http_html_default_types)
+        != NGX_OK)
+    {
+        return NGX_CONF_ERROR;
+    }
+#endif
+
     return NGX_CONF_OK;
 }
 
@@ -3796,3 +3826,27 @@ ngx_http_proxy_set_vars(ngx_url_t *u, ngx_http_proxy_vars_t *v)
 
     v->uri = u->uri;
 }
+
+#if (NGX_HTTP_CACHE_EXTEND)
+ngx_int_t
+ngx_http_proxy_test_content_type(ngx_http_request_t *r)
+{
+    ngx_http_proxy_loc_conf_t  *conf;
+
+    conf = ngx_http_get_module_loc_conf(r, ngx_http_proxy_module);
+
+    if (ngx_http_test_content_type(r, &conf->types) 
+            == NULL) {
+
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "proxy cache extend: not match content types, skip caching");
+        
+        return NGX_ERROR;
+    }
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "proxy cache extend: match content types, caching");
+    
+    return NGX_OK;
+}
+#endif

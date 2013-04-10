@@ -119,6 +119,10 @@ typedef enum {
 
     NGX_HTTP_ACCESS_PHASE,
     NGX_HTTP_POST_ACCESS_PHASE,
+   
+#if (NGX_HTTP_NETEYE_SECURITY)
+    NGX_HTTP_NETEYE_SECURITY_PHASE,
+#endif
 
     NGX_HTTP_TRY_FILES_PHASE,
     NGX_HTTP_CONTENT_PHASE,
@@ -186,6 +190,7 @@ typedef struct {
     ngx_http_conf_ctx_t        *ctx;
 
     ngx_str_t                   server_name;
+    ngx_str_t                   virtual_server_name;
 
     size_t                      connection_pool_size;
     size_t                      request_pool_size;

@@ -167,6 +167,9 @@ void ngx_cdecl ngx_ssl_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     char *fmt, ...);
 void ngx_ssl_cleanup_ctx(void *data);
 
+#if (NGX_COMMON_UPSTREAM)
+extern int  ngx_ssl_lb_sp_SSL_index;
+#endif
 
 extern int  ngx_ssl_connection_index;
 extern int  ngx_ssl_server_conf_index;

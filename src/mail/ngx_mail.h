@@ -353,7 +353,10 @@ typedef struct {
 
 #define NGX_MAIL_MAIN_CONF      0x02000000
 #define NGX_MAIL_SRV_CONF       0x04000000
-
+/* 2011-4-1 <chaizhh@neusoft.com> add UPS_CONF DEFAULT_PORT */
+#define NGX_POP3_DEFAULT_PORT 110
+#define NGX_IMAP_DEFAULT_PORT 143
+#define NGX_SMTP_DEFAULT_PORT 25
 
 #define NGX_MAIL_MAIN_CONF_OFFSET  offsetof(ngx_mail_conf_ctx_t, main_conf)
 #define NGX_MAIL_SRV_CONF_OFFSET   offsetof(ngx_mail_conf_ctx_t, srv_conf)
@@ -415,5 +418,8 @@ void ngx_mail_auth_http_init(ngx_mail_session_t *s);
 extern ngx_uint_t    ngx_mail_max_module;
 extern ngx_module_t  ngx_mail_core_module;
 
-
+#if (NGX_MAIL_UPSTREAM)  /* <chaizhh@neusoft.com> 2011-3-18 */
+void
+ngx_mail_upstream_init(ngx_mail_session_t *s, ngx_connection_t *c);
+#endif
 #endif /* _NGX_MAIL_H_INCLUDED_ */

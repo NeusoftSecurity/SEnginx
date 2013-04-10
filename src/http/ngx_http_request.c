@@ -548,6 +548,15 @@ ngx_http_create_request(ngx_connection_t *c)
         return NULL;
     }
 
+#if (NGX_HTTP_NETEYE_SECURITY)
+    r->ns_ctx = ngx_pcalloc(r->pool, sizeof(void *) * ngx_http_max_module);
+    if (r->ns_ctx == NULL) {
+        ngx_destroy_pool(r->pool);
+        ngx_http_close_connection(c);
+        return NULL;
+    }
+#endif
+
     cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
     r->variables = ngx_pcalloc(r->pool, cmcf->variables.nelts

@@ -133,6 +133,8 @@ static ngx_int_t ngx_http_upstream_copy_content_encoding(ngx_http_request_t *r,
 static ngx_int_t ngx_http_upstream_add_variables(ngx_conf_t *cf);
 static ngx_int_t ngx_http_upstream_addr_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_upstream_name_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_upstream_status_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_upstream_response_time_variable(ngx_http_request_t *r,
@@ -340,6 +342,10 @@ static ngx_http_variable_t  ngx_http_upstream_vars[] = {
       ngx_http_upstream_addr_variable, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
+    { ngx_string("upstream_name"), NULL,
+      ngx_http_upstream_name_variable, 0,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
     { ngx_string("upstream_status"), NULL,
       ngx_http_upstream_status_variable, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
@@ -429,7 +435,9 @@ ngx_http_upstream_create(ngx_http_request_t *r)
     return NGX_OK;
 }
 
-
+#if (NGX_HTTP_ADD_ARGS)
+#include <ngx_http_add_args.h>
+#endif
 void
 ngx_http_upstream_init(ngx_http_request_t *r)
 {
@@ -2228,6 +2236,13 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
         break;
 
     default: /* NGX_OK */
+
+#if (NGX_HTTP_CACHE_EXTEND)
+        if (ngx_http_proxy_test_content_type(r) != NGX_OK) {
+            u->cacheable = 0;
+            break;
+        }
+#endif
 
         if (u->cache_status == NGX_HTTP_CACHE_BYPASS) {
 
@@ -4176,6 +4191,26 @@ ngx_http_upstream_addr_variable(ngx_http_request_t *r,
     return NGX_OK;
 }
 
+static ngx_int_t
+ngx_http_upstream_name_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_http_upstream_srv_conf_t  *uscf;
+    
+    uscf = r->upstream->conf->upstream;
+    if (uscf == NULL) {
+        return NGX_ERROR;
+    }
+    
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    v->data = uscf->host.data;
+    v->len = uscf->host.len;
+
+    return NGX_OK;
+}
 
 static ngx_int_t
 ngx_http_upstream_status_variable(ngx_http_request_t *r,
@@ -4437,6 +4472,9 @@ ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
                                          |NGX_HTTP_UPSTREAM_WEIGHT
                                          |NGX_HTTP_UPSTREAM_MAX_FAILS
                                          |NGX_HTTP_UPSTREAM_FAIL_TIMEOUT
+                                         |NGX_HTTP_UPSTREAM_SRUN_ID
+                                         |NGX_HTTP_UPSTREAM_MAX_BUSY
+                                         |NGX_HTTP_UPSTREAM_RETIRE
                                          |NGX_HTTP_UPSTREAM_DOWN
                                          |NGX_HTTP_UPSTREAM_BACKUP);
     if (uscf == NULL) {
@@ -4528,9 +4566,9 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_upstream_srv_conf_t  *uscf = conf;
 
     time_t                       fail_timeout;
-    ngx_str_t                   *value, s;
+    ngx_str_t                   *value, s, id;
     ngx_url_t                    u;
-    ngx_int_t                    weight, max_fails;
+    ngx_int_t                    weight, max_fails, max_busy;
     ngx_uint_t                   i;
     ngx_http_upstream_server_t  *us;
 
@@ -4567,7 +4605,10 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     weight = 1;
     max_fails = 1;
+    max_busy = 0;
     fail_timeout = 10;
+    id.data = (u_char *) "a";
+    id.len = sizeof("a") - 1;
 
     for (i = 2; i < cf->args->nelts; i++) {
 
@@ -4601,6 +4642,21 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
+        if (ngx_strncmp(value[i].data, "max_busy=", 9) == 0) {
+
+            if (!(uscf->flags & NGX_HTTP_UPSTREAM_MAX_BUSY)) {
+                goto invalid;
+            }
+
+            max_busy = ngx_atoi(&value[i].data[9], value[i].len - 9);
+
+            if (max_busy == NGX_ERROR) {
+                goto invalid;
+            }
+
+            continue;
+        }
+
         if (ngx_strncmp(value[i].data, "fail_timeout=", 13) == 0) {
 
             if (!(uscf->flags & NGX_HTTP_UPSTREAM_FAIL_TIMEOUT)) {
@@ -4615,6 +4671,33 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             if (fail_timeout == (time_t) NGX_ERROR) {
                 goto invalid;
             }
+
+            continue;
+        }
+
+        if (ngx_strncmp(value[i].data, "srun_id=", 8) == 0) {
+
+            if (!(uscf->flags & NGX_HTTP_UPSTREAM_SRUN_ID)) {
+                goto invalid;
+            }
+
+            id.len = value[i].len - 8;
+            id.data = &value[i].data[8];
+
+            if (id.len == 0) {
+                goto invalid;
+            }
+
+            continue;
+        }
+
+        if (ngx_strncmp(value[i].data, "retire", 6) == 0) {
+
+            if (!(uscf->flags & NGX_HTTP_UPSTREAM_RETIRE)){
+                goto invalid;
+            }
+
+            us->retire = 1;
 
             continue;
         }
@@ -4641,6 +4724,12 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
+        if (ngx_strncmp(value[i].data, "failed", 6) == 0) {
+            us->failed = 1;
+            continue;
+        }
+
+
         goto invalid;
     }
 
@@ -4648,7 +4737,9 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     us->naddrs = u.naddrs;
     us->weight = weight;
     us->max_fails = max_fails;
+    us->max_busy = max_busy;
     us->fail_timeout = fail_timeout;
+    us->srun_id = id;
 
     return NGX_CONF_OK;
 

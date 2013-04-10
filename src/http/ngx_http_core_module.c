@@ -51,6 +51,8 @@ static char *ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char *ngx_http_core_server_name(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
+static char *ngx_http_core_virtual_server_name(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
 static char *ngx_http_core_root(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_core_limit_except(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
@@ -311,6 +313,13 @@ static ngx_command_t  ngx_http_core_commands[] = {
     { ngx_string("server_name"),
       NGX_HTTP_SRV_CONF|NGX_CONF_1MORE,
       ngx_http_core_server_name,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("virtual_server_name"),
+      NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
+      ngx_http_core_virtual_server_name,
       NGX_HTTP_SRV_CONF_OFFSET,
       0,
       NULL },
@@ -2507,6 +2516,10 @@ ngx_http_subrequest(ngx_http_request_t *r,
         c->data = sr;
     }
 
+#if (NGX_HTTP_NETEYE_SECURITY)
+    sr->ns_ctx = r->ns_ctx;
+#endif
+
     sr->variables = r->variables;
 
     sr->log_handler = r->log_handler;
@@ -3933,6 +3946,19 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_ptr_value(conf->disable_symlinks_from,
                              prev->disable_symlinks_from, NULL);
 #endif
+
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_core_virtual_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_core_srv_conf_t *cscf = conf;
+    ngx_str_t               *value;
+
+    value = cf->args->elts;
+
+    cscf->virtual_server_name = value[1];
 
     return NGX_CONF_OK;
 }

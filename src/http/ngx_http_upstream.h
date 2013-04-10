@@ -16,6 +16,9 @@
 #include <ngx_event_pipe.h>
 #include <ngx_http.h>
 
+#if (NGX_HTTP_PERSISTENCE)
+#include <ngx_http_upstream_persistence.h>
+#endif
 
 #define NGX_HTTP_UPSTREAM_FT_ERROR           0x00000002
 #define NGX_HTTP_UPSTREAM_FT_TIMEOUT         0x00000004
@@ -83,16 +86,19 @@ typedef struct {
     void                            *data;
 } ngx_http_upstream_peer_t;
 
-
 typedef struct {
     ngx_addr_t                      *addrs;
     ngx_uint_t                       naddrs;
     ngx_uint_t                       weight;
     ngx_uint_t                       max_fails;
     time_t                           fail_timeout;
+    ngx_uint_t                       max_busy;
+    ngx_str_t                        srun_id;
+    unsigned                         retire:1;
 
     unsigned                         down:1;
     unsigned                         backup:1;
+    unsigned                         failed:1;
 } ngx_http_upstream_server_t;
 
 
@@ -102,6 +108,10 @@ typedef struct {
 #define NGX_HTTP_UPSTREAM_FAIL_TIMEOUT  0x0008
 #define NGX_HTTP_UPSTREAM_DOWN          0x0010
 #define NGX_HTTP_UPSTREAM_BACKUP        0x0020
+#define NGX_HTTP_UPSTREAM_FAILED        0x0040
+#define NGX_HTTP_UPSTREAM_SRUN_ID       0x0080
+#define NGX_HTTP_UPSTREAM_MAX_BUSY      0x0100
+#define NGX_HTTP_UPSTREAM_RETIRE        0x0200
 
 
 struct ngx_http_upstream_srv_conf_s {
@@ -109,6 +119,16 @@ struct ngx_http_upstream_srv_conf_s {
     void                           **srv_conf;
 
     ngx_array_t                     *servers;  /* ngx_http_upstream_server_t */
+
+#if (NGX_HTTP_PERSISTENCE)
+    ngx_http_upstream_persistence_group_t group;
+#endif
+
+#if (NGX_HTTP_UPSTREAM_HASH) 
+    ngx_array_t                     *values;
+    ngx_array_t                     *lengths;
+    ngx_uint_t                       retries;
+#endif
 
     ngx_uint_t                       flags;
     ngx_str_t                        host;
@@ -375,5 +395,10 @@ extern ngx_module_t        ngx_http_upstream_module;
 extern ngx_conf_bitmask_t  ngx_http_upstream_cache_method_mask[];
 extern ngx_conf_bitmask_t  ngx_http_upstream_ignore_headers_masks[];
 
+
+#if (NGX_HTTP_CACHE_EXTEND)
+extern ngx_int_t
+ngx_http_proxy_test_content_type(ngx_http_request_t *r);
+#endif
 
 #endif /* _NGX_HTTP_UPSTREAM_H_INCLUDED_ */

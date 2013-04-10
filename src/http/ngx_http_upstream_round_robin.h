@@ -63,6 +63,10 @@ typedef struct {
     ngx_uint_t                      current;
     uintptr_t                      *tried;
     uintptr_t                       data;
+#if (NGX_HTTP_PERSISTENCE)
+    void                            *request;
+    void                            *group;
+#endif
 } ngx_http_upstream_rr_peer_data_t;
 
 

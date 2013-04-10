@@ -9,6 +9,9 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
+#if (NGX_HTTP_PERSISTENCE)
+#include <ngx_http_upstream_persistence.h>
+#endif
 
 static ngx_http_upstream_rr_peer_t *ngx_http_upstream_get_peer(
     ngx_http_upstream_rr_peer_data_t *rrp);
@@ -246,6 +249,11 @@ ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
         }
     }
 
+#if (NGX_HTTP_PERSISTENCE)
+    rrp->request = r;
+    rrp->group = &us->group;
+#endif
+
     r->upstream->peer.get = ngx_http_upstream_get_round_robin_peer;
     r->upstream->peer.free = ngx_http_upstream_free_round_robin_peer;
     r->upstream->peer.tries = rrp->peers->number;
@@ -394,9 +402,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
     } else {
 
         /* there are several peers */
-
-        peer = ngx_http_upstream_get_peer(rrp);
-
+       peer = ngx_http_upstream_get_peer(rrp);
         if (peer == NULL) {
             goto failed;
         }
@@ -469,24 +475,47 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
     ngx_int_t                     total;
     ngx_uint_t                    i, n;
     ngx_http_upstream_rr_peer_t  *peer, *best;
+#if (NGX_HTTP_PERSISTENCE)
+    ngx_int_t                     persist_index;
 
+
+    persist_index = ngx_http_upstream_persistence_get(rrp->request,
+        rrp->peers->number, rrp->group);
+#endif
+ 
     now = ngx_time();
 
     best = NULL;
     total = 0;
 
     for (i = 0; i < rrp->peers->number; i++) {
-
+#if (NGX_HTTP_PERSISTENCE)
+        if(persist_index >= 0) {
+            i = persist_index;
+        }
+#endif
         n = i / (8 * sizeof(uintptr_t));
         m = (uintptr_t) 1 << i % (8 * sizeof(uintptr_t));
 
         if (rrp->tried[n] & m) {
+#if (NGX_HTTP_PERSISTENCE)
+            if(persist_index >= 0) {
+                persist_index = -1;
+                i = 0;
+            }
+#endif
             continue;
         }
 
         peer = &rrp->peers->peer[i];
 
         if (peer->down) {
+#if (NGX_HTTP_PERSISTENCE)
+            if(persist_index >= 0) {
+                persist_index = -1;
+                i = 0;
+            }
+#endif
             continue;
         }
 
@@ -494,9 +523,21 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
             && peer->fails >= peer->max_fails
             && now - peer->checked <= peer->fail_timeout)
         {
+#if (NGX_HTTP_PERSISTENCE)
+            if(persist_index >= 0) {
+                persist_index = -1;
+                i = 0;
+            }
+#endif
             continue;
         }
 
+#if (NGX_HTTP_PERSISTENCE)
+        if(persist_index >= 0) {
+            best = peer;
+            break;
+        }
+#endif
         peer->current_weight += peer->effective_weight;
         total += peer->effective_weight;
 
@@ -524,6 +565,10 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
 
     best->current_weight -= total;
     best->checked = now;
+
+#if (NGX_HTTP_PERSISTENCE)
+    ngx_http_upstream_persistence_set(rrp->request, rrp->current, rrp->group);
+#endif
 
     return best;
 }

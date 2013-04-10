@@ -85,7 +85,6 @@ int  ngx_ssl_session_cache_index;
 int  ngx_ssl_certificate_index;
 int  ngx_ssl_stapling_index;
 
-
 ngx_int_t
 ngx_ssl_init(ngx_log_t *log)
 {

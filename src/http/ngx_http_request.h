@@ -566,6 +566,10 @@ struct ngx_http_request_s {
 
     unsigned                          http_minor:16;
     unsigned                          http_major:16;
+
+#if (NGX_HTTP_NETEYE_SECURITY)
+    void                            **ns_ctx;
+#endif
 };
 
 

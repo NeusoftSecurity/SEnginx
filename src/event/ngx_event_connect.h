@@ -33,6 +33,7 @@ typedef void (*ngx_event_save_peer_session_pt)(ngx_peer_connection_t *pc,
     void *data);
 #endif
 
+#define NGX_INVALID_CHECK_INDEX (ngx_uint_t)(-1)
 
 struct ngx_peer_connection_s {
     ngx_connection_t                *connection;
@@ -42,6 +43,8 @@ struct ngx_peer_connection_s {
     ngx_str_t                       *name;
 
     ngx_uint_t                       tries;
+
+    ngx_uint_t                       check_index;
 
     ngx_event_get_peer_pt            get;
     ngx_event_free_peer_pt           free;

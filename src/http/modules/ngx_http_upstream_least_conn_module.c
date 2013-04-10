@@ -9,6 +9,9 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
+#if (NGX_HTTP_PERSISTENCE)
+#include <ngx_http_upstream_persistence.h>
+#endif
 
 typedef struct {
     ngx_uint_t                        *conns;
@@ -165,6 +168,9 @@ ngx_http_upstream_get_least_conn_peer(ngx_peer_connection_t *pc, void *data)
     ngx_uint_t                     i, n, p, many;
     ngx_http_upstream_rr_peer_t   *peer, *best;
     ngx_http_upstream_rr_peers_t  *peers;
+#if (NGX_HTTP_PERSISTENCE)
+    ngx_int_t                      persist_index;
+#endif
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
                    "get least conn peer, try: %ui", pc->tries);
@@ -188,18 +194,38 @@ ngx_http_upstream_get_least_conn_peer(ngx_peer_connection_t *pc, void *data)
     p = 0;
 #endif
 
+#if (NGX_HTTP_PERSISTENCE)
+    persist_index = ngx_http_upstream_persistence_get(lcp->rrp.request,
+        lcp->rrp.peers->number, lcp->rrp.group);
+#endif
     for (i = 0; i < peers->number; i++) {
-
+#if (NGX_HTTP_PERSISTENCE)
+        if(persist_index >= 0) {
+            i = persist_index;
+        }
+#endif
         n = i / (8 * sizeof(uintptr_t));
         m = (uintptr_t) 1 << i % (8 * sizeof(uintptr_t));
 
         if (lcp->rrp.tried[n] & m) {
+#if (NGX_HTTP_PERSISTENCE)
+            if(persist_index >= 0) {
+                persist_index = -1;
+                i = 0;
+            }
+#endif
             continue;
         }
 
         peer = &peers->peer[i];
 
         if (peer->down) {
+#if (NGX_HTTP_PERSISTENCE)
+            if(persist_index >= 0) {
+                persist_index = -1;
+                i = 0;
+            }
+#endif
             continue;
         }
 
@@ -207,9 +233,22 @@ ngx_http_upstream_get_least_conn_peer(ngx_peer_connection_t *pc, void *data)
             && peer->fails >= peer->max_fails
             && now - peer->checked <= peer->fail_timeout)
         {
+#if (NGX_HTTP_PERSISTENCE)
+            if(persist_index >= 0) {
+                persist_index = -1;
+                i = 0;
+            }
+#endif
             continue;
         }
 
+#if (NGX_HTTP_PERSISTENCE)
+        if(persist_index >= 0) {
+            best = peer;
+            p = persist_index;
+            break;
+        }
+#endif
         /*
          * select peer with least number of connections; if there are
          * multiple peers with the same number of connections, select
@@ -300,6 +339,10 @@ ngx_http_upstream_get_least_conn_peer(ngx_peer_connection_t *pc, void *data)
         pc->tries += peers->next->number;
     }
 
+#if (NGX_HTTP_PERSISTENCE)
+    ngx_http_upstream_persistence_set(lcp->rrp.request, lcp->rrp.current, 
+            lcp->rrp.group);
+#endif
     return NGX_OK;
 
 failed:

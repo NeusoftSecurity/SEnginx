@@ -150,6 +150,10 @@ ngx_http_header_out_t  ngx_http_headers_out[] = {
 };
 
 
+#if (NGX_HTTP_STATUS_PAGE)
+#include <ngx_http_status_page.h>
+#endif
+
 static ngx_int_t
 ngx_http_header_filter(ngx_http_request_t *r)
 {
@@ -170,9 +174,16 @@ ngx_http_header_filter(ngx_http_request_t *r)
 #endif
     u_char                     addr[NGX_SOCKADDR_STRLEN];
 
+#if (NGX_HTTP_STATUS_PAGE)
+    if (r->header_sent 
+            && (ngx_http_status_page_test_old_header(r) == 0)) {
+        return NGX_OK;
+    }
+#else
     if (r->header_sent) {
         return NGX_OK;
     }
+#endif
 
     r->header_sent = 1;
 
@@ -214,6 +225,12 @@ ngx_http_header_filter(ngx_http_request_t *r)
     } else {
 
         status = r->headers_out.status;
+
+#if (NGX_HTTP_STATUS_PAGE)
+        if (ngx_http_status_page_test_change_status(r)) {
+            status = ngx_http_status_page_get_status(r);
+        }
+#endif
 
         if (status >= NGX_HTTP_OK
             && status < NGX_HTTP_LAST_2XX)

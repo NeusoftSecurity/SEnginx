@@ -11,6 +11,9 @@
 #include <ngx_event_connect.h>
 #include <ngx_mail.h>
 
+#if (NGX_MAIL_UPSTREAM)
+#include <ngx_mail_upstream.h>
+#endif
 
 typedef struct {
     ngx_addr_t                     *peer;
@@ -1341,6 +1344,18 @@ ngx_mail_auth_http_merge_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->host_header = prev->host_header;
         conf->uri = prev->uri;
 
+#if (NGX_MAIL_UPSTREAM)  /* <chaizhh@neusoft.com> 2011-3-18 */
+		if (ngx_mail_conf_get_module_main_conf(cf, ngx_mail_upstream_module) == NULL
+				&& (conf->peer == NULL) ){
+		
+				ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
+							  "neither \"http_auth\" nor \"proxy_pass\" is defined for server in %s:%ui",
+							  conf->file, conf->line);
+			
+				return NGX_CONF_ERROR;
+		}
+        /* nothing to do */
+#else
         if (conf->peer == NULL) {
             ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
                           "no \"auth_http\" is defined for server in %s:%ui",
@@ -1348,6 +1363,7 @@ ngx_mail_auth_http_merge_conf(ngx_conf_t *cf, void *parent, void *child)
 
             return NGX_CONF_ERROR;
         }
+#endif
     }
 
     ngx_conf_merge_msec_value(conf->timeout, prev->timeout, 60000);

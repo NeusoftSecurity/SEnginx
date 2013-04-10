@@ -384,6 +384,15 @@ ngx_http_init_phases(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
         return NGX_ERROR;
     }
 
+#if (NGX_HTTP_NETEYE_SECURITY)
+    if (ngx_array_init(&cmcf->phases[NGX_HTTP_NETEYE_SECURITY_PHASE].handlers,
+                       cf->pool, 10, sizeof(ngx_http_handler_pt))
+        != NGX_OK)
+    {
+        return NGX_ERROR;
+    }
+#endif
+
     if (ngx_array_init(&cmcf->phases[NGX_HTTP_CONTENT_PHASE].handlers,
                        cf->pool, 4, sizeof(ngx_http_handler_pt))
         != NGX_OK)

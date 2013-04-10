@@ -7,6 +7,6 @@ Features:
     Session Persistence
     Fastest Load Balancing Algorithm
     Anti Robot
-    Anto Cookie Poinsoning
+    Anti Cookie Poinsoning
     ...
 

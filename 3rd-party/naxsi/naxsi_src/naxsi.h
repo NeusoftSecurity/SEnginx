@@ -44,6 +44,14 @@
 #include <pcre.h>
 #include <ctype.h>
 
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+#if (NGX_HTTP_NETEYE_SECURITY)
+#include <ngx_http_neteye_security.h>
+#else
+#error "must compile with neteye security module"
+#endif
+#endif
+
 
 extern ngx_module_t ngx_http_naxsi_module;
 
@@ -282,6 +290,16 @@ typedef struct
   
 } ngx_http_dummy_main_conf_t;
 
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+typedef struct
+{
+    ngx_str_t                  tag;
+    ngx_str_t                  error_page;
+    ngx_int_t                  log;
+    ngx_int_t                  logid;
+    ngx_int_t                  action;
+} ngx_http_naxsi_neteye_action_t;
+#endif
 
 /* TOP level configuration structure */
 typedef struct
@@ -323,7 +341,9 @@ typedef struct
   ngx_uint_t	flag_learning_h;
   ngx_uint_t	flag_post_action_h;
   ngx_uint_t	flag_extensive_log_h;
-  
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+  ngx_array_t   *neteye_actions;
+#endif
 } ngx_http_dummy_loc_conf_t;
 
 
@@ -374,7 +394,9 @@ typedef struct
   ngx_flag_t	enabled:1;
   ngx_flag_t	post_action:1;
   ngx_flag_t	extensive_log:1;
-  
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+  ngx_str_t     *matched_tag;
+#endif
 } ngx_http_request_ctx_t;
 
 #define TOP_DENIED_URL_T	"DeniedUrl"
@@ -442,6 +464,17 @@ naxsi_unescape_uri(u_char **dst, u_char **src, size_t size, ngx_uint_t type);
 
 int naxsi_unescape(ngx_str_t *str);
 
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+char *
+ngx_http_naxsi_action_loc_conf(ngx_conf_t *cf, ngx_command_t *cmd,
+			   void *conf);
+void
+ngx_http_naxsi_write_attack_log(ngx_http_request_t *r,
+        ngx_http_naxsi_neteye_action_t *action, char *fmt);
+ngx_int_t
+ngx_http_naxsi_do_action(ngx_http_request_t *r,
+        ngx_http_request_ctx_t *ctx, char *fmt);
+#endif
 
 /* static ngx_int_t ngx_http_dummy_subrequest(ngx_http_request_t *r,  */
 /* 					   ngx_chain_t *in); */

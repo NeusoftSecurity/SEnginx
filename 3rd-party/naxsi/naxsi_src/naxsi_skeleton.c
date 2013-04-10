@@ -149,6 +149,17 @@ static ngx_command_t  ngx_http_dummy_commands[] =  {
     NGX_HTTP_LOC_CONF_OFFSET,
     0,
     NULL },
+
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+  { ngx_string("naxsi_neteye_action"),
+    NGX_HTTP_LOC_CONF|NGX_HTTP_LMT_CONF
+    |NGX_CONF_TAKE5,
+    ngx_http_naxsi_action_loc_conf,
+    NGX_HTTP_LOC_CONF_OFFSET,
+    0,
+    NULL },
+#endif
+
   /* 
   ** flag rules
   */
@@ -294,6 +305,12 @@ ngx_http_dummy_merge_loc_conf(ngx_conf_t *cf, void *parent,
     conf->header_rules = prev->header_rules;
   if (conf->generic_rules == NULL) 
     conf->generic_rules = prev->generic_rules;
+
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+  if (conf->neteye_actions == NULL)
+    conf->neteye_actions = prev->neteye_actions;
+#endif
+
   return NGX_CONF_OK;
 }
 
@@ -306,23 +323,39 @@ ngx_http_dummy_merge_loc_conf(ngx_conf_t *cf, void *parent,
 static ngx_int_t 
 ngx_http_dummy_init(ngx_conf_t *cf)
 {
+#ifndef NGX_HTTP_NAXSI_NETEYE_HELPER
   ngx_http_handler_pt *h;
+#endif
   ngx_http_core_main_conf_t *cmcf;
   ngx_http_dummy_main_conf_t *main_cf;
   ngx_http_dummy_loc_conf_t **loc_cf;
   unsigned int 				i;
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+  ngx_int_t   ret;
+#endif
   
   cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
   main_cf = ngx_http_conf_get_module_main_conf(cf, ngx_http_naxsi_module);
   if (cmcf == NULL || 
       main_cf == NULL)
     return (NGX_ERROR);
+
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+  /* Register Naxsi handler into Neteye Security Layer */
+  ret = ngx_http_neteye_security_request_register(
+            NGX_HTTP_NETEYE_NAXSI, ngx_http_dummy_access_handler);
+  if (ret != NGX_OK) {
+      return ret;
+  }
+#else
   /* Register for access phase */
   //h = ngx_array_push(&cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers);
   h = ngx_array_push(&cmcf->phases[NGX_HTTP_REWRITE_PHASE].handlers);
   if (h == NULL) 
     return (NGX_ERROR);
   *h = ngx_http_dummy_access_handler;
+#endif
+
   /* Go with each locations registred in the srv_conf. */
   loc_cf = main_cf->locations->elts;
   for (i = 0; i < main_cf->locations->nelts; i++) {
@@ -1132,8 +1165,10 @@ static ngx_int_t ngx_http_dummy_access_handler(ngx_http_request_t *r)
       //redirect : return (NGX_HTTP_OK);
       return (rc);
     }
+#ifndef NGX_HTTP_NAXSI_NETEYE_HELPER
     else if (ctx->log)
       rc = ngx_http_output_forbidden_page(ctx, r);
+#endif
   }
 #ifdef mechanics_debug
   ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,

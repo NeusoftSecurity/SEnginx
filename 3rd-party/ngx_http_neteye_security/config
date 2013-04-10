@@ -1,0 +1,6 @@
+ngx_addon_name=ngx_http_neteye_security_module
+CORE_INCS="$CORE_INCS $ngx_addon_dir"
+CORE_DEPS="$CORE_DEPS $ngx_addon_dir/ngx_http_neteye_security.h"
+HTTP_FILTER_MODULES="$HTTP_FILTER_MODULES ngx_http_neteye_security_module"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_neteye_security.c"
+have=NGX_HTTP_NETEYE_SECURITY . auto/have

@@ -364,6 +364,7 @@ ngx_http_dummy_is_rule_whitelisted_n(ngx_http_request_t *req,
   ngx_http_rule_t	**dr;
   ngx_str_t tmp_hashname;
   ngx_str_t nullname = ngx_null_string;
+  ngx_str_t uri;
   
   /* if name is NULL, replace it by an empty string */
   if (!name) name = &nullname;
@@ -456,7 +457,19 @@ ngx_http_dummy_is_rule_whitelisted_n(ngx_http_request_t *req,
   ngx_log_debug(NGX_LOG_DEBUG_HTTP, req->connection->log, 0, 
 		"hashing (uri) [%V]", &(req->uri));
 #endif
-  k = ngx_hash_key_lc(req->uri.data, req->uri.len);
+  
+  uri.len = req->uri.len;
+  uri.data = ngx_pcalloc(req->pool, uri.len);
+  if (uri.data == NULL) {
+      return NGX_ERROR;
+  }
+
+  memcpy(uri.data, req->uri.data, req->uri.len);
+  
+  for (i = 0; i < uri.len; i++)
+      uri.data[i] = tolower(uri.data[i]);
+
+  k = ngx_hash_key_lc(uri.data, uri.len);
     
   /* check the URL no matter what zone we're in */
   if (cf->wlr_url_hash && cf->wlr_url_hash->size > 0) {
@@ -464,11 +477,11 @@ ngx_http_dummy_is_rule_whitelisted_n(ngx_http_request_t *req,
 #ifdef whitelist_debug
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, req->connection->log, 0, 
 		  "Check if rule [%d] is whitelist on arg [%V] from uri [%V]",
-		  r->rule_id, name, &(req->uri));
+		  r->rule_id, name, &uri);
 #endif
     b = (ngx_http_whitelist_rule_t*) ngx_hash_find(cf->wlr_url_hash, k, 
-						   (u_char*) req->uri.data, 
-						   req->uri.len);
+						   (u_char*) uri.data, 
+						   uri.len);
     if (b)
       if (ngx_http_dummy_is_whitelist_adapted(b, name, zone, r, req, URI_ONLY, target_name))
 	return (1);
@@ -477,20 +490,20 @@ ngx_http_dummy_is_rule_whitelisted_n(ngx_http_request_t *req,
      whitelist, and so on. */
   if (cf->wlr_args_hash && cf->wlr_args_hash->size > 0 && zone == ARGS)
     b = (ngx_http_whitelist_rule_t*) ngx_hash_find(cf->wlr_args_hash, k, 
-						   (u_char*) req->uri.data, 
-						   req->uri.len);
+						   (u_char*) uri.data, 
+						   uri.len);
   else 
     /* search if there is WL on this BODY name */
     if (cf->wlr_body_hash && cf->wlr_body_hash->size > 0 && (zone == BODY || zone == FILE_EXT))
       b = (ngx_http_whitelist_rule_t*) ngx_hash_find(cf->wlr_body_hash, k, 
-						     (u_char*) req->uri.data, 
-						     req->uri.len); 
+						     (u_char*) uri.data, 
+						     uri.len); 
     else
       /* or if there is a WL on this HEADER name */
       if (cf->wlr_headers_hash && cf->wlr_headers_hash->size > 0 && zone == HEADERS)
 	b = (ngx_http_whitelist_rule_t*) ngx_hash_find(cf->wlr_headers_hash, k, 
-						       (u_char*) req->uri.data, 
-						       req->uri.len); 
+						       (u_char*) uri.data, 
+						       uri.len); 
     
     
   if (b)
@@ -499,7 +512,7 @@ ngx_http_dummy_is_rule_whitelisted_n(ngx_http_request_t *req,
   
   /* maybe it was $URL+$VAR ? */
   if (!b) {
-    tmp_hashname.len = req->uri.len + 1 + name->len;
+    tmp_hashname.len = uri.len + 1 + name->len;
     /* one extra byte for target_name '#' */
     tmp_hashname.data = ngx_pcalloc(req->pool, tmp_hashname.len+2);
     if (!tmp_hashname.data)
@@ -511,7 +524,7 @@ ngx_http_dummy_is_rule_whitelisted_n(ngx_http_request_t *req,
     }
     else
       ngx_memset(tmp_hashname.data, 0, tmp_hashname.len+1);
-    strncat((char*) tmp_hashname.data, (char*)req->uri.data, req->uri.len);
+    strncat((char*) tmp_hashname.data, (char*)uri.data, uri.len);
     strncat((char*)tmp_hashname.data, "#", 1);
     strncat((char*)tmp_hashname.data, (char*)name->data, name->len);
     
@@ -714,9 +727,24 @@ ngx_http_output_forbidden_page(ngx_http_request_ctx_t *ctx,
   else {
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 
 		  0, "NAXSI_FMT: %s", fmt);
+
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+    char *full_fmt;
+    int   full_len;
+
+    full_len = strlen(fmt) + 16;
+    full_fmt = ngx_pcalloc(r->pool, full_len + 1);
+    if (!full_fmt)
+        return NGX_ERROR;
+
+    snprintf(full_fmt, full_len, "NAXSI_FMT: %s", fmt);
+
+    return ngx_http_naxsi_do_action(r, ctx, full_fmt);
+#else
     rc = ngx_http_internal_redirect(r, cf->denied_url,  
 				    &denied_args); 
     return (NGX_HTTP_OK);
+#endif
   }
   return (NGX_ERROR);
 }
@@ -1800,6 +1828,10 @@ ngx_http_dummy_update_current_ctx_status(ngx_http_request_ctx_t	*ctx,
 	      ctx->allow = 1;
 	    if (cr[i].log)
 	      ctx->log = 1;
+
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+            ctx->matched_tag = sc[z].sc_tag;
+#endif
 	  }
 	}
       }

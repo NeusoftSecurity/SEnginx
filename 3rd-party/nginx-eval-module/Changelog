@@ -1,0 +1,7 @@
+
+Version 1.0.3
+ * Change: compatibility with nginx API 0.8.42 and greater
+ * Change: handle requests with bodies properly
+
+Version 1.0.2
+ * Change: restore $uri variable in subrequests

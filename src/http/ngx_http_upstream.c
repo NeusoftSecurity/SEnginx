@@ -2413,32 +2413,39 @@ ngx_http_upstream_upgrade(ngx_http_request_t *r, ngx_http_upstream_t *u)
     r->read_event_handler = ngx_http_upstream_upgraded_read_downstream;
     r->write_event_handler = ngx_http_upstream_upgraded_write_downstream;
 
-    if (clcf->tcp_nodelay && c->tcp_nodelay == NGX_TCP_NODELAY_UNSET) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "tcp_nodelay");
-
+    if (clcf->tcp_nodelay) {
         tcp_nodelay = 1;
 
-        if (setsockopt(c->fd, IPPROTO_TCP, TCP_NODELAY,
-                       (const void *) &tcp_nodelay, sizeof(int)) == -1)
-        {
-            ngx_connection_error(c, ngx_socket_errno,
-                                 "setsockopt(TCP_NODELAY) failed");
-            ngx_http_upstream_finalize_request(r, u, 0);
-            return;
+        if (c->tcp_nodelay == NGX_TCP_NODELAY_UNSET) {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "tcp_nodelay");
+
+            if (setsockopt(c->fd, IPPROTO_TCP, TCP_NODELAY,
+                           (const void *) &tcp_nodelay, sizeof(int)) == -1)
+            {
+                ngx_connection_error(c, ngx_socket_errno,
+                                     "setsockopt(TCP_NODELAY) failed");
+                ngx_http_upstream_finalize_request(r, u, 0);
+                return;
+            }
+
+            c->tcp_nodelay = NGX_TCP_NODELAY_SET;
         }
 
-        c->tcp_nodelay = NGX_TCP_NODELAY_SET;
+        if (u->peer.connection->tcp_nodelay == NGX_TCP_NODELAY_UNSET) {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, u->peer.connection->log, 0,
+                           "tcp_nodelay");
 
-        if (setsockopt(u->peer.connection->fd, IPPROTO_TCP, TCP_NODELAY,
-                       (const void *) &tcp_nodelay, sizeof(int)) == -1)
-        {
-            ngx_connection_error(u->peer.connection, ngx_socket_errno,
-                                 "setsockopt(TCP_NODELAY) failed");
-            ngx_http_upstream_finalize_request(r, u, 0);
-            return;
+            if (setsockopt(u->peer.connection->fd, IPPROTO_TCP, TCP_NODELAY,
+                           (const void *) &tcp_nodelay, sizeof(int)) == -1)
+            {
+                ngx_connection_error(u->peer.connection, ngx_socket_errno,
+                                     "setsockopt(TCP_NODELAY) failed");
+                ngx_http_upstream_finalize_request(r, u, 0);
+                return;
+            }
+
+            u->peer.connection->tcp_nodelay = NGX_TCP_NODELAY_SET;
         }
-
-        u->peer.connection->tcp_nodelay = NGX_TCP_NODELAY_SET;
     }
 
     if (ngx_http_send_special(r, NGX_HTTP_FLUSH) == NGX_ERROR) {
@@ -3269,19 +3276,10 @@ ngx_http_upstream_cleanup(void *data)
 {
     ngx_http_request_t *r = data;
 
-    ngx_http_upstream_t  *u;
-
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "cleanup http upstream request: \"%V\"", &r->uri);
 
-    u = r->upstream;
-
-    if (u->resolved && u->resolved->ctx) {
-        ngx_resolve_name_done(u->resolved->ctx);
-        u->resolved->ctx = NULL;
-    }
-
-    ngx_http_upstream_finalize_request(r, u, NGX_DONE);
+    ngx_http_upstream_finalize_request(r, r->upstream, NGX_DONE);
 }
 
 
@@ -3309,7 +3307,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
         u->state->response_sec = tp->sec - u->state->response_sec;
         u->state->response_msec = tp->msec - u->state->response_msec;
 
-        if (u->pipe) {
+        if (u->pipe && u->pipe->read_length) {
             u->state->response_length = u->pipe->read_length;
         }
     }

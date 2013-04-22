@@ -1,7 +1,6 @@
-/****************************************************
- * Author: liuyutao <liu_yt@neusoft.com>            *
- * Date: 2013-1-20                                  *
- ****************************************************/
+/*
+ * Copyright (c) 2013 Neusoft Corperation., Ltd.
+ */
 
 
 #ifndef _NGX_HTTP_UPSTREAM_PERSISTENCE_H_INCLUDE_

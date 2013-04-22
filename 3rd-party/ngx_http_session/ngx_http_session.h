@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2013 Neusoft Corperation., Ltd.
+ */
 #ifndef _NGX_HTTP_SESSION_H_INCLUDED_
 #define _NGX_HTTP_SESSION_H_INCLUDED_
 

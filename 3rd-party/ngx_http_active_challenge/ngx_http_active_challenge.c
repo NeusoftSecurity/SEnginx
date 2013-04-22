@@ -1,11 +1,5 @@
-/**
- * ngx_http_active_challenge_module.c
- *
- * by Hounei Ryu <liu.fn@neusoft.com>
- *
- * re-implemented:
- * by Paul Yang <y_y@neusoft.com>
- *
+/*
+ * Copyright (c) 2013 Neusoft Corperation., Ltd.
  */
 
 #include <ngx_http_active_challenge.h>

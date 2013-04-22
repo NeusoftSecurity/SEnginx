@@ -1,8 +1,5 @@
-/**
- * ngx_http_session.c
- *
- * by Paul Yang <y_y@neusoft.com>
- *
+/*
+ * Copyright (c) 2013 Neusoft Corperation., Ltd.
  */
 
 #include <ngx_config.h>

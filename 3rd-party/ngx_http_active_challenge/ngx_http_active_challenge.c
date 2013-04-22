@@ -1077,7 +1077,7 @@ ngx_http_ac_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             || (ngx_strstr(value[1].data, "swf") != NULL)) {
         alcf->mode = NGX_HTTP_AC_MODE_SWF;
     } else {
-        return NGX_CONF_ERROR;
+        return "Unknow active_challenge_modes type";
     }
 
     return NGX_CONF_OK;
@@ -1103,7 +1103,7 @@ ngx_http_ac_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         if (cf->args->nelts == 3) {
             alcf->failed_count = ngx_atoi(value[2].data, value[2].len);
             if (alcf->failed_count == NGX_ERROR) {
-                return NGX_CONF_ERROR;
+                return "Invalid blacklist count";
             }
         } else {
             alcf->failed_count = 5;
@@ -1119,7 +1119,7 @@ ngx_http_ac_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
 #endif
     } else {
-        return NGX_CONF_ERROR;
+        return "Unknow active_challenge_action type";
     }
 
     return NGX_CONF_OK;
@@ -1152,7 +1152,7 @@ ngx_http_ac_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     timeout = ngx_atoi(value[1].data, value[1].len);
     if (timeout == NGX_ERROR) {
-        return NGX_CONF_ERROR;
+        return "Invalid timeout value";
     }
 
     if (timeout == 0) {

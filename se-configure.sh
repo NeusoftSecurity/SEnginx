@@ -18,4 +18,5 @@ TRD_DIR=$PWD/3rd-party
     --add-module=${TRD_DIR}/nginx_tcp_proxy_module \
     --add-module=${TRD_DIR}/ngx_http_upstream_fastest \
     --add-module=${TRD_DIR}/ngx_http_upstream_persistence \
+    --add-module=${TRD_DIR}/ngx_http_session \
     --add-module=${TRD_DIR}/ngx_http_active_challenge

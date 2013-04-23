@@ -116,9 +116,6 @@ ngx_http_ac_post_data_decode(ngx_http_request_t *r,
 static ngx_int_t
 ngx_http_ac_do_action(ngx_http_request_t *r);
 
-static char *
-ngx_http_ac_redirect(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-
 #if (NGX_HTTP_SESSION)
 static ngx_int_t
 ngx_http_ac_request_type(ngx_http_request_t *r, 
@@ -180,13 +177,6 @@ static ngx_command_t  ngx_http_active_challenge_commands[] = {
         0,
         NULL },
 
-    { ngx_string("active_challenge_redirect"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_ac_redirect,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
- 
     { ngx_string("active_challenge_whitelist"),
         NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
         ngx_http_ac_whitelist,
@@ -1025,33 +1015,11 @@ static char *ngx_http_ac(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_ac_loc_conf_t *sscf = conf;
     ngx_str_t               *value = NULL;
-    ngx_str_t               page;
     value = cf->args->elts;
 
     if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
         sscf->enabled = 1;
     }
-
-    if (cf->args->nelts != 3) {
-#if (NGX_HTTP_STATUS_PAGE)
-        page.len = strlen(NGX_HTTP_AC_DEFAULT_URI) + 1;
-
-        page.data = ngx_pcalloc(cf->pool, page.len);
-        if (!page.data) {
-            return NGX_CONF_ERROR;
-        }
-
-        memcpy(page.data, NGX_HTTP_AC_DEFAULT_URI, page.len);
-        page.len--;
-#else
-        page.len = 0;
-        page.data = NULL;
-#endif
-    } else {
-        page = value[2];
-    }
-
-    sscf->error_page = page;
 
     return NGX_CONF_OK;
 }
@@ -1116,6 +1084,24 @@ ngx_http_ac_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return "Unknow active_challenge_action type";
     }
 
+#if (NGX_HTTP_STATUS_PAGE)
+    if (ngx_strstr(value[2].data, "notify=") != NULL) {
+        if ((value[2].len - strlen("notify=")) == 0) {
+            alcf->error_page.len = 0;
+            alcf->error_page.data = NULL;
+        } else {
+            alcf->error_page.data = value[2].data + strlen("notify=");
+            alcf->error_page.len = value[2].len - strlen("notify=");
+            if (alcf->error_page.len == 3) {
+                if (!ngx_memcmp(alcf->error_page.data, "off", 3)) {
+                    alcf->error_page.len = 0;
+                    alcf->error_page.data = NULL;
+                }
+            }
+        }
+    }
+#endif
+
     return NGX_CONF_OK;
 }
 #endif
@@ -1151,23 +1137,6 @@ ngx_http_ac_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (timeout == 0) {
         alcf->no_expires = 1;
-    }
-
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_ac_redirect(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_ac_loc_conf_t     *sscf = conf;
-    ngx_str_t                  *value;
-
-    value = cf->args->elts;
-    if (!strncmp((char *)(value[1].data), "off", value[1].len)) {
-        sscf->error_page.data = NULL;
-    } else {
-        sscf->error_page.data = value[1].data;
-        sscf->error_page.len = value[1].len;
     }
 
     return NGX_CONF_OK;

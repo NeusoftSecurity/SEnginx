@@ -28,7 +28,7 @@ static ngx_http_neteye_security_module_t ngx_http_neteye_security_modules[] = {
         "Dynamic White list", NULL, NULL,NULL,	    3, 0, 0, NULL},
     {NGX_HTTP_NETEYE_FRIENDLY_BOTSLIST, 
         "Friendly Bots list", NULL, NULL, NULL,     4, 0, 0, NULL},
-    {NGX_HTTP_NETEYE_ACTIVE_CHALLENGE, 
+    {NGX_HTTP_NETEYE_ROBOT_MITIGATION, 
         "Active/Challenge", NULL, NULL, NULL,       5, 0, 0, NULL},
     {NGX_HTTP_NETEYE_GOOGLE_RECAPTCHA, 
         "Google Recaptcha", NULL, NULL, NULL,       6, 0, 0, NULL},

@@ -1,0 +1,9 @@
+ifall (condition1) (condition2) ... (conditionN) {
+
+}
+
+ifany (condition1) (condition2) ... (conditionN) {
+
+}
+
+>= <= !> !<

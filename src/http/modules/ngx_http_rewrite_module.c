@@ -1261,12 +1261,13 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
     ngx_http_script_file_code_t   *fop;
     ngx_http_script_regex_code_t  *regex;
     u_char                         errstr[NGX_MAX_CONF_ERRSTR];
+    ngx_uint_t                     magic = 0;
 
     value = cf->args->elts;
     ncond = 0;
     last = 1;
 
-    for (i = 1, cur = 1; i < cf->args->nelts; i ++) {
+    for (i = 1, cur = 1; i < cf->args->nelts; i++) {
 
         if (value[i].data[value[i].len-1] != ')') {
             continue;
@@ -1276,7 +1277,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
 
         if (value[cur].len < 1 || value[cur].data[0] != '(') {
             ngx_conf_log_error (NGX_LOG_EMERG, cf, 0,
-                    "invalid condition \"%V\"", &value[1]);
+                    "invalid condition \"%V\"", &value[cur]);
             return NGX_CONF_ERROR;
         }
 
@@ -1290,10 +1291,12 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
 
         if (value[last].len == 1) {
             last--;
+            magic = 1;
 
         } else {
             value[last].len--;
             value[last].data[value[last].len] = '\0';
+            magic = 0;
         }
 
         ncond++;
@@ -1313,7 +1316,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
             }
 
             if (cur == last) {
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
@@ -1337,7 +1340,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
 
                 *code = ngx_http_script_equal_code;
 
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
@@ -1356,7 +1359,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
 
                 *code = ngx_http_script_greater_than_code;
 
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
@@ -1375,7 +1378,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
 
                 *code = ngx_http_script_less_than_code;
 
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
@@ -1394,7 +1397,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
                 }
 
                 *code = ngx_http_script_greater_equal_code;
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
@@ -1413,7 +1416,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
                 }
 
                 *code = ngx_http_script_less_equal_code;
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
@@ -1431,7 +1434,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
                 }
 
                 *code = ngx_http_script_not_equal_code;
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
@@ -1471,7 +1474,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
 
                 regex->name = value[last];
 
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
@@ -1506,28 +1509,28 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
             if (p[1] == 'f') {
                 fop->op = ngx_http_script_file_plain;
 
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
             if (p[1] == 'd') {
                 fop->op = ngx_http_script_file_dir;
 
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
             if (p[1] == 'e') {
                 fop->op = ngx_http_script_file_exists;
 
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
             if (p[1] == 'x') {
                 fop->op = ngx_http_script_file_exec;
 
-                cur = last + 1;
+                cur = last + 1 + magic;
                 continue;
             }
 
@@ -1535,28 +1538,28 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
                 if (p[2] == 'f') {
                     fop->op = ngx_http_script_file_not_plain;
 
-                    cur = last + 1;
+                    cur = last + 1 + magic;
                     continue;
                 }
 
                 if (p[2] == 'd') {
                     fop->op = ngx_http_script_file_not_dir;
 
-                    cur = last + 1;
+                    cur = last + 1 + magic;
                     continue;
                 }
 
                 if (p[2] == 'e') {
                     fop->op = ngx_http_script_file_not_exists;
 
-                    cur = last + 1;
+                    cur = last + 1 + magic;
                     continue;
                 }
 
                 if (p[2] == 'x') {
                     fop->op = ngx_http_script_file_not_exec;
 
-                    cur = last + 1;
+                    cur = last + 1 + magic;
                     continue;
                 }
             }
@@ -1567,7 +1570,7 @@ ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_
         }
     }
 
-    if (i != last + 1) {
+    if (i != last + 1 + magic) {
         return NGX_CONF_ERROR;
     }
 

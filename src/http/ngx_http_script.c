@@ -1769,7 +1769,7 @@ ngx_http_script_greater_than_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(uintptr_t);
 
-    if (ngx_atoi(val->data,val->len) > ngx_atoi(res->data,res->len))
+    if (ngx_atoi(res->data,res->len) > ngx_atoi(val->data,val->len))
     {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
                    "http script greater: yes");
@@ -1789,7 +1789,7 @@ ngx_http_script_greater_equal_code(ngx_http_script_engine_t *e)
     ngx_http_variable_value_t  *val, *res;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script equal");
+                   "http script greater equal");
 
     e->sp--;
     val = e->sp;
@@ -1797,7 +1797,7 @@ ngx_http_script_greater_equal_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(uintptr_t);
 
-    if (ngx_atoi(val->data,val->len) >= ngx_atoi(res->data,res->len))
+    if (ngx_atoi(res->data,res->len) >= ngx_atoi(val->data,val->len))
     {
         *res = ngx_http_variable_true_value;
         return;
@@ -1816,15 +1816,15 @@ ngx_http_script_less_than_code(ngx_http_script_engine_t *e)
     ngx_http_variable_value_t  *val, *res;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
-                   "http script equal");
+                   "http script less");
 
     e->sp--;
     val = e->sp;
     res = e->sp - 1;
 
     e->ip += sizeof(uintptr_t);
-
-    if (ngx_atoi(val->data,val->len) < ngx_atoi(res->data,res->len))
+    
+    if (ngx_atoi(res->data,res->len) < ngx_atoi(val->data,val->len))
     {
         *res = ngx_http_variable_true_value;
         return;
@@ -1851,7 +1851,7 @@ ngx_http_script_less_equal_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(uintptr_t);
 
-    if (ngx_atoi(val->data,val->len) <= ngx_atoi(res->data,res->len))
+    if (ngx_atoi(res->data,res->len) <= ngx_atoi(val->data,val->len))
     {
         *res = ngx_http_variable_true_value;
         return;
@@ -1877,7 +1877,7 @@ ngx_http_script_longer_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(uintptr_t);
 
-    if (val->len > ngx_atoi(res->data,res->len))
+    if (ngx_atoi(res->data,res->len) > val->len)
     {
         *res = ngx_http_variable_true_value;
         return;
@@ -1904,7 +1904,7 @@ ngx_http_script_shorter_code(ngx_http_script_engine_t *e)
 
     e->ip += sizeof(uintptr_t);
 
-    if (val->len < ngx_atoi(res->data,res->len))
+    if (ngx_atoi(res->data,res->len) < val->len)
     {
         *res = ngx_http_variable_true_value;
         return;

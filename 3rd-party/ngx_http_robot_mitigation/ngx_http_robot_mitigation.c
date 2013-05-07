@@ -686,7 +686,7 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
         t = t - (t % timeout);
     }
 
-    port_time_len = sprintf((char *)source + source_len, "@%ld", t);
+    port_time_len = sprintf((char *)source + source_len, "@%ld", (unsigned long)t);
 
     if (port_time_len <= 0) {
         return NGX_ERROR;
@@ -1887,7 +1887,7 @@ ngx_http_rm_send_swf_file_handler(ngx_http_request_t *r, ngx_uint_t method)
     memcpy(final_ct, "CWS", strlen("CWS"));
     memcpy(final_ct + strlen("CWS"), challenge_ct, 5);
 
-    ret = compress(final_ct + strlen("CWS") + 5, &final_len, 
+    ret = compress(final_ct + strlen("CWS") + 5, (uLongf *)&final_len, 
             challenge_ct + 5, val.len - 5);
     if (ret != Z_OK) {
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 

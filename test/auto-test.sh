@@ -136,5 +136,10 @@ TEST_NGINX_BINARY=$NGINX_DIR prove ./fastest.t
 echo "############  fastest end  #############"
 echo ""
 
-# least connection
+# if extend
+echo "############  if extend start  ###########"
+TEST_NGINX_BINARY=$NGINX_DIR prove ./if_extend.t
+echo "############  if extend end  #############"
+echo ""
+
 cd -

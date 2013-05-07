@@ -530,7 +530,7 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       ngx_http_types_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_proxy_loc_conf_t, types_keys),
-      NULL },
+      &ngx_http_html_default_types[0] },
 #endif
 
       ngx_null_command

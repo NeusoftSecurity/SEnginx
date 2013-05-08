@@ -7,10 +7,11 @@ Security-Enhanced nginx by Neusoft corporation.
 Features
 --------
 
-* Session Persistence
-* Fastest Load Balancing Algorithm
-* Robot Mitigation
-* if directive extension
+* All features of the newest nginx stable version
+* session persistence
+* fastest load balancing algorithm
+* http robot mitigation
+* nginx rewrite module's if directive extension
 * proxy cache types support
 * ...
 

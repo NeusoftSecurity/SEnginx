@@ -1,0 +1,20 @@
+Changes with senginx 1.4.0                                      8 May 2013
+
+    *) Feature: upgrade to original nginx 1.4.0.
+
+    *) Feature: add the naxsi module to senginx.
+
+    *) Feature: the neteye security layer module.
+
+    *) Feature: the http session module.
+
+    *) Feature: the fastest load balancing algorithm.
+
+    *) Feature: the session persistect module.
+
+    *) Feature: the "proxy_cache_types" directive.
+
+    *) Feature: the "ifall" and "ifany" directives.
+
+
+

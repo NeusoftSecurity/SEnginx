@@ -649,7 +649,6 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
     socklen_t                        peer_len = NGX_SOCKADDRLEN;
     ngx_int_t                        ret = 0;
 #endif
-    ngx_int_t                        t;
     ngx_uint_t                       port_time_len;
 
     memset(source, 0, 512);
@@ -677,16 +676,8 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
 
     source_len += port_time_len;
 #endif
-
-    t = ngx_time();
-    
-    if (timeout == 0) {
-        t = 1;
-    } else {
-        t = t - (t % timeout);
-    }
-
-    port_time_len = sprintf((char *)source + source_len, "@%ld", (unsigned long)t);
+    port_time_len = sprintf((char *)source + source_len, "@%ld", 
+                                        (unsigned long)timeout);
 
     if (port_time_len <= 0) {
         return NGX_ERROR;
@@ -787,6 +778,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_int_t                          req_type = NGX_HTTP_RM_STATUS_NEW;
     ngx_http_rm_whitelist_item_t      *item;
     ngx_uint_t                         i;
+    ngx_int_t                          gen_time;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "robot mitigation request handler begin");
@@ -854,7 +846,26 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    ret = ngx_http_rm_generate_cookie(r, &cookie, rlcf->timeout);
+#if (NGX_HTTP_SESSION)
+    if (ngx_http_session_is_enabled(r)) {
+        gen_time = (ngx_int_t)ngx_http_rm_request_type(r, 
+                NGX_HTTP_RM_GET_TIME, 0);
+        if (ngx_time() >= gen_time + rlcf->timeout) {
+            gen_time = ngx_time();
+            ngx_http_rm_request_type(r, 
+                NGX_HTTP_RM_RECORD_TIME,
+                (ngx_uint_t)gen_time);
+        }
+        goto check_cookie;
+    }
+#endif
+    gen_time = ngx_time();
+    gen_time = gen_time - (gen_time % rlcf->timeout);
+
+#if (NGX_HTTP_SESSION)
+check_cookie:
+#endif
+    ret = ngx_http_rm_generate_cookie(r, &cookie, gen_time);
     if (ret != NGX_OK) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -2051,7 +2062,7 @@ ngx_http_rm_request_type(ngx_http_request_t *r, ngx_uint_t op, ngx_uint_t value)
 {
     ngx_http_session_t                *session;
     ngx_http_session_ctx_t            *session_ctx;
-    ngx_int_t                          ret;
+    ngx_int_t                          ret = NGX_OK;
     ngx_http_rm_session_ctx_t         *ac_ctx;
     u_char                            *session_name = (u_char *)"a/challenge";
     
@@ -2090,18 +2101,28 @@ ngx_http_rm_request_type(ngx_http_request_t *r, ngx_uint_t op, ngx_uint_t value)
         ac_ctx = session_ctx->data;
     }
     
-    if (op == NGX_HTTP_RM_SET_STATUS) {
-        ac_ctx->request_type = value;
-    } else if (op == NGX_HTTP_RM_GET_STATUS) {
-        /* do nothing */
-    } else if (op == NGX_HTTP_RM_CLEAR_STATUS) {
-        ac_ctx->request_type = NGX_HTTP_RM_STATUS_NEW;
-    } else {
-        return NGX_ERROR;
+    switch (op)
+    {
+        case NGX_HTTP_RM_SET_STATUS:
+            ac_ctx->request_type = value;
+            break;
+        case NGX_HTTP_RM_GET_STATUS:
+            ret = ac_ctx->request_type;
+            break;
+        case NGX_HTTP_RM_CLEAR_STATUS:
+            ac_ctx->request_type = NGX_HTTP_RM_STATUS_NEW;
+            break;
+        case NGX_HTTP_RM_RECORD_TIME:
+            ac_ctx->generate_time = (ngx_int_t)value;
+            break;
+        case NGX_HTTP_RM_GET_TIME:
+            ret = (ngx_uint_t)ac_ctx->generate_time;
+            break;
+        default:
+            ret = NGX_ERROR;
+            break;
     }
 
-    ret = ac_ctx->request_type;
-    
     ngx_shmtx_unlock(&session->mutex);
     ngx_http_session_put(r);
 

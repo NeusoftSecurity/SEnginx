@@ -87,6 +87,7 @@ typedef struct {
 typedef struct {
     ngx_uint_t                 failed_count;
     ngx_uint_t                 request_type;    /* 0 for first, 1 for not first */
+    ngx_int_t                  generate_time;
 } ngx_http_rm_session_ctx_t;
 
 typedef struct {
@@ -111,6 +112,8 @@ typedef struct {
 #define NGX_HTTP_RM_SET_STATUS            0
 #define NGX_HTTP_RM_CLEAR_STATUS          1
 #define NGX_HTTP_RM_GET_STATUS            2
+#define NGX_HTTP_RM_RECORD_TIME           3
+#define NGX_HTTP_RM_GET_TIME              4
 
 #define NGX_HTTP_RM_STATUS_NEW            0
 #define NGX_HTTP_RM_STATUS_CHALLENGING    1

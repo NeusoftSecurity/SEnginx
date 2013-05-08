@@ -142,4 +142,10 @@ TEST_NGINX_BINARY=$NGINX_DIR prove ./if_extend.t
 echo "############  if extend end  #############"
 echo ""
 
+# cache extend
+echo "############  cache extend start  ###########"
+TEST_NGINX_BINARY=$NGINX_DIR prove ./cache_extend.t
+echo "############  cache extend end  #############"
+echo ""
+
 cd -

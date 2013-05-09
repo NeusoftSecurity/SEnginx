@@ -130,6 +130,9 @@ static char *
 ngx_http_rm_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 #if (NGX_HTTP_SESSION)
+static char *
+ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+
 static void 
 ngx_http_rm_destroy_ctx_handler(void *ctx);
 static ngx_int_t 
@@ -154,8 +157,15 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
     
 #if (NGX_HTTP_SESSION) 
     { ngx_string("robot_mitigation_action"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1234,
+        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
         ngx_http_rm_action,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+ 
+    { ngx_string("robot_mitigation_blacklist"),
+        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+        ngx_http_rm_blacklist,
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
@@ -1060,28 +1070,8 @@ ngx_http_rm_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         rlcf->action = NGX_HTTP_NS_ACTION_PASS;
     } else if (ngx_strstr(value[1].data, "block") != NULL) {
         rlcf->action = NGX_HTTP_NS_ACTION_BLOCK;
-#if (NGX_HTTP_BLACKLIST)
     } else if (ngx_strstr(value[1].data, "blacklist") != NULL) {
         rlcf->action = NGX_HTTP_NS_ACTION_BLACKLIST;
-
-        if (cf->args->nelts == 3) {
-            rlcf->failed_count = ngx_atoi(value[2].data, value[2].len);
-            if (rlcf->failed_count == NGX_ERROR) {
-                return "Invalid blacklist count";
-            }
-        } else {
-            rlcf->failed_count = 5;
-        }
-
-        if (cf->args->nelts == 4) {
-            rlcf->blacktime = ngx_atoi(value[3].data, value[3].len);
-            if (rlcf->blacktime == NGX_ERROR) {
-                return NGX_CONF_ERROR;
-            }
-        } else { 
-            rlcf->blacktime = 0;
-        }
-#endif
     } else {
         return "Unknow robot_mitigation_action type";
     }
@@ -1103,6 +1093,27 @@ ngx_http_rm_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         }
     }
 #endif
+
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_rm_loc_conf_t     *rlcf = conf;
+    ngx_str_t                  *value;
+    
+    value = cf->args->elts;
+
+    rlcf->bl_timeout = ngx_atoi(value[1].data, value[1].len);
+    if (rlcf->bl_timeout == NGX_ERROR) {
+        return "Invalid blacklist count";
+    }
+
+    rlcf->failed_count = ngx_atoi(value[2].data, value[2].len);
+    if (rlcf->failed_count == NGX_ERROR) {
+        return "Invalid blacklist count";
+    }
 
     return NGX_CONF_OK;
 }
@@ -2155,6 +2166,7 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
     action->init = ngx_http_rm_init_ctx_handler;
     action->destroy = ngx_http_rm_destroy_ctx_handler;
     action->get_bl_count = ngx_http_rm_get_bl_count;
+    action->bl_timeout = rlcf->bl_timeout;
     action->bl_max = rlcf->failed_count;
 #endif
     if (rlcf->error_page.data != NULL) {
@@ -2178,8 +2190,8 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
     conf->mode = NGX_HTTP_RM_MODE_JS;
     conf->action = NGX_HTTP_NS_ACTION_BLOCK;
     conf->enabled = 0;
-    conf->failed_count = NGX_CONF_UNSET;
-    conf->blacktime = 0;
+    conf->bl_timeout = NGX_HTTP_RM_DEFAULT_BL_TIMEOUT;
+    conf->failed_count = NGX_HTTP_RM_DEFAULT_FAIILED_COUNT;
     conf->timeout = NGX_HTTP_RM_DEFAULT_TIMEOUT;
     conf->no_expires = 0;
     conf->whitelist_items = NULL;

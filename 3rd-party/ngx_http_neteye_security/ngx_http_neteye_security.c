@@ -860,19 +860,26 @@ block:
 
             (*bl_count)++;
 
-            if (*bl_count == action->bl_max) {
+            if (*bl_count >= action->bl_max) {
                 *bl_count = 0;
-#if (NGX_HTTP_BLACKLIST)
-                ngx_http_add_to_blacklist(r, action->bl_timeout);
-#endif
                 ngx_shmtx_unlock(&session->mutex);
-                ngx_http_session_put(r);
 
-                return NGX_ERROR;
+#if (NGX_HTTP_STATUS_PAGE)
+                if (action->has_redirect) {
+                    ngx_http_status_page_send_page(r, action->redirect_page, 
+                            action->in_body, NGX_HTTP_FORBIDDEN);
+                }
+#endif
+                ngx_shmtx_lock(&session->mutex);
+                /*Add to blacklist*/
+                session->bl_timeout = ngx_time() + action->bl_timeout;
+                session->bl_in_body = action->in_body;
+                session->bl_redirect_page = action->redirect_page;
             }
             
             ngx_shmtx_unlock(&session->mutex);
             ngx_http_session_put(r);
+            return NGX_ERROR;
 #endif
     }
 

@@ -16,6 +16,10 @@
 #error "must compile with neteye security module"
 #endif
 
+#if (NGX_HTTP_STATUS_PAGE)
+#include <ngx_http_status_page.h>
+#endif
+
 static char *
 ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
@@ -672,6 +676,11 @@ ngx_http_session_handler(ngx_http_request_t *r)
     }
 
     ngx_shmtx_unlock(&session_list->shpool->mutex);
+
+    /*In blacklist*/
+    if (!ngx_http_session_test_bypass(r) && session->bl_timeout > ngx_time()) {
+        return NGX_ERROR;
+    }
 
     return NGX_DECLINED;
 }

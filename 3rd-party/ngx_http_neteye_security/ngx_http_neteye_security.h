@@ -85,7 +85,7 @@ typedef struct ngx_http_neteye_security_action_s {
     ngx_http_session_destroy_ctx_t          destroy;
     ngx_http_ns_get_bl_count_t              get_bl_count;
     ngx_uint_t                              bl_max;
-    ngx_uint_t                              bl_timeout;
+    ngx_int_t                               bl_timeout;
 #endif
 
     /* redirect url group */

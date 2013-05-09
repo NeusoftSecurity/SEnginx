@@ -47,6 +47,8 @@
 #define NGX_HTTP_RM_MODE_SWF 2
 
 #define NGX_HTTP_RM_DEFAULT_TIMEOUT 600
+#define NGX_HTTP_RM_DEFAULT_FAIILED_COUNT 5
+#define NGX_HTTP_RM_DEFAULT_BL_TIMEOUT 60
 
 #define NGX_HTTP_RM_SWF_FILENAME_PREFIX "neteye-adsg-swf-"
 
@@ -70,8 +72,8 @@ typedef struct {
 } ngx_http_rm_whitelist_item_t;
 
 typedef struct {
+    ngx_int_t                  bl_timeout;
     ngx_int_t                  failed_count;
-    ngx_int_t                  blacktime;
     
     ngx_int_t                  enabled;
     ngx_int_t                  action;

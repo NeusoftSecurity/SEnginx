@@ -56,6 +56,10 @@ typedef struct {
     
     time_t est;                     /* time of creating/reseting */
     
+    ngx_int_t bl_timeout;           /*timeout of blacklist*/
+    ngx_int_t bl_in_body;
+    ngx_str_t *bl_redirect_page;    /*redirect_page when blacklist not timeout*/
+
     ngx_uint_t sp_timeout;          /* timeout value for session persistence */
     ngx_uint_t sp_start_time;       /* when a session persistence starts */
 

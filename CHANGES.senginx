@@ -1,4 +1,8 @@
-Changes with senginx 1.4.0                                      8 May 2013
+Changes with senginx 1.5.0                                      9 May 2013
+
+    *) Feature: upgrade to original nginx 1.5.0.
+
+    *) Feature: add blacklist function to robot mitigation module.
 
     *) Feature: upgrade to original nginx 1.4.0.
 

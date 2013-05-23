@@ -665,7 +665,7 @@ ngx_http_eval_add_block(ngx_conf_t *cf, ngx_http_eval_loc_conf_t *conf, ngx_str_
 static char *
 ngx_http_eval_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_http_eval_loc_conf_t  *ecf, *pecf = conf;
+    ngx_http_eval_loc_conf_t  *pecf = conf;
 
     char                      *rv;
     void                      *mconf;
@@ -674,7 +674,7 @@ ngx_http_eval_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_conf_t                 save;
     ngx_http_module_t         *module;
     ngx_http_conf_ctx_t       *ctx, *pctx;
-    ngx_http_core_loc_conf_t  *clcf, *pclcf, *rclcf;
+    ngx_http_core_loc_conf_t  *clcf, *rclcf;
     ngx_http_core_srv_conf_t  *cscf;
 
     ctx = ngx_pcalloc(cf->pool, sizeof(ngx_http_conf_ctx_t));
@@ -708,10 +708,6 @@ ngx_http_eval_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             ctx->loc_conf[ngx_modules[i]->ctx_index] = mconf;
         }
     }
-
-    ecf = ctx->loc_conf[ngx_http_eval_module.ctx_index];
-
-    pclcf = pctx->loc_conf[ngx_http_core_module.ctx_index];
 
     clcf = ctx->loc_conf[ngx_http_core_module.ctx_index];
 

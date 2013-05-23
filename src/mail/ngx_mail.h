@@ -418,8 +418,4 @@ void ngx_mail_auth_http_init(ngx_mail_session_t *s);
 extern ngx_uint_t    ngx_mail_max_module;
 extern ngx_module_t  ngx_mail_core_module;
 
-#if (NGX_MAIL_UPSTREAM)  /* <chaizhh@neusoft.com> 2011-3-18 */
-void
-ngx_mail_upstream_init(ngx_mail_session_t *s, ngx_connection_t *c);
-#endif
 #endif /* _NGX_MAIL_H_INCLUDED_ */

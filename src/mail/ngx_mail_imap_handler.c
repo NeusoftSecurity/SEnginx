@@ -11,10 +11,6 @@
 #include <ngx_mail.h>
 #include <ngx_mail_imap_module.h>
 
-#if (NGX_MAIL_UPSTREAM)  /* <chaizhh@neusoft.com> 2011-3-18 */
-#include <ngx_mail_upstream.h>
-#endif
-
 static ngx_int_t ngx_mail_imap_login(ngx_mail_session_t *s,
     ngx_connection_t *c);
 static ngx_int_t ngx_mail_imap_authenticate(ngx_mail_session_t *s,
@@ -236,12 +232,6 @@ ngx_mail_imap_auth_state(ngx_event_t *rev)
 
     case NGX_DONE:
 
-#if (NGX_MAIL_UPSTREAM)  /* <chaizhh@neusoft.com> 2011-3-18 */
-        if (ngx_mail_get_module_srv_conf(s, ngx_mail_upstream_module)) {
-            ngx_mail_upstream_init(s, c);
-           return;
-        } 
-#endif
         ngx_mail_auth(s, c);
 
         return;

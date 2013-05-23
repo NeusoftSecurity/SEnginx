@@ -14,10 +14,6 @@
 
 #include <ngx_times.h>
 
-#if (NGX_NETEYE_LOG)
-#include <ngx_neteye_log.h>
-#endif
-
 #if (NGX_HTTP_BLACKLIST)
 #include <ngx_http_blacklist.h>
 #endif

@@ -48,6 +48,11 @@ static ngx_http_neteye_security_module_t ngx_http_neteye_security_modules[] = {
         "NetEye Log", NULL, NULL, NULL,             0, 0, 0, NULL},
 };
 
+/*According to enum ngx_http_neteye_security_attack_log_id*/
+static char *ngx_http_neteye_attack_log_str[NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX] = {
+    "Layer 7 DDoS",
+};
+
 /* The first slot of this array is not used */
 static ngx_http_neteye_security_module_t 
     *request_chain[NGX_HTTP_NETEYE_SECURITY_MODULE_MAX + 1];
@@ -1004,3 +1009,51 @@ ngx_http_ns_get_action_str(ngx_int_t action)
             return NULL;
     }
 }
+
+void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id, 
+        ngx_str_t action, char *module_name)
+{
+    char                           *agent = NULL;
+    char                           *do_action = "running ";
+    ngx_http_core_srv_conf_t       *cscf;
+    ngx_connection_t                *connection;
+    ngx_log_t                       *log;
+
+    connection = r->connection;
+    if (log_id >= NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, connection->log, 0, 
+                "log id is invalid!\n");
+        return;
+    }
+
+    cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+
+
+    if (r->headers_in.user_agent != NULL) {
+        agent = ngx_pcalloc(r->pool, 
+                r->headers_in.user_agent->value.len + 1);
+        if (!agent) {
+            return;
+        }
+
+        memcpy(agent, r->headers_in.user_agent->value.data, 
+                r->headers_in.user_agent->value.len);
+    }
+
+    log = connection->log;
+    log->action = ngx_pcalloc(r->pool, ngx_strlen(do_action) + 
+            ngx_strlen(module_name) + 1);
+    if (log->action == NULL) {
+        return;
+    }
+    strcpy(log->action, do_action);
+    strcpy(log->action + ngx_strlen(do_action), module_name);
+
+    ngx_log_error(NGX_LOG_ERR, connection->log, 0,
+            "%s: \"%s\", action: \"%V\", agent: \"%s\", ", 
+            module_name, ngx_http_neteye_attack_log_str[log_id], 
+            &action, agent);
+
+    return;
+}
+

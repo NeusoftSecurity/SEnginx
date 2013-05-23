@@ -165,7 +165,6 @@ ngx_http_naxsi_do_action(ngx_http_request_t *r,
         ngx_http_request_ctx_t *ctx, char *fmt)
 {
     ngx_http_ns_action_t              *action;
-    ngx_int_t                          ret;
     ngx_uint_t                         i;
     ngx_http_dummy_loc_conf_t         *nlcf;
     ngx_http_naxsi_neteye_action_t    *neteye_action;
@@ -193,7 +192,7 @@ ngx_http_naxsi_do_action(ngx_http_request_t *r,
     
     neteye_action = nlcf->neteye_actions->elts;
     for (i = 0; i < nlcf->neteye_actions->nelts; i++) {
-	if (!ngx_strcmp(tag, neteye_action[i].tag.data)) {
+        if (!ngx_strcmp(tag, neteye_action[i].tag.data)) {
             break;
         }
     }
@@ -225,8 +224,6 @@ ngx_http_naxsi_do_action(ngx_http_request_t *r,
                 "naxsi log fmt: %s", fmt);
     }
 
-    ret = ngx_http_ns_do_action(r, action);
-    
-    return ret;
+    return ngx_http_ns_do_action(r, action);
 }
 #endif

@@ -11,10 +11,6 @@
 #include <ngx_event_connect.h>
 #include <ngx_mail.h>
 
-#if (NGX_MAIL_UPSTREAM)
-#include <ngx_mail_upstream.h>
-#endif
-
 typedef struct {
     ngx_flag_t  enable;
     ngx_flag_t  pass_error_message;
@@ -1007,11 +1003,6 @@ ngx_mail_proxy_handler(ngx_event_t *ev)
 static void
 ngx_mail_proxy_upstream_error(ngx_mail_session_t *s)
 {
-#if (NGX_MAIL_UPSTREAM) /* <chaizhh@neusoft.com> 2011-3-18 */
-	if (s->proxy->upstream.free) {
-		s->proxy->upstream.free(&s->proxy->upstream, s->proxy->upstream.data, 0);
-	}
-#endif
     if (s->proxy->upstream.connection) {
         ngx_log_debug1(NGX_LOG_DEBUG_MAIL, s->connection->log, 0,
                        "close mail proxy connection: %d",
@@ -1033,11 +1024,6 @@ ngx_mail_proxy_upstream_error(ngx_mail_session_t *s)
 static void
 ngx_mail_proxy_internal_server_error(ngx_mail_session_t *s)
 {
-#if (NGX_MAIL_UPSTREAM) /* <chaizhh@neusoft.com> 2011-3-18 */
-	if (s->proxy->upstream.free) {
-		s->proxy->upstream.free(&s->proxy->upstream, s->proxy->upstream.data, 0);
-	}
-#endif
     if (s->proxy->upstream.connection) {
         ngx_log_debug1(NGX_LOG_DEBUG_MAIL, s->connection->log, 0,
                        "close mail proxy connection: %d",
@@ -1053,11 +1039,6 @@ ngx_mail_proxy_internal_server_error(ngx_mail_session_t *s)
 static void
 ngx_mail_proxy_close_session(ngx_mail_session_t *s)
 {
-#if (NGX_MAIL_UPSTREAM) /* <chaizhh@neusoft.com> 2011-3-18 */
-	if (s->proxy->upstream.free) {
-		s->proxy->upstream.free(&s->proxy->upstream, s->proxy->upstream.data, 0);
-	}
-#endif
     if (s->proxy->upstream.connection) {
         ngx_log_debug1(NGX_LOG_DEBUG_MAIL, s->connection->log, 0,
                        "close mail proxy connection: %d",
@@ -1106,173 +1087,3 @@ ngx_mail_proxy_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     return NGX_CONF_OK;
 }
 
-
-#if (NGX_MAIL_UPSTREAM) /* <chaizhh@neusoft.com> 2011-3-18 */
-/*
- *  I put ngx_mail_upstream_init in this file because ngx_mail_proxy_pop3_handler
- *  ngx_mail_proxy_imap_handler ngx_mail_proxy_smtp_handler are defined static in this file
- */
-
-void
-ngx_mail_upstream_init(ngx_mail_session_t *s, ngx_connection_t *c)
-{
-    int                               keepalive;
-    ngx_int_t                         rc;
-    ngx_mail_proxy_ctx_t             *p;
-    ngx_common_upstream_group_t      *uscf;
-    ngx_mail_core_srv_conf_t         *cscf;
-    ngx_mail_proxy_conf_t            *pcf;
-
-    s->connection->log->action = "connecting to upstream";
-
-    cscf = ngx_mail_get_module_srv_conf(s, ngx_mail_core_module);
-    uscf = ngx_mail_get_module_srv_conf(s, ngx_mail_upstream_module);
-/*
-    if (uscf == NULL) {
-        return;
-    }
-*/
-    if (cscf->so_keepalive) {
-        keepalive = 1;
-
-        if (setsockopt(s->connection->fd, SOL_SOCKET, SO_KEEPALIVE,
-                       (const void *) &keepalive, sizeof(int))
-                == -1)
-        {
-            ngx_log_error(NGX_LOG_ALERT, s->connection->log, ngx_socket_errno,
-                          "setsockopt(SO_KEEPALIVE) failed");
-        }
-    }
-
-    p = ngx_pcalloc(s->connection->pool, sizeof(ngx_mail_proxy_ctx_t));
-    if (p == NULL) {
-        ngx_mail_session_internal_server_error(s);
-        return;
-    }
-
-    s->proxy = p;
-
-    rc = ngx_common_upstream_peer_connection_init(&p->upstream, 
-            uscf, s->connection, s, 0);
-
-    if (rc != NGX_OK){
-        ngx_mail_proxy_internal_server_error(s);
-        return;
-    }
-
-    rc = ngx_event_connect_peer(&p->upstream);
-
-    if (rc == NGX_ERROR || rc == NGX_BUSY || rc == NGX_DECLINED) {
-        ngx_mail_proxy_internal_server_error(s);
-        return;
-    }
-
-    ngx_add_timer(p->upstream.connection->read, cscf->timeout);
-
-    p->upstream.connection->data = s;
-    p->upstream.connection->pool = s->connection->pool;
-
-    s->connection->read->handler = ngx_mail_proxy_block_read;
-    p->upstream.connection->write->handler = ngx_mail_proxy_dummy_handler;
-
-    pcf = ngx_mail_get_module_srv_conf(s, ngx_mail_proxy_module);
-
-    s->proxy->buffer = ngx_create_temp_buf(s->connection->pool,
-                                           pcf->buffer_size);
-    if (s->proxy->buffer == NULL) {
-        ngx_mail_proxy_internal_server_error(s);
-        return;
-    }
-
-    s->out.len = 0;
-
-    switch (s->protocol) {
-
-    case NGX_MAIL_POP3_PROTOCOL:
-        p->upstream.connection->read->handler = ngx_mail_proxy_pop3_handler;
-        s->mail_state = ngx_pop3_start;
-        break;
-
-    case NGX_MAIL_IMAP_PROTOCOL:
-        p->upstream.connection->read->handler = ngx_mail_proxy_imap_handler;
-        s->mail_state = ngx_imap_start;
-        break;
-
-    default: /* NGX_MAIL_SMTP_PROTOCOL */
-        p->upstream.connection->read->handler = ngx_mail_proxy_smtp_handler;
-        s->mail_state = ngx_smtp_start;
-        break;
-    }
-
-}
-
-/* TODO: ssl to backend */
-#if (NGX_MAIL_SSL)
-/*
-static void
-ngx_mail_upstream_ssl_init_connection(ngx_http_request_t *r,
-    ngx_http_upstream_t *u, ngx_connection_t *c)
-{
-    ngx_int_t   rc;
-
-    if (ngx_ssl_create_connection(u->conf->ssl, c,
-                                  NGX_SSL_BUFFER|NGX_SSL_CLIENT)
-        != NGX_OK)
-    {
-        ngx_http_upstream_finalize_request(r, u,
-                                           NGX_HTTP_INTERNAL_SERVER_ERROR);
-        return;
-    }
-
-    c->sendfile = 0;
-    u->output.sendfile = 0;
-
-    if (u->conf->ssl_session_reuse) {
-        if (u->peer.set_session(&u->peer, u->peer.data) != NGX_OK) {
-            ngx_http_upstream_finalize_request(r, u,
-                                               NGX_HTTP_INTERNAL_SERVER_ERROR);
-            return;
-        }
-    }
-
-    r->connection->log->action = "SSL handshaking to upstream";
-
-    rc = ngx_ssl_handshake(c);
-
-    if (rc == NGX_AGAIN) {
-        c->ssl->handler = ngx_mail_upstream_ssl_handshake;
-        return;
-    }
-
-    ngx_mail_upstream_ssl_handshake(c);
-}
-
-
-static void
-ngx_mail_upstream_ssl_handshake(ngx_connection_t *c)
-{
-    ngx_mail_session_t   *s;
-
-    s = c->data;
-
-    if (c->ssl->handshaked) {
-
-        if (u->conf->ssl_session_reuse) {
-            u->peer.save_session(&u->peer, u->peer.data);
-        }
-
-
-        c->write->handler = ngx_http_upstream_handler;
-        c->read->handler = ngx_http_upstream_handler;
-
-        ngx_http_upstream_send_request(r, u);
-
-        return;
-    }
-
-    ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
-
-}
-*/
-#endif
-#endif

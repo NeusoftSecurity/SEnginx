@@ -48,6 +48,11 @@ enum ngx_http_neteye_security_module_ids {
     NGX_HTTP_NETEYE_SECURITY_MODULE_MAX
 };
 
+enum ngx_http_neteye_security_attack_log_id {
+    NGX_HTTP_NETEYE_ATTACK_LOG_ID_AC,
+    NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX
+};
+
 typedef struct ngx_http_ns_ctx_s {
     ngx_uint_t       jump_bit;
     
@@ -137,4 +142,6 @@ ngx_uint_t ngx_http_ns_test_bypass_all(ngx_http_request_t *r);
 
 char *
 ngx_http_ns_get_action_str(ngx_int_t action);
+void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id, 
+        ngx_str_t action, char *module_name);
 #endif

@@ -2141,6 +2141,20 @@ ngx_http_rm_request_type(ngx_http_request_t *r, ngx_uint_t op, ngx_uint_t value)
 }
 #endif
 
+static void
+ngx_http_rm_write_attack_log(ngx_http_request_t *r)
+{  
+    ngx_http_rm_loc_conf_t      *rlcf;
+    ngx_str_t                   action;
+
+    rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
+    action.data = (u_char *)ngx_http_ns_get_action_str(rlcf->action);
+    action.len = ngx_strlen(action.data);
+
+    ngx_http_neteye_send_attack_log(r, NGX_HTTP_NETEYE_ATTACK_LOG_ID_AC, 
+            action, "robot_mitigation");
+}
+
 static ngx_int_t
 ngx_http_rm_do_action(ngx_http_request_t *r)
 {
@@ -2149,6 +2163,7 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
 #if (NGX_HTTP_SESSION) 
     u_char                            *ac_name = (u_char *)"a/challenge";
 #endif
+    ngx_int_t                          ret;
 
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
 
@@ -2175,7 +2190,12 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
         action->in_body = 0;
     }
     
-    return ngx_http_ns_do_action(r, action);
+    ret = ngx_http_ns_do_action(r, action);
+    if (ret != NGX_OK) {
+        ngx_http_rm_write_attack_log(r);
+    }
+
+    return ret;
 }
 
 static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)

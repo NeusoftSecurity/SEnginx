@@ -168,7 +168,7 @@ ngx_http_upstream_get_fastest_peer(ngx_peer_connection_t *pc, void *data)
 
     time_t                         now;
     uintptr_t                      m;
-    ngx_int_t                      rc, total;
+    ngx_int_t                      rc;
     ngx_uint_t                     i, n, p;
     ngx_uint_t                     elapsed;
     ngx_http_upstream_rr_peer_t   *peer, *best;
@@ -192,7 +192,6 @@ ngx_http_upstream_get_fastest_peer(ngx_peer_connection_t *pc, void *data)
     peers = fp->rrp.peers;
 
     best = NULL;
-    total = 0;
 
     p = 0;
 

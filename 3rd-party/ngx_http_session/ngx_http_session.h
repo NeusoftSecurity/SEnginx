@@ -8,13 +8,14 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-#define NGX_HTTP_SESSION_DEFAULT_TMOUT 60 * 1000
-#define NGX_HTTP_SESSION_DEFAULT_NUMBER  50000
-#define NGX_HTTP_SESSION_DEFAULT_COOKIE  "NetEye-ADSG-SID"
-#define NGX_HTTP_SESSION_MAX_CTX  32
-#define NGX_HTTP_SESSION_CTX_NAME_LEN  32
-#define MD5_LEN 32
-#define NGX_HTTP_SESSION_DEFAULT_SID_LEN MD5_LEN
+#define NGX_HTTP_SESSION_DEFAULT_TMOUT          60 * 1000
+#define NGX_HTTP_SESSION_DEFAULT_WAIT_TMOUT     5 * 1000
+#define NGX_HTTP_SESSION_DEFAULT_NUMBER         50000
+#define NGX_HTTP_SESSION_DEFAULT_COOKIE         "NetEye-ADSG-SID"
+#define NGX_HTTP_SESSION_MAX_CTX                32
+#define NGX_HTTP_SESSION_CTX_NAME_LEN           32
+#define MD5_LEN                                 32
+#define NGX_HTTP_SESSION_DEFAULT_SID_LEN        MD5_LEN
 
 typedef struct {
     ngx_int_t in_use;
@@ -83,12 +84,11 @@ typedef struct {
     ngx_int_t              enabled;
     ngx_int_t              shm_size;
     ngx_int_t              timeout;  /* in seconds */
+    ngx_int_t              bl_timeout;  /* in seconds */
+    ngx_int_t              wait_timeout;  /* in seconds */
     ngx_str_t              keyword;
-} ngx_http_session_srv_conf_t;
-
-typedef struct {
     ngx_int_t              session_show_enabled;
-} ngx_http_session_loc_conf_t;
+} ngx_http_session_conf_t;
 
 /* APIs */
 ngx_int_t 
@@ -139,4 +139,8 @@ ngx_uint_t ngx_http_session_test_local(ngx_http_request_t *r);
 
 ngx_int_t
 ngx_http_session_is_enabled(ngx_http_request_t *r);
+
+ngx_int_t
+ngx_http_session_get_bl_timeout(ngx_http_request_t *r);
+
 #endif

@@ -877,7 +877,8 @@ block:
 #endif
                 ngx_shmtx_lock(&session->mutex);
                 /*Add to blacklist*/
-                session->bl_timeout = ngx_time() + action->bl_timeout;
+                session->bl_timeout = ngx_time() + 
+                    ngx_http_session_get_bl_timeout(r);
                 session->bl_in_body = action->in_body;
                 session->bl_redirect_page = action->redirect_page;
             }

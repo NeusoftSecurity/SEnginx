@@ -1105,11 +1105,6 @@ ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     
     value = cf->args->elts;
 
-    rlcf->bl_timeout = ngx_atoi(value[1].data, value[1].len);
-    if (rlcf->bl_timeout == NGX_ERROR) {
-        return "Invalid blacklist count";
-    }
-
     rlcf->failed_count = ngx_atoi(value[2].data, value[2].len);
     if (rlcf->failed_count == NGX_ERROR) {
         return "Invalid blacklist count";
@@ -2181,7 +2176,6 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
     action->init = ngx_http_rm_init_ctx_handler;
     action->destroy = ngx_http_rm_destroy_ctx_handler;
     action->get_bl_count = ngx_http_rm_get_bl_count;
-    action->bl_timeout = rlcf->bl_timeout;
     action->bl_max = rlcf->failed_count;
 #endif
     if (rlcf->error_page.data != NULL) {
@@ -2210,7 +2204,6 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
     conf->mode = NGX_HTTP_RM_MODE_JS;
     conf->action = NGX_HTTP_NS_ACTION_BLOCK;
     conf->enabled = 0;
-    conf->bl_timeout = NGX_HTTP_RM_DEFAULT_BL_TIMEOUT;
     conf->failed_count = NGX_HTTP_RM_DEFAULT_FAIILED_COUNT;
     conf->timeout = NGX_HTTP_RM_DEFAULT_TIMEOUT;
     conf->no_expires = 0;

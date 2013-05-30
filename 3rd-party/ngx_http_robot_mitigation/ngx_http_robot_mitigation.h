@@ -68,7 +68,6 @@ typedef struct {
 } ngx_http_rm_whitelist_item_t;
 
 typedef struct {
-    ngx_int_t                  bl_timeout;
     ngx_int_t                  failed_count;
     
     ngx_int_t                  enabled;

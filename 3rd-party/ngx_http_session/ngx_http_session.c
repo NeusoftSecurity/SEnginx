@@ -31,11 +31,6 @@ static ngx_int_t
 ngx_http_session_filter_init(ngx_conf_t *cf);
 
 static void *
-ngx_http_session_create_srv_conf(ngx_conf_t *cf);
-static char *
-ngx_http_session_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child);
-    
-static void *
 ngx_http_session_create_loc_conf(ngx_conf_t *cf);
 static char *
 ngx_http_session_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
@@ -52,16 +47,16 @@ ngx_http_session_request_cleanup_init(ngx_http_request_t *r);
 static ngx_command_t  ngx_http_session_commands[] = {
 
     { ngx_string("session"),
-        NGX_HTTP_SRV_CONF|NGX_CONF_TAKE12,
+        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_session,
-        NGX_HTTP_SRV_CONF_OFFSET,
+        NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
 
     { ngx_string("session_timeout"),
-        NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
+        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_session_timeout,
-        NGX_HTTP_SRV_CONF_OFFSET,
+        NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
 
@@ -83,11 +78,11 @@ static ngx_http_module_t  ngx_http_session_module_ctx = {
     NULL,                                  /* create main configuration */
     NULL,                                  /* init main configuration */
 
-    ngx_http_session_create_srv_conf,      /* create server configuration */
-    ngx_http_session_merge_srv_conf,       /* merge server configuration */
+    NULL,                                   /* create server configuration */
+    NULL,                                   /* merge server configuration */
 
-    ngx_http_session_create_loc_conf,      /* create location configuration */
-    ngx_http_session_merge_loc_conf,       /* merge location configuration */
+    ngx_http_session_create_loc_conf,       /* create location configuration */
+    ngx_http_session_merge_loc_conf,        /* merge location configuration */
 };
 
 
@@ -261,10 +256,10 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
     ngx_http_session_list_t          *session_list;
     ngx_http_session_t               *session, *tmp;
     ngx_int_t                        hash;
-    ngx_http_session_srv_conf_t      *sscf;
+    ngx_http_session_conf_t      *sscf;
     u_char                           file[64];
     
-    sscf = ngx_http_get_module_srv_conf(r, ngx_http_session_module);
+    sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
     
     session_list = ngx_http_session_shm_zone->data;
     
@@ -588,18 +583,16 @@ ngx_http_session_is_favico(ngx_http_request_t *r)
 static ngx_int_t
 ngx_http_session_handler(ngx_http_request_t *r)
 {
-    ngx_http_session_srv_conf_t      *sscf;
-    ngx_http_session_t               *session;
-    ngx_http_session_list_t          *session_list;
-    ngx_str_t                        cookie;
-    ngx_int_t                        ret;
-    ngx_http_session_loc_conf_t      *slcf;
+    ngx_http_session_conf_t             *sscf;
+    ngx_http_session_t                  *session;
+    ngx_http_session_list_t             *session_list;
+    ngx_str_t                           cookie;
+    ngx_int_t                           ret;
     
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "session handler begin");
     
-    sscf = ngx_http_get_module_srv_conf(r, ngx_http_session_module);
-    slcf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
+    sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
     
     if (!sscf->enabled) {
         return NGX_DECLINED;
@@ -609,7 +602,7 @@ ngx_http_session_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
     
-    if (slcf->session_show_enabled
+    if (sscf->session_show_enabled
             || ngx_http_session_is_favico(r)) {
         ngx_http_session_set_bypass(r);
         ngx_http_session_clr_found(r);
@@ -688,7 +681,7 @@ ngx_http_session_handler(ngx_http_request_t *r)
 static ngx_int_t 
 ngx_http_session_header_filter(ngx_http_request_t *r)
 {
-    ngx_http_session_srv_conf_t      *sscf;
+    ngx_http_session_conf_t      *sscf;
     ngx_str_t                        sid;
     ngx_int_t                        ret;
     ngx_uint_t                       status;
@@ -699,7 +692,7 @@ ngx_http_session_header_filter(ngx_http_request_t *r)
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "session filter begin\n");
 
-    sscf = ngx_http_get_module_srv_conf(r, ngx_http_session_module);
+    sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
 
     if (!sscf->enabled) {
         return NGX_DECLINED;
@@ -713,10 +706,6 @@ ngx_http_session_header_filter(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-//    if (r->session_found == -1) {
-//        return NGX_ERROR;
-//    }
-   
     /* r->session_create is set, create a new session */
     u = r->upstream;
     if (!u && !ngx_http_session_test_local(r)) {
@@ -888,12 +877,16 @@ out:
 static char *
 ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_http_session_srv_conf_t *sscf = conf;
+    ngx_http_session_conf_t *sscf = conf;
     ngx_str_t        *value, *shm_name;
 
     value = cf->args->elts;
     if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
          sscf->enabled = 1;
+    } else if (!strncmp((char *)(value[1].data), "off", value[1].len)) {
+         sscf->enabled = 0;
+    } else {
+        return "unknow session param";
     }
 
     shm_name = ngx_palloc(cf->pool, sizeof *shm_name);
@@ -915,7 +908,7 @@ ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     sscf->keyword.data = ngx_pcalloc(cf->pool, 
             strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE) + 1);
     if (sscf->keyword.data == NULL) {
-	return "init keyword failed\n";
+	    return "init keyword failed\n";
     }
 
     sscf->keyword.len = strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE);
@@ -932,7 +925,7 @@ ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_http_session_srv_conf_t *sscf = conf;
+    ngx_http_session_conf_t *sscf = conf;
     ngx_str_t        *value;
 
     value = cf->args->elts;
@@ -959,13 +952,13 @@ ngx_http_session_show_handler(ngx_http_request_t *r)
     ngx_uint_t                       i;
     ngx_http_session_list_t          *session_list;
     ngx_http_session_t               *tmp;
-    ngx_http_session_srv_conf_t      *sscf;
+    ngx_http_session_conf_t      *sscf;
     const char                       *banner = 
         "Session mechanism is not enabled on this v-server<br>";
 
     ngx_http_session_set_bypass(r);
 
-    sscf = ngx_http_get_module_srv_conf(r, ngx_http_session_module);
+    sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
     
     test = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
     if (!test) {
@@ -1051,7 +1044,7 @@ ngx_http_session_show(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_str_t        *value;
     ngx_http_core_loc_conf_t  *clcf;
-    ngx_http_session_loc_conf_t  *slcf = conf;
+    ngx_http_session_conf_t  *slcf = conf;
 
     value = cf->args->elts;
 
@@ -1068,46 +1061,41 @@ ngx_http_session_show(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 static void *
-ngx_http_session_create_srv_conf(ngx_conf_t *cf)
-{
-    ngx_http_session_srv_conf_t  *conf;
-
-    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_session_srv_conf_t));
-    if (conf == NULL) {
-        return NULL;
-    }
-
-    conf->enabled = 0;
-    conf->timeout = NGX_HTTP_SESSION_DEFAULT_TMOUT;
-    conf->keyword.data = NULL;
-
-    return conf;
-}
-
-static char *
-ngx_http_session_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
-{
-    return NGX_CONF_OK;
-}
-
-static void *
 ngx_http_session_create_loc_conf(ngx_conf_t *cf)
 {
-    ngx_http_session_loc_conf_t  *conf;
+    ngx_http_session_conf_t  *conf;
 
-    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_session_loc_conf_t));
+    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_session_conf_t));
     if (conf == NULL) {
         return NULL;
     }
 
+    conf->enabled = NGX_CONF_UNSET;
+    conf->timeout = NGX_CONF_UNSET;
+    conf->bl_timeout = NGX_CONF_UNSET;
+    conf->wait_timeout = NGX_CONF_UNSET;
+    conf->keyword.data = NGX_CONF_UNSET_PTR;
+    conf->keyword.len = NGX_CONF_UNSET_SIZE;
     conf->session_show_enabled = 0;
-    
+
     return conf;
 }
 
 static char *
 ngx_http_session_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
+    ngx_http_session_conf_t  *prev = parent;
+    ngx_http_session_conf_t  *conf = child;
+
+    ngx_conf_merge_value(conf->enabled, prev->enabled, 0);
+    ngx_conf_merge_value(conf->timeout, prev->timeout, 
+            NGX_HTTP_SESSION_DEFAULT_TMOUT);
+    ngx_conf_merge_value(conf->bl_timeout, prev->bl_timeout, conf->timeout);
+    ngx_conf_merge_value(conf->wait_timeout, prev->wait_timeout, 
+            NGX_HTTP_SESSION_DEFAULT_WAIT_TMOUT);
+    ngx_conf_merge_ptr_value(conf->keyword.data, prev->keyword.data, NULL);
+    ngx_conf_merge_size_value(conf->keyword.len, prev->keyword.len, 0);
+
     return NGX_CONF_OK;
 }
 
@@ -1261,9 +1249,9 @@ ngx_http_session_get(ngx_http_request_t *r)
 {
     ngx_http_session_list_t *session_list;
     ngx_http_session_t      *session;
-    ngx_http_session_srv_conf_t      *sscf;
+    ngx_http_session_conf_t      *sscf;
     
-    sscf = ngx_http_get_module_srv_conf(r, ngx_http_session_module);
+    sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
     
     if (!sscf->enabled) {
         return NULL;
@@ -1289,9 +1277,9 @@ void ngx_http_session_put(ngx_http_request_t *r)
 {
     ngx_http_session_list_t *session_list;
     ngx_http_session_t      *session;
-    ngx_http_session_srv_conf_t      *sscf;
+    ngx_http_session_conf_t      *sscf;
 
-    sscf = ngx_http_get_module_srv_conf(r, ngx_http_session_module);
+    sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
     
     if (!sscf->enabled) {
         return;
@@ -1539,13 +1527,26 @@ ngx_http_session_request_cleanup_init(ngx_http_request_t *r)
 ngx_int_t
 ngx_http_session_is_enabled(ngx_http_request_t *r)
 {
-    ngx_http_session_srv_conf_t       *sscf;
+    ngx_http_session_conf_t       *sscf;
     
-    sscf = ngx_http_get_module_srv_conf(r, ngx_http_session_module);
-    
+    sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
     if (!sscf->enabled) {
         return 0;
     }
 
     return 1;
+}
+
+ngx_int_t
+ngx_http_session_get_bl_timeout(ngx_http_request_t *r)
+{
+    ngx_http_session_conf_t       *sscf;
+    
+    sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
+    
+    if (!sscf->enabled) {
+        return 0;
+    }
+
+    return sscf->bl_timeout;
 }

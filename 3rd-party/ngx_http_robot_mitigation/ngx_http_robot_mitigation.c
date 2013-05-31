@@ -164,7 +164,7 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         NULL },
  
     { ngx_string("robot_mitigation_blacklist"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_rm_blacklist,
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
@@ -1105,7 +1105,7 @@ ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     
     value = cf->args->elts;
 
-    rlcf->failed_count = ngx_atoi(value[2].data, value[2].len);
+    rlcf->failed_count = ngx_atoi(value[1].data, value[1].len);
     if (rlcf->failed_count == NGX_ERROR) {
         return "Invalid blacklist count";
     }

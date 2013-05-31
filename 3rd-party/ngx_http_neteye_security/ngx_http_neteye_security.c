@@ -792,6 +792,7 @@ ngx_http_ns_do_action(ngx_http_request_t *r,
     ngx_uint_t                        *bl_count;
 #endif
     ngx_uint_t                         i;
+    ngx_int_t                          timeout;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "neteye security do action: %d", (int)action->action);
@@ -867,6 +868,7 @@ block:
 
             if (*bl_count >= action->bl_max) {
                 *bl_count = 0;
+                timeout = ngx_http_session_get_bl_timeout(r);
                 ngx_shmtx_unlock(&session->mutex);
 
 #if (NGX_HTTP_STATUS_PAGE)
@@ -877,10 +879,7 @@ block:
 #endif
                 ngx_shmtx_lock(&session->mutex);
                 /*Add to blacklist*/
-                session->bl_timeout = ngx_time() + 
-                    ngx_http_session_get_bl_timeout(r);
-                session->bl_in_body = action->in_body;
-                session->bl_redirect_page = action->redirect_page;
+                session->bl_timeout = ngx_time() + timeout;
             }
             
             ngx_shmtx_unlock(&session->mutex);

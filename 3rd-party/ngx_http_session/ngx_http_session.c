@@ -25,6 +25,9 @@ ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
+ngx_http_session_blacklist_timeout(ngx_conf_t *cf, 
+            ngx_command_t *cmd, void *conf);
+static char *
 ngx_http_session_show(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static ngx_int_t 
@@ -47,18 +50,26 @@ ngx_http_session_request_cleanup_init(ngx_http_request_t *r);
 static ngx_command_t  ngx_http_session_commands[] = {
 
     { ngx_string("session"),
-        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_session,
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
 
     { ngx_string("session_timeout"),
-        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_session_timeout,
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
+
+    { ngx_string("session_blacklist_timeout"),
+        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+        ngx_http_session_blacklist_timeout,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+
 
     { ngx_string("session_show"),
         NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
@@ -766,7 +777,7 @@ ngx_http_session_header_filter(ngx_http_request_t *r)
 static ngx_int_t
 ngx_http_session_filter_init(ngx_conf_t *cf)
 {
-    ngx_int_t ret;
+    ngx_int_t                           ret;
     
     ret = ngx_http_neteye_security_ctx_register(NGX_HTTP_NETEYE_SESSION, 
             ngx_http_session_request_ctx_init);
@@ -942,6 +953,22 @@ ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
+static char *
+ngx_http_session_blacklist_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_session_conf_t     *sscf = conf;
+    ngx_str_t                   *value;
+
+    value = cf->args->elts;
+    sscf->bl_timeout = ngx_atoi(value[1].data, value[1].len) * 1000;
+
+    if (sscf->bl_timeout < 0) {
+        return "Invalid timeout value, must larger than or equal to 0 seconds";
+    }
+
+    return NGX_CONF_OK;
+}
+
 static ngx_int_t
 ngx_http_session_show_handler(ngx_http_request_t *r)
 {
@@ -1095,6 +1122,10 @@ ngx_http_session_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
             NGX_HTTP_SESSION_DEFAULT_WAIT_TMOUT);
     ngx_conf_merge_ptr_value(conf->keyword.data, prev->keyword.data, NULL);
     ngx_conf_merge_size_value(conf->keyword.len, prev->keyword.len, 0);
+
+    if (conf->bl_timeout > conf->timeout) {
+        return "blacklist timeout must not large then session timeout";
+    }
 
     return NGX_CONF_OK;
 }
@@ -1548,5 +1579,5 @@ ngx_http_session_get_bl_timeout(ngx_http_request_t *r)
         return 0;
     }
 
-    return sscf->bl_timeout;
+    return (sscf->bl_timeout/1000);
 }

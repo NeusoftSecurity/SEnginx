@@ -23,6 +23,8 @@
 static char *
 ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
+ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *
 ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_session_blacklist_timeout(ngx_conf_t *cf, 
@@ -53,6 +55,13 @@ static ngx_command_t  ngx_http_session_commands[] = {
         NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_session,
         NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+
+    { ngx_string("session_number"),
+        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+        ngx_http_session_number,
+        NGX_HTTP_MAIN_CONF_OFFSET,
         0,
         NULL },
 
@@ -888,8 +897,8 @@ out:
 static char *
 ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_http_session_conf_t *sscf = conf;
-    ngx_str_t        *value, *shm_name;
+    ngx_http_session_conf_t     *sscf = conf;
+    ngx_str_t                       *value;
 
     value = cf->args->elts;
     if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
@@ -900,26 +909,14 @@ ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return "unknow session param";
     }
 
-    shm_name = ngx_palloc(cf->pool, sizeof *shm_name);
-    shm_name->len = sizeof("session");
-    shm_name->data = (unsigned char *) "session";
-
-    ngx_http_session_shm_zone = ngx_shared_memory_add(
-            cf, shm_name, 
-            sizeof(ngx_http_session_t) * NGX_HTTP_SESSION_DEFAULT_NUMBER 
-            + sizeof(ngx_http_session_list_t), 
-            &ngx_http_session_module);
-
     if (ngx_http_session_shm_zone == NULL) {
-        return "init shared memory failed";
+        return "not config session_number";
     }
-
-    ngx_http_session_shm_zone->init = ngx_http_session_init_shm_zone;
 
     sscf->keyword.data = ngx_pcalloc(cf->pool, 
             strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE) + 1);
     if (sscf->keyword.data == NULL) {
-	    return "init keyword failed\n";
+        return "init keyword failed\n";
     }
 
     sscf->keyword.len = strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE);
@@ -929,6 +926,40 @@ ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     sscf->keyword.data[strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE)] = 0;
 
     cf->cycle->session_callback = ngx_http_session_manager;
+
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_str_t                       *value;
+    ngx_str_t                       *shm_name;
+    ngx_int_t                       shm_size;
+    ngx_int_t                       number;
+
+    value = cf->args->elts;
+    number = ngx_atoi(value[1].data, value[1].len);
+    if (number <= 0) {
+        return "session number must large than 0";
+    }
+
+    shm_name = ngx_palloc(cf->pool, sizeof(*shm_name));
+    shm_name->len = sizeof("session");
+    shm_name->data = (unsigned char *) "session";
+
+    shm_size = (sizeof(ngx_http_session_t) + 
+            NGX_HTTP_SESSION_CTX_SIZE) * number + 
+            sizeof(ngx_http_session_list_t);
+    ngx_http_session_shm_zone = ngx_shared_memory_add(
+            cf, shm_name, shm_size, 
+            &ngx_http_session_module);
+
+    if (ngx_http_session_shm_zone == NULL) {
+        return "init shared memory failed";
+    }
+
+    ngx_http_session_shm_zone->init = ngx_http_session_init_shm_zone;
 
     return NGX_CONF_OK;
 }
@@ -1071,15 +1102,15 @@ ngx_http_session_show(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_str_t        *value;
     ngx_http_core_loc_conf_t  *clcf;
-    ngx_http_session_conf_t  *slcf = conf;
+    ngx_http_session_conf_t  *sscf = conf;
 
     value = cf->args->elts;
 
     if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-         slcf->session_show_enabled = 1;
+         sscf->session_show_enabled = 1;
     }
 
-    if (slcf->session_show_enabled) {
+    if (sscf->session_show_enabled) {
         clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
         clcf->handler = ngx_http_session_show_handler;
     }

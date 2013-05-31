@@ -12,6 +12,7 @@
 #define NGX_HTTP_SESSION_DEFAULT_WAIT_TMOUT     5 * 1000
 #define NGX_HTTP_SESSION_DEFAULT_NUMBER         50000
 #define NGX_HTTP_SESSION_DEFAULT_COOKIE         "NetEye-ADSG-SID"
+#define NGX_HTTP_SESSION_CTX_SIZE               512
 #define NGX_HTTP_SESSION_MAX_CTX                32
 #define NGX_HTTP_SESSION_CTX_NAME_LEN           32
 #define MD5_LEN                                 32
@@ -79,7 +80,6 @@ typedef struct {
 
 typedef struct {
     ngx_int_t              enabled;
-    ngx_int_t              shm_size;
     ngx_int_t              timeout;  /* in seconds */
     ngx_int_t              bl_timeout;  /* in seconds */
     ngx_int_t              wait_timeout;  /* in seconds */

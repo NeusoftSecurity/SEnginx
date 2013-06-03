@@ -149,6 +149,10 @@ install:	$NGX_OBJS${ngx_dirsep}nginx${ngx_binext} \
 
 	test -d '\$(DESTDIR)$NGX_PREFIX/html' \
 		|| cp -R $NGX_HTML '\$(DESTDIR)$NGX_PREFIX'
+	
+	test -d '\$(DESTDIR)$NGX_PREFIX/naxsi' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/naxsi'
+	cp -R 3rd-party/naxsi/contrib '\$(DESTDIR)$NGX_PREFIX/naxsi/'
+	cp -R 3rd-party/naxsi/naxsi_config '\$(DESTDIR)$NGX_PREFIX/naxsi/'
 END
 
 

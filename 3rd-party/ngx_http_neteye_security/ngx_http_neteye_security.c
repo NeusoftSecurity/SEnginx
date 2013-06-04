@@ -1015,7 +1015,6 @@ void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
 {
     char                           *agent = NULL;
     char                           *do_action = "running ";
-    ngx_http_core_srv_conf_t       *cscf;
     ngx_connection_t                *connection;
     ngx_log_t                       *log;
 
@@ -1025,9 +1024,6 @@ void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
                 "log id is invalid!\n");
         return;
     }
-
-    cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
-
 
     if (r->headers_in.user_agent != NULL) {
         agent = ngx_pcalloc(r->pool, 

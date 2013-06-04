@@ -1955,7 +1955,7 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
 
     hc = r->http_connection;
 
-#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+#if (NGX_HTTP_SSL && defined SSL_CTRL_SET_TLSEXT_HOSTNAME)
 
     if (hc->ssl_servername) {
         if (hc->ssl_servername->len == host->len
@@ -1986,7 +1986,7 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
         return NGX_ERROR;
     }
 
-#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+#if (NGX_HTTP_SSL && defined SSL_CTRL_SET_TLSEXT_HOSTNAME)
 
     if (hc->ssl_servername) {
         ngx_http_ssl_srv_conf_t  *sscf;
@@ -2053,7 +2053,7 @@ ngx_http_find_virtual_server(ngx_connection_t *c,
 
         sn = virtual_names->regex;
 
-#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+#if (NGX_HTTP_SSL && defined SSL_CTRL_SET_TLSEXT_HOSTNAME)
 
         if (r == NULL) {
             ngx_http_connection_t  *hc;
@@ -2085,7 +2085,7 @@ ngx_http_find_virtual_server(ngx_connection_t *c,
             return NGX_DECLINED;
         }
 
-#endif /* SSL_CTRL_SET_TLSEXT_HOSTNAME */
+#endif /* NGX_HTTP_SSL && defined SSL_CTRL_SET_TLSEXT_HOSTNAME */
 
         for (i = 0; i < virtual_names->nregex; i++) {
 
@@ -3166,8 +3166,8 @@ ngx_http_lingering_close_handler(ngx_event_t *rev)
         return;
     }
 
-    timer = (ngx_msec_t) (r->lingering_time - ngx_time());
-    if (timer <= 0) {
+    timer = (ngx_msec_t) r->lingering_time - (ngx_msec_t) ngx_time();
+    if ((ngx_msec_int_t) timer <= 0) {
         ngx_http_close_request(r, 0);
         return;
     }

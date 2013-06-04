@@ -295,7 +295,7 @@ typedef struct {
     ngx_http_addr_conf_t             *addr_conf;
     ngx_http_conf_ctx_t              *conf_ctx;
 
-#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+#if (NGX_HTTP_SSL && defined SSL_CTRL_SET_TLSEXT_HOSTNAME)
     ngx_str_t                        *ssl_servername;
 #if (NGX_PCRE)
     ngx_http_regex_t                 *ssl_servername_regex;
@@ -420,6 +420,7 @@ struct ngx_http_request_s {
 #endif
 
     size_t                            limit_rate;
+    size_t                            limit_rate_after;
 
     /* used to learn the Apache compatible response length without a header */
     size_t                            header_size;

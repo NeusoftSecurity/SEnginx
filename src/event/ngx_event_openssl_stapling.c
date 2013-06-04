@@ -611,15 +611,14 @@ ngx_ssl_stapling_ocsp_handler(ngx_ssl_ocsp_ctx_t *ctx)
         != 1)
     {
         ngx_log_error(NGX_LOG_ERR, ctx->log, 0,
-                      "certificate status not found in the OCSP response",
-                      n, OCSP_response_status_str(n));
+                      "certificate status not found in the OCSP response");
         goto error;
     }
 
     if (n != V_OCSP_CERTSTATUS_GOOD) {
         ngx_log_error(NGX_LOG_ERR, ctx->log, 0,
                       "certificate status \"%s\" in the OCSP response",
-                      n, OCSP_cert_status_str(n));
+                      OCSP_cert_status_str(n));
         goto error;
     }
 
@@ -823,7 +822,7 @@ ngx_ssl_ocsp_resolve_handler(ngx_resolver_ctx_t *resolve)
     ngx_uint_t           i;
     struct sockaddr_in  *sin;
 
-    ngx_log_debug0(NGX_LOG_ALERT, ctx->log, 0,
+    ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ctx->log, 0,
                    "ssl ocsp resolve handler");
 
     if (resolve->state) {

@@ -8,15 +8,15 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-#define NGX_HTTP_SESSION_DEFAULT_TMOUT          60 * 1000
-#define NGX_HTTP_SESSION_DEFAULT_WAIT_TMOUT     5 * 1000
-#define NGX_HTTP_SESSION_DEFAULT_NUMBER         50000
-#define NGX_HTTP_SESSION_DEFAULT_COOKIE         "NetEye-ADSG-SID"
-#define NGX_HTTP_SESSION_CTX_SIZE               512
-#define NGX_HTTP_SESSION_MAX_CTX                32
-#define NGX_HTTP_SESSION_CTX_NAME_LEN           32
-#define MD5_LEN                                 32
-#define NGX_HTTP_SESSION_DEFAULT_SID_LEN        MD5_LEN
+#define NGX_HTTP_SESSION_DEFAULT_TMOUT              60 * 1000
+#define NGX_HTTP_SESSION_DEFAULT_REDIRECT_TMOUT     5 * 1000
+#define NGX_HTTP_SESSION_DEFAULT_NUMBER             50000
+#define NGX_HTTP_SESSION_DEFAULT_COOKIE             "NetEye-ADSG-SID"
+#define NGX_HTTP_SESSION_CTX_SIZE                   512
+#define NGX_HTTP_SESSION_MAX_CTX                    32
+#define NGX_HTTP_SESSION_CTX_NAME_LEN               32
+#define MD5_LEN                                     32
+#define NGX_HTTP_SESSION_DEFAULT_SID_LEN            MD5_LEN
 
 typedef struct {
     ngx_int_t in_use;
@@ -41,33 +41,31 @@ typedef ngx_int_t (*ngx_http_session_init_ctx_t)(void *ctx);
 typedef void (*ngx_http_session_destroy_ctx_t)(void *data);
 
 typedef struct {
-    char id[NGX_HTTP_SESSION_DEFAULT_SID_LEN];                  /* session id */
+    char                    id[NGX_HTTP_SESSION_DEFAULT_SID_LEN];                  /* session id */
     
-    void *next;
-    void *prev;
+    void                    *next;
+    void                    *prev;
 
-    void *new_chain_next;
+    void                    *new_chain_next;
+    ngx_queue_t             redirect_queue_node;
     
-    void **slot;                    /* point to sessions list, only the first node has this */
+    void                    **slot;                    /* point to sessions list, only the first node has this */
 
-    int ref;                        /* ref count */
-    int des;                        /* should be destroyed or not */
-    int timed;                      /* should be destroyed or not */
-    int reset;                      /* need to reset timer */
-    int wait;                       /* on the new session chain */
+    int                     ref;                        /* ref count */
+    int                     des;                        /* should be destroyed or not */
+    int                     timed;                      /* should be destroyed or not */
+    int                     reset;                      /* need to reset timer */
+    int                     wait;                       /* on the new session chain */
     
-    time_t est;                     /* time of creating/reseting */
+    time_t                  est;                     /* time of creating/reseting */
     
-    ngx_uint_t sp_timeout;          /* timeout value for session persistence */
-    ngx_uint_t sp_start_time;       /* when a session persistence starts */
+    ngx_int_t               timeout;              /* session timeout */
+    ngx_int_t               bl_timeout;           /* timeout of blacklist */
+    ngx_event_t             ev;                 /* ngx_event, used to establish timer */
 
-    ngx_int_t timeout;              /* session timeout */
-    ngx_int_t bl_timeout;           /*timeout of blacklist*/
-    ngx_event_t ev;                 /* ngx_event, used to establish timer */
-
-    ngx_http_session_ctx_t ctx[NGX_HTTP_SESSION_MAX_CTX];    /* store other modules' ctx */
-    ngx_shmtx_t mutex;
-    ngx_atomic_t lock;
+    ngx_http_session_ctx_t  ctx[NGX_HTTP_SESSION_MAX_CTX];    /* store other modules' ctx */
+    ngx_shmtx_t             mutex;
+    ngx_atomic_t            lock;
 } ngx_http_session_t;
 
 typedef struct {
@@ -76,13 +74,15 @@ typedef struct {
     
     ngx_http_session_t     *sessions[NGX_HTTP_SESSION_DEFAULT_NUMBER]; /* the hash table */
     ngx_http_session_t     *new_chain_head, *new_chain_tail;
+    ngx_queue_t             redirect_queue_head;
+    ngx_int_t               redirect_num;           /* the number of redirecting session */
 } ngx_http_session_list_t;
 
 typedef struct {
     ngx_int_t              enabled;
     ngx_int_t              timeout;  /* in seconds */
     ngx_int_t              bl_timeout;  /* in seconds */
-    ngx_int_t              wait_timeout;  /* in seconds */
+    ngx_int_t              redirect_timeout;  /* in seconds */
     ngx_str_t              keyword;
     ngx_int_t              session_show_enabled;
 } ngx_http_session_conf_t;

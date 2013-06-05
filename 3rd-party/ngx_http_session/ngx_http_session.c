@@ -27,6 +27,9 @@ ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
+ngx_http_session_redirect_timeout(ngx_conf_t *cf, 
+            ngx_command_t *cmd, void *conf);
+static char *
 ngx_http_session_blacklist_timeout(ngx_conf_t *cf, 
             ngx_command_t *cmd, void *conf);
 static char *
@@ -48,6 +51,9 @@ ngx_http_session_request_ctx_init(ngx_http_request_t *r);
 
 static ngx_int_t
 ngx_http_session_request_cleanup_init(ngx_http_request_t *r);
+
+static ngx_int_t 
+__ngx_http_session_delete(ngx_http_session_t *session);
 
 static ngx_command_t  ngx_http_session_commands[] = {
 
@@ -79,6 +85,12 @@ static ngx_command_t  ngx_http_session_commands[] = {
         0,
         NULL },
 
+    { ngx_string("session_redirect_timeout"),
+        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+        ngx_http_session_redirect_timeout,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
 
     { ngx_string("session_show"),
         NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
@@ -275,17 +287,28 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
 {
     ngx_http_session_list_t          *session_list;
     ngx_http_session_t               *session, *tmp;
+    ngx_http_session_t               *redirect;
     ngx_int_t                        hash;
-    ngx_http_session_conf_t      *sscf;
+    ngx_http_session_conf_t         *sscf;
     u_char                           file[64];
+    ngx_queue_t                     *head;
+    ngx_queue_t                     *q;
     
     sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
     
     session_list = ngx_http_session_shm_zone->data;
     
+    head = &session_list->redirect_queue_head;
+    if (session_list->redirect_num >= NGX_HTTP_SESSION_DEFAULT_NUMBER/10) {
+        q = ngx_queue_head(head);
+        redirect = ngx_queue_data(q, ngx_http_session_t, redirect_queue_node);
+        __ngx_http_session_delete(redirect);
+    }
+
     ngx_shmtx_lock(&session_list->shpool->mutex);
 
-    session = ngx_slab_alloc_locked(session_list->shpool, sizeof(ngx_http_session_t));
+    session = ngx_slab_alloc_locked(session_list->shpool, 
+            sizeof(ngx_http_session_t));
     if (session == NULL) {
         ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0, 
                 "slab alloc failed");
@@ -296,6 +319,8 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
         "session create: %p\n", session);
+
+    ngx_queue_init(&session->redirect_queue_node);
 
     memset(session, 0, sizeof(ngx_http_session_t));
     memcpy(session->id, cookie->data, cookie->len);
@@ -320,17 +345,24 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
         session->slot = (void **)(&(session_list->sessions[hash]));
     }
 
-    session->timeout = sscf->timeout;
-    session->est = ngx_time();
-
     memset(file, 0, 64);
     sprintf((char *)file, "/var/tmp/%s", session->id);
 
-    if (ngx_shmtx_create(&session->mutex, (void *) &session->lock, file) != NGX_OK) {
+    if (ngx_shmtx_create(&session->mutex, (void *)&session->lock, 
+                file) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    __ngx_http_session_insert_to_new_chain(session_list, session);
+    session->timeout = sscf->redirect_timeout;
+    session->est = ngx_time();
+
+    session->ev.handler = ngx_http_session_timeout_handler;
+    session->ev.data = session;
+    session->ev.log = session_list->log;
+    ngx_add_timer(&session->ev, session->timeout);
+
+    ngx_queue_insert_tail(head, &session->redirect_queue_node);
+    session_list->redirect_num++;
 
     ngx_shmtx_unlock(&session_list->shpool->mutex);
 
@@ -389,6 +421,11 @@ __ngx_http_session_delete(ngx_http_session_t *session)
 
         if (session->ev.timer_set) {
             ngx_del_timer(&session->ev);
+        }
+
+        if (!ngx_queue_empty(&session->redirect_queue_node)) {
+            ngx_queue_remove(&session->redirect_queue_node);
+            session_list->redirect_num--;
         }
 
         __ngx_http_session_ctx_delete(session);
@@ -684,7 +721,12 @@ ngx_http_session_handler(ngx_http_request_t *r)
         session->reset = 1;
         session->timeout = sscf->timeout;
         session->est = ngx_time();
-        
+        if (session->ev.timer_set) {
+            ngx_del_timer(&session->ev);
+        }
+        ngx_queue_remove(&session->redirect_queue_node);
+        ngx_queue_init(&session->redirect_queue_node);
+        session_list->redirect_num--;
         __ngx_http_session_insert_to_new_chain(session_list, session);
     }
 
@@ -838,6 +880,9 @@ ngx_http_session_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
     session_list->log->file->fd = NGX_INVALID_FILE;
 
     session_list->shpool = shpool;
+
+    ngx_queue_init(&session_list->redirect_queue_head);
+
     shm_zone->data = session_list;
 
     return NGX_OK;
@@ -985,7 +1030,8 @@ ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 static char *
-ngx_http_session_blacklist_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+ngx_http_session_blacklist_timeout(ngx_conf_t *cf, ngx_command_t *cmd, 
+                void *conf)
 {
     ngx_http_session_conf_t     *sscf = conf;
     ngx_str_t                   *value;
@@ -999,6 +1045,24 @@ ngx_http_session_blacklist_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *con
 
     return NGX_CONF_OK;
 }
+
+static char *
+ngx_http_session_redirect_timeout(ngx_conf_t *cf, ngx_command_t *cmd, 
+        void *conf)
+{
+    ngx_http_session_conf_t     *sscf = conf;
+    ngx_str_t                   *value;
+
+    value = cf->args->elts;
+    sscf->redirect_timeout = ngx_atoi(value[1].data, value[1].len) * 1000;
+
+    if (sscf->redirect_timeout <= 0) {
+        return "Invalid timeout value, must larger than 0 seconds";
+    }
+
+    return NGX_CONF_OK;
+}
+
 
 static ngx_int_t
 ngx_http_session_show_handler(ngx_http_request_t *r)
@@ -1131,7 +1195,7 @@ ngx_http_session_create_loc_conf(ngx_conf_t *cf)
     conf->enabled = NGX_CONF_UNSET;
     conf->timeout = NGX_CONF_UNSET;
     conf->bl_timeout = NGX_CONF_UNSET;
-    conf->wait_timeout = NGX_CONF_UNSET;
+    conf->redirect_timeout = NGX_CONF_UNSET;
     conf->keyword.data = NGX_CONF_UNSET_PTR;
     conf->keyword.len = NGX_CONF_UNSET_SIZE;
     conf->session_show_enabled = 0;
@@ -1149,13 +1213,17 @@ ngx_http_session_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->timeout, prev->timeout, 
             NGX_HTTP_SESSION_DEFAULT_TMOUT);
     ngx_conf_merge_value(conf->bl_timeout, prev->bl_timeout, conf->timeout);
-    ngx_conf_merge_value(conf->wait_timeout, prev->wait_timeout, 
-            NGX_HTTP_SESSION_DEFAULT_WAIT_TMOUT);
+    ngx_conf_merge_value(conf->redirect_timeout, prev->redirect_timeout, 
+            NGX_HTTP_SESSION_DEFAULT_REDIRECT_TMOUT);
     ngx_conf_merge_ptr_value(conf->keyword.data, prev->keyword.data, NULL);
     ngx_conf_merge_size_value(conf->keyword.len, prev->keyword.len, 0);
 
     if (conf->bl_timeout > conf->timeout) {
         return "blacklist timeout must not large then session timeout";
+    }
+
+    if (conf->redirect_timeout > conf->timeout) {
+        return "redirect timeout must not large then session timeout";
     }
 
     return NGX_CONF_OK;

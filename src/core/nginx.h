@@ -11,7 +11,7 @@
 
 #define nginx_version      1005000
 #define NGINX_VERSION      "1.5.0"
-#define NGINX_VER          "nginx/" NGINX_VERSION
+#define NGINX_VER          "senginx/" NGINX_VERSION
 
 #define NGINX_VAR          "NGINX"
 #define NGX_OLDPID_EXT     ".oldbin"

@@ -124,6 +124,12 @@ echo "#####################################"
 
 cd 3rd-party
 
+# session
+echo "############  session start  ###########"
+TEST_NGINX_BINARY=$NGINX_DIR prove ./session.t
+echo "############  session end  #############"
+echo ""
+
 # anti-robot
 echo "############  anti-robot start  ###########"
 TEST_NGINX_BINARY=$NGINX_DIR prove ./robot_mitigation.t

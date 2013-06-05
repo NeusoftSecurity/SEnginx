@@ -42,6 +42,7 @@ http {
 
         location / {
             session on;
+            session_name auto-test;
             proxy_pass http://127.0.0.1:8081;
         }
     }
@@ -55,7 +56,7 @@ $t->run();
 ###############################################################################
 
 my $r = http_get('/');
-like($r, qr/NetEye-ADSG-SID/, 'http get request');
+like($r, qr/auto-test/, 'http get request');
 
 my @content = split /\r\n/, $r;
 my @cookies;

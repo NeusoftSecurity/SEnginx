@@ -23,6 +23,8 @@
 static char *
 ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
+ngx_http_session_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *
 ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -68,6 +70,13 @@ static ngx_command_t  ngx_http_session_commands[] = {
         NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
         ngx_http_session_number,
         NGX_HTTP_MAIN_CONF_OFFSET,
+        0,
+        NULL },
+
+    { ngx_string("session_name"),
+        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+        ngx_http_session_name,
+        NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
 
@@ -958,22 +967,32 @@ ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return "not config session_number";
     }
 
-    sscf->keyword.data = ngx_pcalloc(cf->pool, 
-            strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE) + 1);
-    if (sscf->keyword.data == NULL) {
-        return "init keyword failed\n";
-    }
-
-    sscf->keyword.len = strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE);
-
-    memcpy(sscf->keyword.data, NGX_HTTP_SESSION_DEFAULT_COOKIE, 
-            strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE));
-    sscf->keyword.data[strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE)] = 0;
-
     cf->cycle->session_callback = ngx_http_session_manager;
 
     return NGX_CONF_OK;
 }
+
+static char *
+ngx_http_session_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_session_conf_t     *sscf = conf;
+    ngx_str_t                       *value;
+
+    value = cf->args->elts;
+
+    sscf->keyword.data = ngx_pcalloc(cf->pool, value[1].len + 1);
+    if (sscf->keyword.data == NULL) {
+        return "init keyword failed\n";
+    }
+
+    sscf->keyword.len = value[1].len;
+
+    memcpy(sscf->keyword.data, value[1].data, value[1].len);
+    sscf->keyword.data[value[1].len] = 0;
+
+    return NGX_CONF_OK;
+}
+
 
 static char *
 ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
@@ -1215,8 +1234,10 @@ ngx_http_session_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->bl_timeout, prev->bl_timeout, conf->timeout);
     ngx_conf_merge_value(conf->redirect_timeout, prev->redirect_timeout, 
             NGX_HTTP_SESSION_DEFAULT_REDIRECT_TMOUT);
-    ngx_conf_merge_ptr_value(conf->keyword.data, prev->keyword.data, NULL);
-    ngx_conf_merge_size_value(conf->keyword.len, prev->keyword.len, 0);
+    ngx_conf_merge_ptr_value(conf->keyword.data, prev->keyword.data, 
+            (u_char *)NGX_HTTP_SESSION_DEFAULT_COOKIE);
+    ngx_conf_merge_size_value(conf->keyword.len, prev->keyword.len, 
+            strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE));
 
     if (conf->bl_timeout > conf->timeout) {
         return "blacklist timeout must not large then session timeout";

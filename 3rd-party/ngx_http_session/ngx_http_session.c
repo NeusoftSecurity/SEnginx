@@ -66,14 +66,14 @@ static ngx_command_t  ngx_http_session_commands[] = {
         0,
         NULL },
 
-    { ngx_string("session_number"),
+    { ngx_string("session_max_size"),
         NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
         ngx_http_session_number,
         NGX_HTTP_MAIN_CONF_OFFSET,
         0,
         NULL },
 
-    { ngx_string("session_name"),
+    { ngx_string("session_cookie_name"),
         NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_session_name,
         NGX_HTTP_LOC_CONF_OFFSET,

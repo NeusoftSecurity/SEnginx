@@ -35,14 +35,14 @@ events {
 http {
     %%TEST_GLOBALS_HTTP%%
 
-    session_number 1000;
+    session_max_size 1000;
     server {
         listen       127.0.0.1:8080;
         server_name  localhost;
 
         location / {
             session on;
-            session_name auto-test;
+            session_cookie_name auto-test;
             proxy_pass http://127.0.0.1:8081;
         }
     }

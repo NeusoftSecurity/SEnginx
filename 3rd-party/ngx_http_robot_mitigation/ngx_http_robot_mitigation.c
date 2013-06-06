@@ -72,6 +72,8 @@ static char *
 ngx_http_rm_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_rm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *
+ngx_http_rm_cookie_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 #if (NGX_HTTP_SESSION) 
 static char *
 ngx_http_rm_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -148,6 +150,13 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         0,
         NULL },
     
+    { ngx_string("robot_mitigation_cookie_name"),
+        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+        ngx_http_rm_cookie_name,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+  
     { ngx_string("robot_mitigation_mode"),
         NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_rm_mode,
@@ -736,22 +745,14 @@ ngx_http_rm_strstr(ngx_http_request_t *r,
 static ngx_int_t
 ngx_http_rm_valid_cookie(ngx_http_request_t *r, ngx_str_t *gen_cookie)
 {
-    ngx_int_t ret;
-    ngx_str_t cookie, cookie_name;
+    ngx_http_rm_loc_conf_t              *rlcf;  
+    ngx_int_t                           ret;
+    ngx_str_t                           cookie;
 
-    memset(&cookie, 0, sizeof(ngx_str_t));
+    rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
 
-    cookie_name.data = ngx_pcalloc(r->pool, strlen(NGX_HTTP_RM_COOKIE_NAME));
-    if (cookie_name.data == NULL) {
-        return NGX_ERROR;
-    }
-
-    memcpy(cookie_name.data, NGX_HTTP_RM_COOKIE_NAME, 
-            strlen(NGX_HTTP_RM_COOKIE_NAME));
-    cookie_name.len = strlen(NGX_HTTP_RM_COOKIE_NAME);
-    
     ret = ngx_http_parse_multi_header_lines(&r->headers_in.cookies, 
-            &cookie_name, &cookie);
+            &rlcf->cookie_name, &cookie);
 
     if (ret == NGX_DECLINED 
             || cookie.len == 0) {
@@ -1025,13 +1026,26 @@ static ngx_int_t ngx_http_rm_init(ngx_conf_t *cf)
 
 static char *ngx_http_rm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_http_rm_loc_conf_t *rlcf = conf;
+    ngx_http_rm_loc_conf_t  *rlcf = conf;
     ngx_str_t               *value = NULL;
+
     value = cf->args->elts;
 
     if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
         rlcf->enabled = 1;
     }
+
+    return NGX_CONF_OK;
+}
+
+static char *ngx_http_rm_cookie_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_rm_loc_conf_t *rlcf = conf;
+    ngx_str_t               *value = NULL;
+
+    value = cf->args->elts;
+
+    rlcf->cookie_name = value[1];
 
     return NGX_CONF_OK;
 }
@@ -1358,7 +1372,7 @@ ngx_http_rm_challenge_get_js_handler(ngx_http_request_t *r)
     /* -6 means 3 XX in NGX_HTTP_RM_GET_JS */
     cv.value.len = strlen(ngx_http_rm_get_js_tpls[random_tpl]) 
             + NGX_HTTP_RM_DEFAULT_COOKIE_LEN * 2
-            + strlen(NGX_HTTP_RM_COOKIE_NAME) * 2
+            + rlcf->cookie_name.len * 2
             + strlen((char *)timeout) * 2
             - 6
             - 6;
@@ -1373,7 +1387,7 @@ ngx_http_rm_challenge_get_js_handler(ngx_http_request_t *r)
 
     if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
                 (u_char *)"XX", 
-                (u_char *)NGX_HTTP_RM_COOKIE_NAME) != NGX_OK)
+                (u_char *)rlcf->cookie_name.data) != NGX_OK)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
 
     if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
@@ -1388,7 +1402,7 @@ ngx_http_rm_challenge_get_js_handler(ngx_http_request_t *r)
     
     if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
                 (u_char *)"MM", 
-                (u_char *)NGX_HTTP_RM_COOKIE_NAME) != NGX_OK)
+                (u_char *)rlcf->cookie_name.data) != NGX_OK)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
 
     if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
@@ -1544,7 +1558,7 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
     cv.value.len = strlen(ngx_http_rm_post_js_tpls[random_tpl]) 
             + strlen(NGX_HTTP_RM_POST_JS_2)
             + NGX_HTTP_RM_DEFAULT_COOKIE_LEN * 2
-            + strlen(NGX_HTTP_RM_COOKIE_NAME) * 2
+            + rlcf->cookie_name.len * 2
             + strlen((char *)timeout) 
             + post_vars_len
             - 6
@@ -1560,7 +1574,7 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
 
     if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
                 (u_char *)"XX", 
-                (u_char *)NGX_HTTP_RM_COOKIE_NAME) != NGX_OK)
+                (u_char *)rlcf->cookie_name.data) != NGX_OK)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
 
     if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
@@ -1575,7 +1589,7 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
     
     if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
                 (u_char *)"MM", 
-                (u_char *)NGX_HTTP_RM_COOKIE_NAME) != NGX_OK)
+                (u_char *)rlcf->cookie_name.data) != NGX_OK)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
 
     if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
@@ -1836,8 +1850,7 @@ ngx_http_rm_send_swf_file_handler(ngx_http_request_t *r, ngx_uint_t method)
     }
    
     /* fetch cookie name */
-    memcpy(cookie_name, NGX_HTTP_RM_COOKIE_NAME, 
-            strlen(NGX_HTTP_RM_COOKIE_NAME));
+    memcpy(cookie_name, rlcf->cookie_name.data, rlcf->cookie_name.len); 
 
     /* replace them into the flash file */
     if (method == 0) {
@@ -2195,6 +2208,7 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
 static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
 {
     ngx_http_rm_loc_conf_t  *conf;
+    ngx_str_t               cookie_name = ngx_string(NGX_HTTP_RM_COOKIE_NAME);
 
     conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_rm_loc_conf_t));
     if (conf == NULL) {
@@ -2206,6 +2220,7 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
     conf->enabled = 0;
     conf->failed_count = NGX_HTTP_RM_DEFAULT_FAIILED_COUNT;
     conf->timeout = NGX_HTTP_RM_DEFAULT_TIMEOUT;
+    conf->cookie_name = cookie_name;
     conf->no_expires = 0;
     conf->whitelist_items = NULL;
 

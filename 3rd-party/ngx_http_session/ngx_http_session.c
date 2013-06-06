@@ -730,12 +730,14 @@ ngx_http_session_handler(ngx_http_request_t *r)
         session->reset = 1;
         session->timeout = sscf->timeout;
         session->est = ngx_time();
-        if (session->ev.timer_set) {
-            ngx_del_timer(&session->ev);
+        if (!ngx_queue_empty(&session->redirect_queue_node)) {
+            ngx_queue_remove(&session->redirect_queue_node);
+            ngx_queue_init(&session->redirect_queue_node);
+            session_list->redirect_num--;
+            if (session->ev.timer_set) {
+                ngx_del_timer(&session->ev);
+            }
         }
-        ngx_queue_remove(&session->redirect_queue_node);
-        ngx_queue_init(&session->redirect_queue_node);
-        session_list->redirect_num--;
         __ngx_http_session_insert_to_new_chain(session_list, session);
     }
 
@@ -980,15 +982,7 @@ ngx_http_session_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    sscf->keyword.data = ngx_pcalloc(cf->pool, value[1].len + 1);
-    if (sscf->keyword.data == NULL) {
-        return "init keyword failed\n";
-    }
-
-    sscf->keyword.len = value[1].len;
-
-    memcpy(sscf->keyword.data, value[1].data, value[1].len);
-    sscf->keyword.data[value[1].len] = 0;
+    sscf->keyword = value[1];
 
     return NGX_CONF_OK;
 }

@@ -34,7 +34,7 @@
 #define NGX_HTTP_RM_DEFAULT_COOKIE_LEN 40
 #define NGX_HTTP_RM_DEFAULT_COOKIE_NAME_LEN 40
 
-#define NGX_HTTP_RM_COOKIE_NAME "NetEye-ADSG-AC"
+#define NGX_HTTP_RM_COOKIE_NAME "SENGINX-ROBOT-MITIGATION"
 
 #define NGX_HTTP_RM_RET_INVALID_COOKIE 1
 #define NGX_HTTP_RM_RET_NO_COOKIE 2
@@ -75,6 +75,7 @@ typedef struct {
     ngx_int_t                  mode;
     ngx_int_t                  log;
     ngx_str_t                  error_page;
+    ngx_str_t                  cookie_name;
     time_t                     timeout;
     ngx_int_t                  no_expires;
 

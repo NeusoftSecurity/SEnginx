@@ -41,6 +41,7 @@ http {
 
         location / {
             robot_mitigation on;
+            robot_mitigation_cookie_name rm-autotest;
             robot_mitigation_mode js;
             robot_mitigation_action block;
             robot_mitigation_timeout 600;
@@ -62,7 +63,7 @@ $t->run();
 
 ###############################################################################
 
-like(http_get('/'), qr/NetEye-ADSG-AC/, 'http get request, ac method js');
+like(http_get('/'), qr/rm-autotest/, 'http get request, ac method js');
 
 like(http_get_with_header('/', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent to bypass anti-robot, ac method js');
 

@@ -31,6 +31,10 @@ if [ x = x$NGINX_DIR ]; then
     exit 1
 fi
 
+if [ `echo $NGINX_DIR | grep -c ^/` -ne 1 ]; then
+    NGINX_DIR=${PWD}/$NGINX_DIR
+fi
+
 cd $TEST_SRC
 
 #

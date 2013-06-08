@@ -152,7 +152,8 @@ ngx_http_read_client_request_body(ngx_http_request_t *r,
 
             cl = ngx_chain_get_free_buf(r->pool, &rb->free);
             if (cl == NULL) {
-                return NGX_HTTP_INTERNAL_SERVER_ERROR;
+                rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
+                goto done;
             }
 
             b = cl->buf;
@@ -569,9 +570,9 @@ ngx_http_discarded_request_body_handler(ngx_http_request_t *r)
     }
 
     if (r->lingering_time) {
-        timer = (ngx_msec_t) (r->lingering_time - ngx_time());
+        timer = (ngx_msec_t) r->lingering_time - (ngx_msec_t) ngx_time();
 
-        if (timer <= 0) {
+        if ((ngx_msec_int_t) timer <= 0) {
             r->discard_body = 0;
             r->lingering_close = 0;
             ngx_http_finalize_request(r, NGX_ERROR);

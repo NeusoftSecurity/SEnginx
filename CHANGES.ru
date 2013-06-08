@@ -1,4 +1,40 @@
 
+Изменения в nginx 1.5.1                                           04.06.2013
+
+    *) Добавление: директивы ssi_last_modified, sub_filter_last_modified и
+       xslt_last_modified.
+       Спасибо Алексею Колпакову.
+
+    *) Добавление: параметр http_403 в директивах proxy_next_upstream,
+       fastcgi_next_upstream, scgi_next_upstream и uwsgi_next_upstream.
+
+    *) Добавление: директивы allow и deny теперь поддерживают unix domain
+       сокеты.
+
+    *) Исправление: nginx не собирался с модулем ngx_mail_ssl_module, но без
+       модуля ngx_http_ssl_module; ошибка появилась в 1.3.14.
+
+    *) Исправление: в директиве proxy_set_body.
+       Спасибо Lanshun Zhou.
+
+    *) Исправление: в директиве lingering_time.
+       Спасибо Lanshun Zhou.
+
+    *) Исправление: параметр fail_timeout директивы server в блоке upstream
+       мог не работать, если использовался параметр max_fails; ошибка
+       появилась в 1.3.0.
+
+    *) Исправление: в рабочем процессе мог произойти segmentation fault,
+       если использовалась директива ssl_stapling.
+       Спасибо Piotr Sikora.
+
+    *) Исправление: в почтовом прокси-сервере.
+       Спасибо Filipe Da Silva.
+
+    *) Исправление: nginx/Windows мог перестать принимать соединения, если
+       использовалось несколько рабочих процессов.
+
+
 Изменения в nginx 1.5.0                                           07.05.2013
 
     *) Безопасность: при обработке специально созданного запроса мог

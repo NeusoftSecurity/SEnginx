@@ -15,7 +15,7 @@ typedef struct {
 } ngx_openssl_conf_t;
 
 
-static int ngx_http_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store);
+static int ngx_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store);
 static void ngx_ssl_info_callback(const ngx_ssl_conn_t *ssl_conn, int where,
     int ret);
 static void ngx_ssl_handshake_handler(ngx_event_t *ev);
@@ -341,7 +341,7 @@ ngx_ssl_client_certificate(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *cert,
 {
     STACK_OF(X509_NAME)  *list;
 
-    SSL_CTX_set_verify(ssl->ctx, SSL_VERIFY_PEER, ngx_http_ssl_verify_callback);
+    SSL_CTX_set_verify(ssl->ctx, SSL_VERIFY_PEER, ngx_ssl_verify_callback);
 
     SSL_CTX_set_verify_depth(ssl->ctx, depth);
 
@@ -456,7 +456,7 @@ ngx_ssl_crl(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *crl)
 
 
 static int
-ngx_http_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store)
+ngx_ssl_verify_callback(int ok, X509_STORE_CTX *x509_store)
 {
 #if (NGX_DEBUG)
     char              *subject, *issuer;
@@ -516,7 +516,8 @@ ngx_ssl_info_callback(const ngx_ssl_conn_t *ssl_conn, int where, int ret)
 
 
 RSA *
-ngx_ssl_rsa512_key_callback(SSL *ssl, int is_export, int key_length)
+ngx_ssl_rsa512_key_callback(ngx_ssl_conn_t *ssl_conn, int is_export,
+    int key_length)
 {
     static RSA  *key;
 

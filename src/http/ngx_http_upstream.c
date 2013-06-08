@@ -375,6 +375,7 @@ static ngx_http_upstream_next_t  ngx_http_upstream_next_errors[] = {
     { 502, NGX_HTTP_UPSTREAM_FT_HTTP_502 },
     { 503, NGX_HTTP_UPSTREAM_FT_HTTP_503 },
     { 504, NGX_HTTP_UPSTREAM_FT_HTTP_504 },
+    { 403, NGX_HTTP_UPSTREAM_FT_HTTP_403 },
     { 404, NGX_HTTP_UPSTREAM_FT_HTTP_404 },
     { 0, 0 }
 };
@@ -1668,7 +1669,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     /* rc == NGX_OK */
 
-    if (u->headers_in.status_n > NGX_HTTP_SPECIAL_RESPONSE) {
+    if (u->headers_in.status_n >= NGX_HTTP_SPECIAL_RESPONSE) {
 
         if (r->subrequest_in_memory) {
             u->buffer.last = u->buffer.pos;
@@ -1709,7 +1710,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
     n = u->buffer.last - u->buffer.pos;
 
     if (n) {
-        u->buffer.last -= n;
+        u->buffer.last = u->buffer.pos;
 
         u->state->response_length += n;
 
@@ -1717,11 +1718,11 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
             ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
             return;
         }
+    }
 
-        if (u->length == 0) {
-            ngx_http_upstream_finalize_request(r, u, 0);
-            return;
-        }
+    if (u->length == 0) {
+        ngx_http_upstream_finalize_request(r, u, 0);
+        return;
     }
 
     u->read_event_handler = ngx_http_upstream_process_body_in_memory;
@@ -3171,8 +3172,11 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
 
     if (u->peer.sockaddr) {
 
-        if (ft_type == NGX_HTTP_UPSTREAM_FT_HTTP_404) {
+        if (ft_type == NGX_HTTP_UPSTREAM_FT_HTTP_403
+            || ft_type == NGX_HTTP_UPSTREAM_FT_HTTP_404)
+        {
             state = NGX_PEER_NEXT;
+
         } else {
             state = NGX_PEER_FAILED;
         }
@@ -3202,6 +3206,10 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
 
         case NGX_HTTP_UPSTREAM_FT_HTTP_500:
             status = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            break;
+
+        case NGX_HTTP_UPSTREAM_FT_HTTP_403:
+            status = NGX_HTTP_FORBIDDEN;
             break;
 
         case NGX_HTTP_UPSTREAM_FT_HTTP_404:

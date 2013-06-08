@@ -201,7 +201,8 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
     ngx_http_neteye_security_module_t *module;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "neteye security phase begins, handler number: %d", nr_request_chain);
+            "neteye security phase begins, handler number: %d", 
+            nr_request_chain);
     
     if (nr_request_chain == 0) {
         return NGX_DECLINED;

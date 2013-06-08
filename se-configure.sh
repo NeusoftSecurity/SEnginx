@@ -3,7 +3,6 @@
 TRD_DIR=$PWD/3rd-party
 
 ./configure $* \
-    --with-http_ssl_module \
     --add-module=${TRD_DIR}/ngx_http_neteye_security \
     --add-module=${TRD_DIR}/ngx_http_naxsi_neteye_helper \
     --add-module=${TRD_DIR}/naxsi/naxsi_src \

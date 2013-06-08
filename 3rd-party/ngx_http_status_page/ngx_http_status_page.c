@@ -75,7 +75,7 @@ ngx_http_status_page_send_page(ngx_http_request_t *r, ngx_str_t *page,
     ngx_list_part_t *part;
    
 #if (NGX_HTTP_SESSION)
-    ngx_http_session_set_bypass(r);
+    ngx_http_ns_jump_bit_set(r, NGX_HTTP_NETEYE_SESSION);
 #endif
     ngx_http_status_page_set_bypass(r);
     ngx_http_ns_set_bypass_all(r);

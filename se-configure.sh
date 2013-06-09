@@ -54,10 +54,8 @@ get_line_num()
 }
 
 if [ -z $HAVE_MOD_SECURITY ]; then
-    get_line_num clean:
-    sed -i "$LINE_NUM i \\\tcd $MOD_SECURITY_DIR;make clean" Makefile
-    get_line_num build:
-    sed -i "$LINE_NUM i \\\tcd $MOD_SECURITY_DIR;\$(MAKE) -f Makefile" Makefile
+    sed -i "/clean:/ a \\\tcd $MOD_SECURITY_DIR;make clean" Makefile
+    sed -i "/build:/ a \\\tcd $MOD_SECURITY_DIR;\$(MAKE) -f Makefile" Makefile
     PREFIX=`grep ^#define objs/ngx_auto_config.h | grep NGX_PREFIX | awk '{print $3}' | sed 's/"//' | sed 's/"//'`
     get_line_num install:
     sed -i "$LINE_NUM i \\\tcd $MOD_SECURITY_DIR;\$(MAKE) -f Makefile" Makefile

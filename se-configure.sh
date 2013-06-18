@@ -23,7 +23,7 @@ fi
 if [ -z $HAVE_NO_MOD_SECURITY ]; then
     echo "Compile with modsecurity, use $NO_MOD_SECURITY_CONFIG to cancel"
     cd $MOD_SECURITY_DIR
-    ./configure --enable-standalone-module $NGX_ARGS
+    ./configure --enable-standalone-module
     make
     cd -
     NGX_ARGS="$NGX_ARGS --add-module=${MOD_SECURITY_DIR}/nginx/modsecurity"

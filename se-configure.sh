@@ -4,24 +4,23 @@ set -e
 
 TRD_DIR=$PWD/3rd-party
 MOD_SECURITY_DIR=${TRD_DIR}/ModSecurity
-NO_MOD_SECURITY_CONFIG='--without-modsecurity'
-unset HAVE_NO_MOD_SECURITY
+MOD_SECURITY_CONFIG='--with-modsecurity'
+unset HAVE_MOD_SECURITY
 for arg in $*
 do
-    if [ $arg = $NO_MOD_SECURITY_CONFIG ]; then
-        HAVE_NO_MOD_SECURITY='y'
+    if [ $arg = $MOD_SECURITY_CONFIG ]; then
+        HAVE_MOD_SECURITY='y'
         break;
     fi
 done
 
 if [ $# -ne 0 ]; then
-    NGX_ARGS=`echo $* | sed "s/$NO_MOD_SECURITY_CONFIG//"`
+    NGX_ARGS=`echo $* | sed "s/$MOD_SECURITY_CONFIG//"`
 else
     unset NGX_ARGS
 fi
 
-if [ -z $HAVE_NO_MOD_SECURITY ]; then
-    echo "Compile with modsecurity, use $NO_MOD_SECURITY_CONFIG to cancel"
+if [ ! -z $HAVE_MOD_SECURITY ]; then
     cd $MOD_SECURITY_DIR
     ./configure --enable-standalone-module
     make
@@ -56,7 +55,7 @@ get_line_num()
     done
 }
 
-if [ -z $HAVE_NO_MOD_SECURITY ]; then
+if [ ! -z $HAVE_MOD_SECURITY ]; then
     sed -i "/clean:/ a \\\tcd $MOD_SECURITY_DIR;make clean" Makefile
     sed -i "/build:/ a \\\tcd $MOD_SECURITY_DIR;\$(MAKE) -f Makefile" Makefile
     PREFIX=`grep -A 1 ^upgrade:$ Makefile | tail -n 1 | awk '{print $1}' | sed "s/sbin\/nginx//"`

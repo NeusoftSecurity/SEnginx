@@ -4,19 +4,24 @@ set -e
 
 TRD_DIR=$PWD/3rd-party
 MOD_SECURITY_DIR=${TRD_DIR}/ModSecurity
-NO_MOD_SECURITY_CONFIG='--nomodsecurity'
+MOD_SECURITY_CONFIG='--with-modsecurity'
 unset HAVE_MOD_SECURITY
 for arg in $*
 do
-    if [ $arg = $NO_MOD_SECURITY_CONFIG ]; then
+    if [ $arg = $MOD_SECURITY_CONFIG ]; then
         HAVE_MOD_SECURITY='y'
         break;
     fi
 done
 
-NGX_ARGS=`echo $* | sed "s/$NO_MOD_SECURITY_CONFIG//"`
-if [ -z $HAVE_MOD_SECURITY ]; then
-    echo "compile with modsecurity, use \"$NO_MOD_SECURITY_CONFIG\" to cancel"
+if [ $# -ne 0 ]; then
+    NGX_ARGS=`echo $* | sed "s/$MOD_SECURITY_CONFIG//"`
+else
+    unset NGX_ARGS
+fi
+
+if [ ! -z $HAVE_MOD_SECURITY ]; then
+    echo "compile with modsecurity"
     cd $MOD_SECURITY_DIR
     ./configure --enable-standalone-module $NGX_ARGS
     make
@@ -27,7 +32,6 @@ fi
 ./configure $NGX_ARGS \
     --with-http_ssl_module \
     --add-module=${TRD_DIR}/ngx_http_neteye_security \
-    --add-module=${TRD_DIR}/ngx_http_naxsi_neteye_helper \
     --add-module=${TRD_DIR}/naxsi/naxsi_src \
     --add-module=${TRD_DIR}/nginx-upstream-fair \
     --add-module=${TRD_DIR}/headers-more-nginx-module \
@@ -53,7 +57,7 @@ get_line_num()
     done
 }
 
-if [ -z $HAVE_MOD_SECURITY ]; then
+if [ ! -z $HAVE_MOD_SECURITY ]; then
     sed -i "/clean:/ a \\\tcd $MOD_SECURITY_DIR;make clean" Makefile
     sed -i "/build:/ a \\\tcd $MOD_SECURITY_DIR;\$(MAKE) -f Makefile" Makefile
     PREFIX=`grep ^#define objs/ngx_auto_config.h | grep NGX_PREFIX | awk '{print $3}' | sed 's/"//' | sed 's/"//'`

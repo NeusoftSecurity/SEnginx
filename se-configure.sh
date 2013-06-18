@@ -59,7 +59,7 @@ get_line_num()
 if [ -z $HAVE_NO_MOD_SECURITY ]; then
     sed -i "/clean:/ a \\\tcd $MOD_SECURITY_DIR;make clean" Makefile
     sed -i "/build:/ a \\\tcd $MOD_SECURITY_DIR;\$(MAKE) -f Makefile" Makefile
-    PREFIX=`grep ^#define objs/ngx_auto_config.h | grep NGX_PREFIX | awk '{print $3}' | sed 's/"//' | sed 's/"//'`
+    PREFIX=`grep -A 1 ^upgrade:$ Makefile | tail -n 1 | awk '{print $1}' | sed "s/sbin\/nginx//"`
     sed -i "/install:/ a \\\tcd $MOD_SECURITY_DIR;\$(MAKE) -f Makefile" Makefile
     get_line_num install:
     sed -i "$LINE_NUM i \\\tcp -f ${MOD_SECURITY_DIR}/modsecurity.conf-recommended \$(DESTDIR)${PREFIX}conf" Makefile

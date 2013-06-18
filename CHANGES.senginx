@@ -1,3 +1,17 @@
+Changes with senginx 1.5.1                                      18 June 2013
+
+    *) Feature: upgrade to original nginx 1.5.1.
+
+    *) Feature: integrate ModSecurity 2.7.4.
+    
+    *) Change: don't support customized actions in naxsi.
+
+
+Changes with senginx 1.5.0-1                                    24 May 2013
+ 
+    *) Bugfix: resolve the compilation failed problem.
+
+
 Changes with senginx 1.5.0                                      9 May 2013
 
     *) Feature: upgrade to original nginx 1.5.0.

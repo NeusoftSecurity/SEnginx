@@ -30,7 +30,6 @@ if [ ! -z $HAVE_MOD_SECURITY ]; then
 fi
 
 ./configure $NGX_ARGS \
-    --with-http_ssl_module \
     --add-module=${TRD_DIR}/ngx_http_neteye_security \
     --add-module=${TRD_DIR}/naxsi/naxsi_src \
     --add-module=${TRD_DIR}/nginx-upstream-fair \

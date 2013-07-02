@@ -84,7 +84,6 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     cycle->pool = pool;
     cycle->log = log;
-    cycle->new_log.log_level = NGX_LOG_ERR;
     cycle->old_cycle = old_cycle;
 
     cycle->conf_prefix.len = old_cycle->conf_prefix.len;
@@ -344,6 +343,8 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         if (cycle->new_log.file == NULL) {
             goto failed;
         }
+
+        cycle->new_log.log_level = NGX_LOG_ERR;
     }
 
     /* open the new files */
@@ -582,8 +583,9 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     /* commit the new cycle configuration */
 
-    if (!ngx_use_stderr && cycle->log->file->fd != ngx_stderr) {
-
+    if (!ngx_use_stderr && !cycle->log_use_stderr
+        && cycle->log->file->fd != ngx_stderr)
+    {
         if (ngx_set_stderr(cycle->log->file->fd) == NGX_FILE_ERROR) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           ngx_set_stderr_n " failed");
@@ -1228,16 +1230,13 @@ ngx_reopen_files(ngx_cycle_t *cycle, ngx_uid_t user)
         file[i].fd = fd;
     }
 
-#if !(NGX_WIN32)
+    if (!cycle->log_use_stderr && cycle->log->file->fd != ngx_stderr) {
 
-    if (cycle->log->file->fd != STDERR_FILENO) {
-        if (dup2(cycle->log->file->fd, STDERR_FILENO) == -1) {
-            ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
-                          "dup2(STDERR) failed");
+        if (ngx_set_stderr(cycle->log->file->fd) == NGX_FILE_ERROR) {
+            ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
+                          ngx_set_stderr_n " failed");
         }
     }
-
-#endif
 }
 
 

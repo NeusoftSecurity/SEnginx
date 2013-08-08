@@ -131,6 +131,14 @@ ngx_http_rm_get_request_ctx(ngx_http_request_t *r);
 static char *
 ngx_http_rm_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
+static char *
+ngx_http_rm_ip_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+
+#if (NGX_HTTP_X_FORWARDED_FOR)
+static char *
+ngx_http_rm_ip_whitelist_x_forwarded_for(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+#endif
+
 #if (NGX_HTTP_SESSION)
 static char *
 ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -193,7 +201,23 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
+
+     { ngx_string("robot_mitigation_ip_whitelist"),
+        NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+        ngx_http_rm_ip_whitelist,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
  
+#if (NGX_HTTP_X_FORWARDED_FOR)
+     { ngx_string("robot_mitigation_ip_whitelist_x_forwarded_for"),
+         NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+         ngx_http_rm_ip_whitelist_x_forwarded_for,
+         NGX_HTTP_LOC_CONF_OFFSET,
+         0,
+         NULL },
+#endif
+
     ngx_null_command
 };
 
@@ -787,9 +811,15 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_str_t                          cookie_f1, cookie_f2;
     ngx_int_t                          ret;
     ngx_int_t                          req_type = NGX_HTTP_RM_STATUS_NEW;
-    ngx_http_rm_whitelist_item_t      *item;
+    ngx_http_rm_whitelist_item_t       *item;
+    ngx_http_rm_ip_whitelist_item_t    *ip_item;
     ngx_uint_t                         i;
     ngx_int_t                          gen_time;
+    in_addr_t                          src_addr;
+#if (NGX_HTTP_X_FORWARDED_FOR)
+    ngx_array_t                         *xfwd;
+    ngx_table_elt_t                     **h;
+#endif
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "robot mitigation request handler begin");
@@ -814,7 +844,31 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     if (rlcf->enabled != 1) {
         return NGX_DECLINED;
     }
- 
+
+    if (rlcf->ip_whitelist_items) {
+#if (NGX_HTTP_X_FORWARDED_FOR)
+        if (rlcf->ip_whitelist_x_forwarded_for && 
+                r->headers_in.x_forwarded_for.nelts > 0) {
+            xfwd = &r->headers_in.x_forwarded_for;
+            h = xfwd->elts;
+            src_addr = ngx_inet_addr(h[0]->value.data, 
+                    h[0]->value.len);
+        } else 
+#endif
+            src_addr = ngx_inet_addr(r->connection->addr_text.data, 
+                    r->connection->addr_text.len);
+
+        ip_item = rlcf->ip_whitelist_items->elts;
+
+        /* check ip whitelist */
+        for (i = 0; i < rlcf->ip_whitelist_items->nelts; i++) {
+            if (ip_item[i].start_addr > ntohl(src_addr) || 
+                    ip_item[i].end_addr < ntohl(src_addr)) {
+                goto challenge;
+            }
+        }
+    }
+
 #if (NGX_PCRE)
     /* -1: check whitelist */
     if (r->headers_in.user_agent != NULL
@@ -845,6 +899,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 #error "must compile with PCRE"
 #endif
 
+challenge:
     /* 0: check special active-challenge urls ignoring the location */
     if (ngx_http_rm_special_swf_uri(r)) {
         r->content_handler = ngx_http_rm_send_swf_handler;
@@ -1037,6 +1092,23 @@ static char *ngx_http_rm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     return NGX_CONF_OK;
 }
+
+#if (NGX_HTTP_X_FORWARDED_FOR)
+static char *ngx_http_rm_ip_whitelist_x_forwarded_for(ngx_conf_t *cf, 
+        ngx_command_t *cmd, void *conf)
+{
+    ngx_http_rm_loc_conf_t  *rlcf = conf;
+    ngx_str_t               *value = NULL;
+
+    value = cf->args->elts;
+
+    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
+        rlcf->ip_whitelist_x_forwarded_for = 1;
+    }
+
+    return NGX_CONF_OK;
+}
+#endif
 
 static char *ngx_http_rm_cookie_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1273,6 +1345,97 @@ ngx_http_rm_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     save = *cf;
     cf->handler = ngx_http_rm_whitelist_parse;
+    cf->handler_conf = conf;
+
+    rv = ngx_conf_parse(cf, NULL);
+
+    *cf = save;
+
+    return rv;
+}
+
+static char *
+ngx_http_rm_ip_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
+{
+    ngx_http_rm_loc_conf_t  			*rlcf = conf;
+    ngx_str_t               			*value;	
+	in_addr_t							start, end;
+    ngx_http_rm_ip_whitelist_item_t  	*item;
+
+    value = cf->args->elts;
+
+    if (ngx_strcmp(value[0].data, "include") == 0) {
+        if (cf->args->nelts != 2) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "invalid number of arguments"
+                               " in \"include\" directive");
+            return NGX_CONF_ERROR;
+        }
+
+        return ngx_conf_include(cf, dummy, conf);
+    }
+
+    if (cf->args->nelts == 0 || cf->args->nelts > 2) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                "invalid number of arguments"
+                " in a name-pattern pair");
+        
+        return NGX_CONF_ERROR;
+    }
+
+    start = ngx_inet_addr(value[0].data, value[0].len);
+	if (start == INADDR_NONE) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                "invalid ip address");
+        return NGX_CONF_ERROR;
+	}
+
+	if (cf->args->nelts == 2) {
+    	end = ngx_inet_addr(value[1].data, value[1].len);
+		if (end == INADDR_NONE) {
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+					"invalid ip address");
+			return NGX_CONF_ERROR;
+		}
+		if (ntohl(start) >= ntohl(end)) {
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+					"start ip less or eq end ip");
+			return NGX_CONF_ERROR;
+		}
+	} else {
+		end = INADDR_NONE;
+	}
+
+    item = ngx_array_push(rlcf->ip_whitelist_items);
+    if (item == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    item->start_addr = ntohl(start);
+    item->end_addr = ntohl(end);
+
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_rm_ip_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_rm_loc_conf_t *rlcf = conf;
+
+    char        *rv;
+    ngx_conf_t   save;
+
+    if (rlcf->ip_whitelist_items == NULL) {
+        rlcf->ip_whitelist_items = 
+            ngx_array_create(cf->pool, 64, sizeof(ngx_http_rm_ip_whitelist_item_t));
+        
+        if (rlcf->ip_whitelist_items == NULL) {
+            return NGX_CONF_ERROR;
+        }
+    }
+
+    save = *cf;
+    cf->handler = ngx_http_rm_ip_whitelist_parse;
     cf->handler_conf = conf;
 
     rv = ngx_conf_parse(cf, NULL);
@@ -2218,6 +2381,9 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
     conf->mode = NGX_HTTP_RM_MODE_JS;
     conf->action = NGX_HTTP_NS_ACTION_BLOCK;
     conf->enabled = 0;
+#if (NGX_HTTP_X_FORWARDED_FOR)
+    conf->ip_whitelist_x_forwarded_for = 0;
+#endif
     conf->failed_count = NGX_HTTP_RM_DEFAULT_FAIILED_COUNT;
     conf->timeout = NGX_HTTP_RM_DEFAULT_TIMEOUT;
     conf->cookie_name = cookie_name;

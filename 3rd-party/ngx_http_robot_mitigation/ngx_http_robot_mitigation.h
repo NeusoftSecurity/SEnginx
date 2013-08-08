@@ -68,9 +68,15 @@ typedef struct {
 } ngx_http_rm_whitelist_item_t;
 
 typedef struct {
+    in_addr_t start_addr;
+    in_addr_t end_addr;
+} ngx_http_rm_ip_whitelist_item_t;
+
+typedef struct {
     ngx_int_t                  failed_count;
     
     ngx_int_t                  enabled;
+    ngx_int_t                  ip_whitelist_x_forwarded_for; 
     ngx_int_t                  action;
     ngx_int_t                  mode;
     ngx_int_t                  log;
@@ -80,6 +86,7 @@ typedef struct {
     ngx_int_t                  no_expires;
 
     ngx_array_t               *whitelist_items;
+    ngx_array_t               *ip_whitelist_items;
 } ngx_http_rm_loc_conf_t;
 
 typedef struct {

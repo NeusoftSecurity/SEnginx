@@ -815,6 +815,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_http_rm_ip_whitelist_item_t    *ip_item;
     ngx_uint_t                         i;
     ngx_int_t                          gen_time;
+    ngx_int_t                          in_list = 0;
     in_addr_t                          src_addr;
 #if (NGX_HTTP_X_FORWARDED_FOR)
     ngx_array_t                         *xfwd;
@@ -866,6 +867,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
                     ip_item[i].end_addr < ntohl(src_addr)) {
                 goto challenge;
             }
+            in_list = 1;
         }
     }
 
@@ -894,6 +896,8 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 
             /* NGX_DECLINED means not macth, we continue search */
         }
+    } else if (rlcf->whitelist_items == NULL && in_list) {
+        return NGX_DECLINED;
     }
 #else
 #error "must compile with PCRE"

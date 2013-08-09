@@ -57,6 +57,9 @@ ngx_http_session_request_cleanup_init(ngx_http_request_t *r);
 static ngx_int_t 
 __ngx_http_session_delete(ngx_http_session_t *session);
 
+static ngx_int_t
+ngx_http_session_pre_init(ngx_conf_t *cf);
+
 static ngx_command_t  ngx_http_session_commands[] = {
 
     { ngx_string("session"),
@@ -113,7 +116,7 @@ static ngx_command_t  ngx_http_session_commands[] = {
 
 
 static ngx_http_module_t  ngx_http_session_module_ctx = {
-    NULL,                                  /* preconfiguration */
+    ngx_http_session_pre_init,             /* preconfiguration */
     ngx_http_session_filter_init,          /* postconfiguration */
 
     NULL,                                  /* create main configuration */
@@ -143,6 +146,16 @@ ngx_module_t  ngx_http_session_module = {
 };
 
 static ngx_shm_zone_t *ngx_http_session_shm_zone;
+static ngx_http_session_create_ctx_t ctx_handlers[NGX_HTTP_SESSION_MAX_CTX];
+
+static ngx_int_t
+ngx_http_session_pre_init(ngx_conf_t *cf)
+{
+    memset(ctx_handlers, 0, sizeof(ngx_http_session_create_ctx_t)
+            * NGX_HTTP_SESSION_MAX_CTX);
+    
+    return NGX_OK;
+}
 
 static ngx_int_t
 ngx_http_session_gen_sid(ngx_http_request_t *r, ngx_str_t *sid)
@@ -653,7 +666,7 @@ ngx_http_session_handler(ngx_http_request_t *r)
     ngx_http_session_t                  *session;
     ngx_http_session_list_t             *session_list;
     ngx_str_t                           cookie;
-    ngx_int_t                           ret;
+    ngx_int_t                           ret, i;
     
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "session handler begin");
@@ -723,9 +736,9 @@ ngx_http_session_handler(ngx_http_request_t *r)
         __ngx_http_session_get_ref(r);
 
         /* reset timer */
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "reset timer: %p, timeout: %d, ref: %d\n", 
-            session, session->timeout, session->ref);
+        ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+            "reset timer: %p, timeout: %d, ref: %d, good: %d\n", 
+            session, session->timeout, session->ref, session->good);
 
         session->reset = 1;
         session->timeout = sscf->timeout;
@@ -739,6 +752,15 @@ ngx_http_session_handler(ngx_http_request_t *r)
             }
         }
         __ngx_http_session_insert_to_new_chain(session_list, session);
+
+        if (session->good == 0) {
+            session->good = 1;
+            for (i = 0; i < NGX_HTTP_SESSION_MAX_CTX; i++) {
+                if (ctx_handlers[i]) {
+                    ctx_handlers[i](session);
+                }
+            }
+        }
     }
 
     ngx_shmtx_unlock(&session_list->shpool->mutex);
@@ -1319,12 +1341,14 @@ ngx_http_session_find_ctx(ngx_http_session_t *session, u_char *name)
     return NULL;
 }
 
+/*
+ * no lock in this function must lock before use
+ */
 ngx_http_session_ctx_t * 
 ngx_http_session_create_ctx(ngx_http_session_t *session, u_char *name, 
         ngx_int_t (*init)(void *ctx), void (*destroy)(void *ctx))
 {
     ngx_int_t                        i;
-    ngx_http_session_list_t          *session_list;
     ngx_http_session_ctx_t           *ctx;
 
     ctx = ngx_http_session_find_ctx(session, name);
@@ -1332,7 +1356,6 @@ ngx_http_session_create_ctx(ngx_http_session_t *session, u_char *name,
         return NULL;
     }
 
-    session_list = ngx_http_session_shm_zone->data;
     /* create a new ctx */
 
     if (name == NULL || init == NULL || destroy == NULL) {
@@ -1344,17 +1367,15 @@ ngx_http_session_create_ctx(ngx_http_session_t *session, u_char *name,
     for (i = 0; i < NGX_HTTP_SESSION_MAX_CTX; i++) {
         if (ctx[i].in_use == 0) {
             /* find a empty slot */
-            ngx_shmtx_lock(&session_list->shpool->mutex);
             if (init(&ctx[i]) != NGX_OK) {
-                ngx_shmtx_unlock(&session_list->shpool->mutex);
                 return NULL;
             }
-            ngx_shmtx_unlock(&session_list->shpool->mutex);
 
             ctx[i].destroy = destroy;
             
             ctx[i].in_use = 1;
-            strncpy((char *)(ctx[i].name), (char *)name, NGX_HTTP_SESSION_CTX_NAME_LEN);
+            strncpy((char *)(ctx[i].name), (char *)name,
+                    NGX_HTTP_SESSION_CTX_NAME_LEN);
             
             return &ctx[i];
         }
@@ -1694,4 +1715,17 @@ ngx_http_session_get_bl_timeout(ngx_http_request_t *r)
     }
 
     return (sscf->bl_timeout/1000);
+}
+
+void ngx_http_session_register_create_ctx_handler(
+        ngx_http_session_create_ctx_t handler)
+{
+    ngx_int_t                      i;
+
+    for (i = 0; i < NGX_HTTP_SESSION_MAX_CTX; i++) {
+        if (!ctx_handlers[i]) {
+            ctx_handlers[i] = handler;
+            return;
+        }
+    }
 }

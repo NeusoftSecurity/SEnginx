@@ -38,10 +38,9 @@ enum ngx_http_neteye_security_module_ids {
     NGX_HTTP_NETEYE_ROBOT_MITIGATION,
     NGX_HTTP_NETEYE_GOOGLE_RECAPTCHA,
     NGX_HTTP_NETEYE_LOCAL_CAPTCHA,
-    NGX_HTTP_NETEYE_COOKIE_POISON,
+    NGX_HTTP_NETEYE_COOKIE_POISONING,
     NGX_HTTP_NETEYE_PAGE_ACL,
     NGX_HTTP_NETEYE_NAXSI,
-    NGX_HTTP_NETEYE_IPS,
     NGX_HTTP_NETEYE_STATUS_PAGE,
     NGX_HTTP_NETEYE_LOG_MODULE,
 
@@ -50,6 +49,7 @@ enum ngx_http_neteye_security_module_ids {
 
 enum ngx_http_neteye_security_attack_log_id {
     NGX_HTTP_NETEYE_ATTACK_LOG_ID_AC,
+    NGX_HTTP_NETEYE_ATTACK_LOG_ID_CP,
     NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX
 };
 
@@ -142,5 +142,5 @@ ngx_uint_t ngx_http_ns_test_bypass_all(ngx_http_request_t *r);
 char *
 ngx_http_ns_get_action_str(ngx_int_t action);
 void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id, 
-        ngx_str_t action, char *module_name);
+        ngx_str_t action, char *module_name, char *string);
 #endif

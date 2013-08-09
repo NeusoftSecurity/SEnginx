@@ -2160,7 +2160,7 @@ ngx_http_rm_write_attack_log(ngx_http_request_t *r)
     action.len = ngx_strlen(action.data);
 
     ngx_http_neteye_send_attack_log(r, NGX_HTTP_NETEYE_ATTACK_LOG_ID_AC, 
-            action, "robot_mitigation");
+            action, "robot_mitigation", NULL);
 }
 
 static ngx_int_t

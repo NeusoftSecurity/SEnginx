@@ -34,16 +34,14 @@ static ngx_http_neteye_security_module_t ngx_http_neteye_security_modules[] = {
         "Google Recaptcha", NULL, NULL, NULL,       6, 0, 0, NULL},
     {NGX_HTTP_NETEYE_LOCAL_CAPTCHA, 
         "Local Captcha", NULL, NULL, NULL,          7, 0, 0, NULL},
-    {NGX_HTTP_NETEYE_COOKIE_POISON, 
-        "Cookie Poison", NULL, NULL, NULL,          8, 3, 0, NULL},
+    {NGX_HTTP_NETEYE_COOKIE_POISONING, 
+        "Cookie Poisoning", NULL, NULL, NULL,          8, 2, 0, NULL},
     {NGX_HTTP_NETEYE_PAGE_ACL, 
         "Page Access Control", NULL, NULL, NULL,    9, 0, 0, NULL},
     {NGX_HTTP_NETEYE_NAXSI,
         "NetEye modified NAXSI", NULL, NULL, NULL,    10, 0, 0, NULL},
-    {NGX_HTTP_NETEYE_IPS, 
-        "NetEye IPS Module", NULL, NULL, NULL,      0, 2, 1, NULL},
     {NGX_HTTP_NETEYE_STATUS_PAGE, 
-        "Status Page", NULL, NULL, NULL,            0, 4, 0, NULL},
+        "Status Page", NULL, NULL, NULL,            0, 3, 0, NULL},
     {NGX_HTTP_NETEYE_LOG_MODULE, 
         "NetEye Log", NULL, NULL, NULL,             0, 0, 0, NULL},
 };
@@ -51,6 +49,7 @@ static ngx_http_neteye_security_module_t ngx_http_neteye_security_modules[] = {
 /*According to enum ngx_http_neteye_security_attack_log_id*/
 static char *ngx_http_neteye_attack_log_str[NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX] = {
     "Layer 7 DDoS",
+    "Cookie Poisoning",
 };
 
 /* The first slot of this array is not used */
@@ -1006,13 +1005,15 @@ ngx_http_ns_get_action_str(ngx_int_t action)
             return "Block";
         case NGX_HTTP_NS_ACTION_BLACKLIST:
             return "Blacklist";
+        case NGX_HTTP_NS_ACTION_REMOVE_COOKIE:
+            return "Remove Cookie";
         default:
             return NULL;
     }
 }
 
 void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id, 
-        ngx_str_t action, char *module_name)
+        ngx_str_t action, char *module_name, char *string)
 {
     char                           *agent = NULL;
     char                           *do_action = "running ";
@@ -1047,9 +1048,9 @@ void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
     strcpy(log->action + ngx_strlen(do_action), module_name);
 
     ngx_log_error(NGX_LOG_ERR, connection->log, 0,
-            "%s: \"%s\", action: \"%V\", agent: \"%s\", ", 
+            "%s: \"%s\", action: \"%V\", agent: \"%s\", %s, ", 
             module_name, ngx_http_neteye_attack_log_str[log_id], 
-            &action, agent);
+            &action, agent, string);
 
     return;
 }

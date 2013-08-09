@@ -41,7 +41,7 @@ typedef ngx_int_t (*ngx_http_session_init_ctx_t)(void *ctx);
 typedef void (*ngx_http_session_destroy_ctx_t)(void *data);
 
 typedef struct {
-    char                    id[NGX_HTTP_SESSION_DEFAULT_SID_LEN];                  /* session id */
+    char                    id[NGX_HTTP_SESSION_DEFAULT_SID_LEN]; /* session id */
     
     void                    *next;
     void                    *prev;
@@ -49,33 +49,40 @@ typedef struct {
     void                    *new_chain_next;
     ngx_queue_t             redirect_queue_node;
     
-    void                    **slot;                    /* point to sessions list, only the first node has this */
+    void                    **slot;         /* point to sessions list, 
+                                               only the first node has this */
 
-    int                     ref;                        /* ref count */
-    int                     des;                        /* should be destroyed or not */
-    int                     timed;                      /* should be destroyed or not */
-    int                     reset;                      /* need to reset timer */
-    int                     wait;                       /* on the new session chain */
+    int                     ref:1;          /* ref count */
+    int                     des:1;          /* should be destroyed or not */
+    int                     timed:1;        /* should be destroyed or not */
+    int                     reset:1;        /* need to reset timer */
+    int                     wait:1;         /* on the new session chain */
+    int                     good:1;         /* on the new session chain */
     
-    time_t                  est;                     /* time of creating/reseting */
+    time_t                  est;            /* time of creating/reseting */
     
-    ngx_int_t               timeout;              /* session timeout */
-    ngx_int_t               bl_timeout;           /* timeout of blacklist */
-    ngx_event_t             ev;                 /* ngx_event, used to establish timer */
+    ngx_int_t               timeout;        /* session timeout */
+    ngx_int_t               bl_timeout;     /* timeout of blacklist */
+    ngx_event_t             ev;       /* ngx_event, used to establish timer */
 
-    ngx_http_session_ctx_t  ctx[NGX_HTTP_SESSION_MAX_CTX];    /* store other modules' ctx */
+    /* store other modules' ctx */
+    ngx_http_session_ctx_t  ctx[NGX_HTTP_SESSION_MAX_CTX];
     ngx_shmtx_t             mutex;
     ngx_atomic_t            lock;
 } ngx_http_session_t;
+
+typedef void (*ngx_http_session_create_ctx_t)(ngx_http_session_t *);
 
 typedef struct {
     ngx_slab_pool_t        *shpool;
     ngx_log_t              *log;
     
-    ngx_http_session_t     *sessions[NGX_HTTP_SESSION_DEFAULT_NUMBER]; /* the hash table */
+    /* the hash table */
+    ngx_http_session_t     *sessions[NGX_HTTP_SESSION_DEFAULT_NUMBER];
     ngx_http_session_t     *new_chain_head, *new_chain_tail;
     ngx_queue_t             redirect_queue_head;
-    ngx_int_t               redirect_num;           /* the number of redirecting session */
+    /* the number of redirecting session */
+    ngx_int_t               redirect_num;
 } ngx_http_session_list_t;
 
 typedef struct {
@@ -88,6 +95,9 @@ typedef struct {
 } ngx_http_session_conf_t;
 
 /* APIs */
+void ngx_http_session_register_create_ctx_handler(
+        ngx_http_session_create_ctx_t handler);
+
 ngx_int_t 
 ngx_http_session_delete(ngx_http_request_t *r);
 

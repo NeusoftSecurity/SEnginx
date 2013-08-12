@@ -1036,6 +1036,8 @@ void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
 
         memcpy(agent, r->headers_in.user_agent->value.data, 
                 r->headers_in.user_agent->value.len);
+    } else {
+        agent = "n/a";
     }
 
     log = connection->log;

@@ -1,4 +1,26 @@
 
+Changes with nginx 1.5.3                                         30 Jul 2013
+
+    *) Change in internal API: now u->length defaults to -1 if working with
+       backends in unbuffered mode.
+
+    *) Change: now after receiving an incomplete response from a backend
+       server nginx tries to send an available part of the response to a
+       client, and then closes client connection.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       ngx_http_spdy_module was used with the "client_body_in_file_only"
+       directive.
+
+    *) Bugfix: the "so_keepalive" parameter of the "listen" directive might
+       be handled incorrectly on DragonFlyBSD.
+       Thanks to Sepherosa Ziehau.
+
+    *) Bugfix: in the ngx_http_xslt_filter_module.
+
+    *) Bugfix: in the ngx_http_sub_filter_module.
+
+
 Changes with nginx 1.5.2                                         02 Jul 2013
 
     *) Feature: now several "error_log" directives can be used.

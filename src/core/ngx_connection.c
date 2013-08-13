@@ -41,7 +41,7 @@ ngx_create_listening(ngx_conf_t *cf, void *sockaddr, socklen_t socklen)
     ls->sockaddr = sa;
     ls->socklen = socklen;
 
-    len = ngx_sock_ntop(sa, text, NGX_SOCKADDR_STRLEN, 1);
+    len = ngx_sock_ntop(sa, socklen, text, NGX_SOCKADDR_STRLEN, 1);
     ls->addr_text.len = len;
 
     switch (ls->sockaddr->sa_family) {
@@ -152,7 +152,8 @@ ngx_set_inherited_sockets(ngx_cycle_t *cycle)
             return NGX_ERROR;
         }
 
-        len = ngx_sock_ntop(ls[i].sockaddr, ls[i].addr_text.data, len, 1);
+        len = ngx_sock_ntop(ls[i].sockaddr, ls[i].socklen,
+                            ls[i].addr_text.data, len, 1);
         if (len == 0) {
             return NGX_ERROR;
         }
@@ -463,15 +464,12 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 void
 ngx_configure_listening_sockets(ngx_cycle_t *cycle)
 {
-    int                        keepalive;
+    int                        value;
     ngx_uint_t                 i;
     ngx_listening_t           *ls;
 
 #if (NGX_HAVE_DEFERRED_ACCEPT && defined SO_ACCEPTFILTER)
     struct accept_filter_arg   af;
-#endif
-#if (NGX_HAVE_DEFERRED_ACCEPT && defined TCP_DEFER_ACCEPT)
-    int                        timeout;
 #endif
 
     ls = cycle->listening.elts;
@@ -502,39 +500,51 @@ ngx_configure_listening_sockets(ngx_cycle_t *cycle)
         }
 
         if (ls[i].keepalive) {
-            keepalive = (ls[i].keepalive == 1) ? 1 : 0;
+            value = (ls[i].keepalive == 1) ? 1 : 0;
 
             if (setsockopt(ls[i].fd, SOL_SOCKET, SO_KEEPALIVE,
-                           (const void *) &keepalive, sizeof(int))
+                           (const void *) &value, sizeof(int))
                 == -1)
             {
                 ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
                               "setsockopt(SO_KEEPALIVE, %d) %V failed, ignored",
-                              keepalive, &ls[i].addr_text);
+                              value, &ls[i].addr_text);
             }
         }
 
 #if (NGX_HAVE_KEEPALIVE_TUNABLE)
 
         if (ls[i].keepidle) {
+            value = ls[i].keepidle;
+
+#if (NGX_KEEPALIVE_FACTOR)
+            value *= NGX_KEEPALIVE_FACTOR;
+#endif
+
             if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_KEEPIDLE,
-                           (const void *) &ls[i].keepidle, sizeof(int))
+                           (const void *) &value, sizeof(int))
                 == -1)
             {
                 ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
                               "setsockopt(TCP_KEEPIDLE, %d) %V failed, ignored",
-                              ls[i].keepidle, &ls[i].addr_text);
+                              value, &ls[i].addr_text);
             }
         }
 
         if (ls[i].keepintvl) {
+            value = ls[i].keepintvl;
+
+#if (NGX_KEEPALIVE_FACTOR)
+            value *= NGX_KEEPALIVE_FACTOR;
+#endif
+
             if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_KEEPINTVL,
-                           (const void *) &ls[i].keepintvl, sizeof(int))
+                           (const void *) &value, sizeof(int))
                 == -1)
             {
                 ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_socket_errno,
                              "setsockopt(TCP_KEEPINTVL, %d) %V failed, ignored",
-                             ls[i].keepintvl, &ls[i].addr_text);
+                             value, &ls[i].addr_text);
             }
         }
 
@@ -647,20 +657,20 @@ ngx_configure_listening_sockets(ngx_cycle_t *cycle)
         if (ls[i].add_deferred || ls[i].delete_deferred) {
 
             if (ls[i].add_deferred) {
-                timeout = (int) (ls[i].post_accept_timeout / 1000);
+                value = (int) (ls[i].post_accept_timeout / 1000);
 
             } else {
-                timeout = 0;
+                value = 0;
             }
 
             if (setsockopt(ls[i].fd, IPPROTO_TCP, TCP_DEFER_ACCEPT,
-                           &timeout, sizeof(int))
+                           &value, sizeof(int))
                 == -1)
             {
                 ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                               "setsockopt(TCP_DEFER_ACCEPT, %d) for %V failed, "
                               "ignored",
-                              timeout, &ls[i].addr_text);
+                              value, &ls[i].addr_text);
 
                 continue;
             }
@@ -1033,6 +1043,7 @@ ngx_connection_local_sockaddr(ngx_connection_t *c, ngx_str_t *s,
 #if (NGX_HAVE_INET6)
     case AF_INET6:
         sin6 = (struct sockaddr_in6 *) c->local_sockaddr;
+        len = sizeof(struct sockaddr_in6);
 
         for (addr = 0, i = 0; addr == 0 && i < 16; i++) {
             addr |= sin6->sin6_addr.s6_addr[i];
@@ -1043,6 +1054,7 @@ ngx_connection_local_sockaddr(ngx_connection_t *c, ngx_str_t *s,
 
     default: /* AF_INET */
         sin = (struct sockaddr_in *) c->local_sockaddr;
+        len = sizeof(struct sockaddr_in);
         addr = sin->sin_addr.s_addr;
         break;
     }
@@ -1068,7 +1080,7 @@ ngx_connection_local_sockaddr(ngx_connection_t *c, ngx_str_t *s,
         return NGX_OK;
     }
 
-    s->len = ngx_sock_ntop(c->local_sockaddr, s->data, s->len, port);
+    s->len = ngx_sock_ntop(c->local_sockaddr, len, s->data, s->len, port);
 
     return NGX_OK;
 }

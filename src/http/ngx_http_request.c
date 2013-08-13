@@ -2742,7 +2742,7 @@ closed:
     ngx_log_error(NGX_LOG_INFO, c->log, err,
                   "client prematurely closed connection");
 
-    ngx_http_finalize_request(r, 0);
+    ngx_http_finalize_request(r, NGX_HTTP_CLIENT_CLOSED_REQUEST);
 }
 
 

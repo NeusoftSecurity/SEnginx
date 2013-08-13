@@ -103,7 +103,7 @@ like(http_get_with_header('/', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-TH
 like(http_get_with_header('/ip_whitelist1', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
 
 like(http_get('/ip_whitelist1'), qr/rm-autotest/, 'http get request, ac method js');
-like(http_get_with_header('/ip_whitelist2'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special location to bypass anti-robot, ac method js');
+like(http_get('/ip_whitelist2'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special location to bypass anti-robot, ac method js');
 like(http_post('/post', 'a=1&b=2'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"a\" value=\"1\">\n<input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');
 
 like(http_post('/post', '&b=2'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');

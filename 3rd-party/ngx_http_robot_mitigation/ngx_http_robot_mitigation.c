@@ -149,6 +149,9 @@ static ngx_int_t
 ngx_http_rm_init_ctx_handler(void *ctx);
 #endif
 
+static void
+ngx_http_rm_create_session_ctx(ngx_http_session_t *session);
+
 static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
 
     { ngx_string("robot_mitigation"),
@@ -1076,6 +1079,9 @@ static ngx_int_t ngx_http_rm_init(ngx_conf_t *cf)
     if (ret != NGX_OK) {
         return ret;
     }
+
+    ngx_http_session_register_create_ctx_handler(
+            ngx_http_rm_create_session_ctx);
 
     /* we only a request handler for this feature */
     return ngx_http_neteye_security_request_register(
@@ -2251,7 +2257,7 @@ ngx_http_rm_request_type(ngx_http_request_t *r, ngx_uint_t op, ngx_uint_t value)
     ngx_int_t                          ret = NGX_OK;
     ngx_http_rm_session_ctx_t         *ac_ctx;
     u_char                            *session_name = (u_char *)"a/challenge";
-    
+
     session = ngx_http_session_get(r);
     if (!session) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
@@ -2264,29 +2270,13 @@ ngx_http_rm_request_type(ngx_http_request_t *r, ngx_uint_t op, ngx_uint_t value)
             session_name);
 
     if (!session_ctx) {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                "create %s session ctx", session_name);
-
-        session_ctx = ngx_http_session_create_ctx(session, 
-                session_name, 
-                ngx_http_rm_init_ctx_handler,
-                ngx_http_rm_destroy_ctx_handler);
-
-        if (!session_ctx) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                    "create session ctx error");
-            ngx_shmtx_unlock(&session->mutex);
-            ngx_http_session_put(r);
-            return -1;
-        }
-
-        ac_ctx = session_ctx->data;
-    } else {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                "found session ctx\n");
-        ac_ctx = session_ctx->data;
+        return NGX_ERROR;
     }
-    
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "found session ctx\n");
+    ac_ctx = session_ctx->data;
+
     switch (op)
     {
         case NGX_HTTP_RM_SET_STATUS:
@@ -2427,4 +2417,20 @@ ngx_http_rm_get_request_ctx(ngx_http_request_t *r)
     return ctx;
 }
 
+static void
+ngx_http_rm_create_session_ctx(ngx_http_session_t *session)
+{
+    ngx_http_session_ctx_t           *session_ctx;
+    u_char                           *session_name = (u_char *)"a/challenge";
 
+    session_ctx = ngx_http_session_create_ctx(session,
+            session_name,
+            ngx_http_rm_init_ctx_handler,
+            ngx_http_rm_destroy_ctx_handler);
+
+    if (!session_ctx) {
+        return;
+    }
+
+    /* TODO: maybe do some intialization here? */
+}

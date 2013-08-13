@@ -834,28 +834,12 @@ block:
                     action->session_name);
 
             if (!session_ctx) {
-                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                        "create %s session ctx", action->session_name);
-
-                session_ctx = ngx_http_session_create_ctx(session, 
-                        action->session_name, 
-                        action->init,
-                        action->destroy);
-
-                if (!session_ctx) {
-                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                            "create session ctx error");
-                    ngx_shmtx_unlock(&session->mutex);
-                    ngx_http_session_put(r);
-                    return NGX_HTTP_INTERNAL_SERVER_ERROR;
-                }
-
-                bl_count = action->get_bl_count(session_ctx);
-            } else {
-                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                        "found session ctx\n");
-                bl_count = action->get_bl_count(session_ctx);
+                return NGX_HTTP_INTERNAL_SERVER_ERROR;
             }
+
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                    "found session ctx\n");
+            bl_count = action->get_bl_count(session_ctx);
 
             if (bl_count == NULL) {
                 ngx_shmtx_unlock(&session->mutex);
@@ -881,7 +865,7 @@ block:
                 /*Add to blacklist*/
                 session->bl_timeout = ngx_time() + timeout;
             }
-            
+
             ngx_shmtx_unlock(&session->mutex);
             ngx_http_session_put(r);
             return NGX_ERROR;

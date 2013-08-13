@@ -99,7 +99,8 @@ am_mod_security2_la_OBJECTS = mod_security2_la-mod_security2.lo \
 	mod_security2_la-msc_gsb.lo mod_security2_la-msc_crypt.lo \
 	mod_security2_la-msc_tree.lo mod_security2_la-msc_unicode.lo \
 	mod_security2_la-acmp.lo mod_security2_la-msc_lua.lo \
-	mod_security2_la-msc_release.lo mod_security2_la-sqlparse.lo
+	mod_security2_la-msc_release.lo \
+	mod_security2_la-libinjection_sqli.lo
 mod_security2_la_OBJECTS = $(am_mod_security2_la_OBJECTS)
 mod_security2_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(mod_security2_la_CFLAGS) \
@@ -318,7 +319,8 @@ mod_security2_la_SOURCES = mod_security2.c \
                            re_variables.c msc_logging.c msc_xml.c \
                            msc_multipart.c modsecurity.c msc_parsers.c \
                            msc_util.c msc_pcre.c persist_dbm.c msc_reqbody.c \
-                           msc_geo.c msc_gsb.c msc_crypt.c msc_tree.c msc_unicode.c acmp.c msc_lua.c msc_release.c libinjection/sqlparse.c
+                           msc_geo.c msc_gsb.c msc_crypt.c msc_tree.c msc_unicode.c acmp.c msc_lua.c msc_release.c \
+                           libinjection/libinjection_sqli.c
 
 mod_security2_la_CFLAGS = @APXS_CFLAGS@ @APR_CFLAGS@ @APU_CFLAGS@ \
                           @PCRE_CFLAGS@ @LIBXML2_CFLAGS@ @LUA_CFLAGS@ @MODSEC_EXTRA_CFLAGS@ @CURL_CFLAGS@
@@ -451,6 +453,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-apache2_config.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-apache2_io.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-apache2_util.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-libinjection_sqli.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-mod_security2.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-modsecurity.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-msc_crypt.Plo@am__quote@
@@ -473,7 +476,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-re_operators.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-re_tfns.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-re_variables.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mod_security2_la-sqlparse.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -678,12 +680,12 @@ mod_security2_la-msc_release.lo: msc_release.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mod_security2_la_CPPFLAGS) $(CPPFLAGS) $(mod_security2_la_CFLAGS) $(CFLAGS) -c -o mod_security2_la-msc_release.lo `test -f 'msc_release.c' || echo '$(srcdir)/'`msc_release.c
 
-mod_security2_la-sqlparse.lo: libinjection/sqlparse.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mod_security2_la_CPPFLAGS) $(CPPFLAGS) $(mod_security2_la_CFLAGS) $(CFLAGS) -MT mod_security2_la-sqlparse.lo -MD -MP -MF $(DEPDIR)/mod_security2_la-sqlparse.Tpo -c -o mod_security2_la-sqlparse.lo `test -f 'libinjection/sqlparse.c' || echo '$(srcdir)/'`libinjection/sqlparse.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/mod_security2_la-sqlparse.Tpo $(DEPDIR)/mod_security2_la-sqlparse.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libinjection/sqlparse.c' object='mod_security2_la-sqlparse.lo' libtool=yes @AMDEPBACKSLASH@
+mod_security2_la-libinjection_sqli.lo: libinjection/libinjection_sqli.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mod_security2_la_CPPFLAGS) $(CPPFLAGS) $(mod_security2_la_CFLAGS) $(CFLAGS) -MT mod_security2_la-libinjection_sqli.lo -MD -MP -MF $(DEPDIR)/mod_security2_la-libinjection_sqli.Tpo -c -o mod_security2_la-libinjection_sqli.lo `test -f 'libinjection/libinjection_sqli.c' || echo '$(srcdir)/'`libinjection/libinjection_sqli.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/mod_security2_la-libinjection_sqli.Tpo $(DEPDIR)/mod_security2_la-libinjection_sqli.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libinjection/libinjection_sqli.c' object='mod_security2_la-libinjection_sqli.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mod_security2_la_CPPFLAGS) $(CPPFLAGS) $(mod_security2_la_CFLAGS) $(CFLAGS) -c -o mod_security2_la-sqlparse.lo `test -f 'libinjection/sqlparse.c' || echo '$(srcdir)/'`libinjection/sqlparse.c
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mod_security2_la_CPPFLAGS) $(CPPFLAGS) $(mod_security2_la_CFLAGS) $(CFLAGS) -c -o mod_security2_la-libinjection_sqli.lo `test -f 'libinjection/libinjection_sqli.c' || echo '$(srcdir)/'`libinjection/libinjection_sqli.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -905,7 +907,7 @@ uninstall-am: uninstall-pkglibLTLIBRARIES
 @LINUX_TRUE@	for m in $(pkglib_LTLIBRARIES); do \
 @LINUX_TRUE@	  base=`echo $$m | sed 's/\..*//'`; \
 @LINUX_TRUE@	  rm -f $(DESTDIR)$(pkglibdir)/$$base.*a; \
-@LINUX_TRUE@	  install -D -m444 $(DESTDIR)$(pkglibdir)/$$base.so $(DESTDIR)$(APXS_MODULES); \
+@LINUX_TRUE@	  install -D -m444 $(DESTDIR)$(pkglibdir)/$$base.so $(DESTDIR)$(APXS_MODULES)/$$base.so; \
 @LINUX_TRUE@	done
 @LINUX_FALSE@install-exec-hook: $(pkglib_LTLIBRARIES)
 @LINUX_FALSE@	@echo "Removing unused static libraries..."; \

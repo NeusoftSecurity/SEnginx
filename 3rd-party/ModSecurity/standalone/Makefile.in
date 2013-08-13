@@ -95,7 +95,7 @@ am_standalone_la_OBJECTS = standalone_la-mod_security2.lo \
 	standalone_la-msc_gsb.lo standalone_la-msc_unicode.lo \
 	standalone_la-acmp.lo standalone_la-msc_lua.lo \
 	standalone_la-msc_release.lo standalone_la-msc_crypt.lo \
-	standalone_la-msc_tree.lo standalone_la-sqlparse.lo \
+	standalone_la-msc_tree.lo standalone_la-libinjection_sqli.lo \
 	standalone_la-api.lo standalone_la-buckets.lo \
 	standalone_la-config.lo standalone_la-filters.lo \
 	standalone_la-hooks.lo standalone_la-regex.lo \
@@ -320,7 +320,7 @@ standalone_la_SOURCES = ../apache2/mod_security2.c \
                            ../apache2/msc_util.c ../apache2/msc_pcre.c ../apache2/persist_dbm.c ../apache2/msc_reqbody.c \
      			   ../apache2/msc_geo.c ../apache2/msc_gsb.c ../apache2/msc_unicode.c \
      			   ../apache2/acmp.c ../apache2/msc_lua.c ../apache2/msc_release.c \
-     			   ../apache2/msc_crypt.c ../apache2/msc_tree.c ../apache2/libinjection/sqlparse.c \
+     			   ../apache2/msc_crypt.c ../apache2/msc_tree.c ../apache2/libinjection/libinjection_sqli.c \
                            api.c buckets.c \
                            config.c filters.c \
                            hooks.c \
@@ -452,6 +452,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-config.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-filters.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-hooks.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-libinjection_sqli.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-mod_security2.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-modsecurity.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-msc_crypt.Plo@am__quote@
@@ -476,7 +477,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-re_variables.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-regex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-server.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/standalone_la-sqlparse.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -681,12 +681,12 @@ standalone_la-msc_tree.lo: ../apache2/msc_tree.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(standalone_la_CPPFLAGS) $(CPPFLAGS) $(standalone_la_CFLAGS) $(CFLAGS) -c -o standalone_la-msc_tree.lo `test -f '../apache2/msc_tree.c' || echo '$(srcdir)/'`../apache2/msc_tree.c
 
-standalone_la-sqlparse.lo: ../apache2/libinjection/sqlparse.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(standalone_la_CPPFLAGS) $(CPPFLAGS) $(standalone_la_CFLAGS) $(CFLAGS) -MT standalone_la-sqlparse.lo -MD -MP -MF $(DEPDIR)/standalone_la-sqlparse.Tpo -c -o standalone_la-sqlparse.lo `test -f '../apache2/libinjection/sqlparse.c' || echo '$(srcdir)/'`../apache2/libinjection/sqlparse.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/standalone_la-sqlparse.Tpo $(DEPDIR)/standalone_la-sqlparse.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../apache2/libinjection/sqlparse.c' object='standalone_la-sqlparse.lo' libtool=yes @AMDEPBACKSLASH@
+standalone_la-libinjection_sqli.lo: ../apache2/libinjection/libinjection_sqli.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(standalone_la_CPPFLAGS) $(CPPFLAGS) $(standalone_la_CFLAGS) $(CFLAGS) -MT standalone_la-libinjection_sqli.lo -MD -MP -MF $(DEPDIR)/standalone_la-libinjection_sqli.Tpo -c -o standalone_la-libinjection_sqli.lo `test -f '../apache2/libinjection/libinjection_sqli.c' || echo '$(srcdir)/'`../apache2/libinjection/libinjection_sqli.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/standalone_la-libinjection_sqli.Tpo $(DEPDIR)/standalone_la-libinjection_sqli.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../apache2/libinjection/libinjection_sqli.c' object='standalone_la-libinjection_sqli.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(standalone_la_CPPFLAGS) $(CPPFLAGS) $(standalone_la_CFLAGS) $(CFLAGS) -c -o standalone_la-sqlparse.lo `test -f '../apache2/libinjection/sqlparse.c' || echo '$(srcdir)/'`../apache2/libinjection/sqlparse.c
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(standalone_la_CPPFLAGS) $(CPPFLAGS) $(standalone_la_CFLAGS) $(CFLAGS) -c -o standalone_la-libinjection_sqli.lo `test -f '../apache2/libinjection/libinjection_sqli.c' || echo '$(srcdir)/'`../apache2/libinjection/libinjection_sqli.c
 
 standalone_la-api.lo: api.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(standalone_la_CPPFLAGS) $(CPPFLAGS) $(standalone_la_CFLAGS) $(CFLAGS) -MT standalone_la-api.lo -MD -MP -MF $(DEPDIR)/standalone_la-api.Tpo -c -o standalone_la-api.lo `test -f 'api.c' || echo '$(srcdir)/'`api.c

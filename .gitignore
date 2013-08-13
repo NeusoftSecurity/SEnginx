@@ -26,3 +26,7 @@ objs
 # Project files
 cscope.*
 tags
+
+# Others
+*.Plo
+*.Po

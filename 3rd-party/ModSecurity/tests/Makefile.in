@@ -69,7 +69,7 @@ am_msc_test_OBJECTS = msc_test-msc_test.$(OBJEXT) \
 	msc_test-msc_tree.$(OBJEXT) msc_test-msc_geo.$(OBJEXT) \
 	msc_test-msc_gsb.$(OBJEXT) msc_test-acmp.$(OBJEXT) \
 	msc_test-msc_lua.$(OBJEXT) msc_test-msc_release.$(OBJEXT) \
-	msc_test-sqlparse.$(OBJEXT)
+	msc_test-libinjection_sqli.$(OBJEXT)
 msc_test_OBJECTS = $(am_msc_test_OBJECTS)
 msc_test_DEPENDENCIES =
 msc_test_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
@@ -302,7 +302,7 @@ msc_test_SOURCES = msc_test.c \
                    $(top_srcdir)/apache2/acmp.c \
                    $(top_srcdir)/apache2/msc_lua.c \
                    $(top_srcdir)/apache2/msc_release.c \
-                   $(top_srcdir)/apache2/libinjection/sqlparse.c
+                   $(top_srcdir)/apache2/libinjection/libinjection_sqli.c
 
 msc_test_CFLAGS = @APXS_CFLAGS@ @APR_CFLAGS@ @APU_CFLAGS@ \
                   @PCRE_CFLAGS@ @LIBXML2_CFLAGS@ @MODSEC_EXTRA_CFLAGS@ @LUA_CFLAGS@
@@ -381,6 +381,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msc_test-acmp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msc_test-libinjection_sqli.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msc_test-modsecurity.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msc_test-msc_crypt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msc_test-msc_geo.Po@am__quote@
@@ -403,7 +404,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msc_test-re_operators.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msc_test-re_tfns.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msc_test-re_variables.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msc_test-sqlparse.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -748,19 +748,19 @@ msc_test-msc_release.obj: $(top_srcdir)/apache2/msc_release.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(msc_test_CPPFLAGS) $(CPPFLAGS) $(msc_test_CFLAGS) $(CFLAGS) -c -o msc_test-msc_release.obj `if test -f '$(top_srcdir)/apache2/msc_release.c'; then $(CYGPATH_W) '$(top_srcdir)/apache2/msc_release.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/apache2/msc_release.c'; fi`
 
-msc_test-sqlparse.o: $(top_srcdir)/apache2/libinjection/sqlparse.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(msc_test_CPPFLAGS) $(CPPFLAGS) $(msc_test_CFLAGS) $(CFLAGS) -MT msc_test-sqlparse.o -MD -MP -MF $(DEPDIR)/msc_test-sqlparse.Tpo -c -o msc_test-sqlparse.o `test -f '$(top_srcdir)/apache2/libinjection/sqlparse.c' || echo '$(srcdir)/'`$(top_srcdir)/apache2/libinjection/sqlparse.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/msc_test-sqlparse.Tpo $(DEPDIR)/msc_test-sqlparse.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(top_srcdir)/apache2/libinjection/sqlparse.c' object='msc_test-sqlparse.o' libtool=no @AMDEPBACKSLASH@
+msc_test-libinjection_sqli.o: $(top_srcdir)/apache2/libinjection/libinjection_sqli.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(msc_test_CPPFLAGS) $(CPPFLAGS) $(msc_test_CFLAGS) $(CFLAGS) -MT msc_test-libinjection_sqli.o -MD -MP -MF $(DEPDIR)/msc_test-libinjection_sqli.Tpo -c -o msc_test-libinjection_sqli.o `test -f '$(top_srcdir)/apache2/libinjection/libinjection_sqli.c' || echo '$(srcdir)/'`$(top_srcdir)/apache2/libinjection/libinjection_sqli.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/msc_test-libinjection_sqli.Tpo $(DEPDIR)/msc_test-libinjection_sqli.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(top_srcdir)/apache2/libinjection/libinjection_sqli.c' object='msc_test-libinjection_sqli.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(msc_test_CPPFLAGS) $(CPPFLAGS) $(msc_test_CFLAGS) $(CFLAGS) -c -o msc_test-sqlparse.o `test -f '$(top_srcdir)/apache2/libinjection/sqlparse.c' || echo '$(srcdir)/'`$(top_srcdir)/apache2/libinjection/sqlparse.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(msc_test_CPPFLAGS) $(CPPFLAGS) $(msc_test_CFLAGS) $(CFLAGS) -c -o msc_test-libinjection_sqli.o `test -f '$(top_srcdir)/apache2/libinjection/libinjection_sqli.c' || echo '$(srcdir)/'`$(top_srcdir)/apache2/libinjection/libinjection_sqli.c
 
-msc_test-sqlparse.obj: $(top_srcdir)/apache2/libinjection/sqlparse.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(msc_test_CPPFLAGS) $(CPPFLAGS) $(msc_test_CFLAGS) $(CFLAGS) -MT msc_test-sqlparse.obj -MD -MP -MF $(DEPDIR)/msc_test-sqlparse.Tpo -c -o msc_test-sqlparse.obj `if test -f '$(top_srcdir)/apache2/libinjection/sqlparse.c'; then $(CYGPATH_W) '$(top_srcdir)/apache2/libinjection/sqlparse.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/apache2/libinjection/sqlparse.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/msc_test-sqlparse.Tpo $(DEPDIR)/msc_test-sqlparse.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(top_srcdir)/apache2/libinjection/sqlparse.c' object='msc_test-sqlparse.obj' libtool=no @AMDEPBACKSLASH@
+msc_test-libinjection_sqli.obj: $(top_srcdir)/apache2/libinjection/libinjection_sqli.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(msc_test_CPPFLAGS) $(CPPFLAGS) $(msc_test_CFLAGS) $(CFLAGS) -MT msc_test-libinjection_sqli.obj -MD -MP -MF $(DEPDIR)/msc_test-libinjection_sqli.Tpo -c -o msc_test-libinjection_sqli.obj `if test -f '$(top_srcdir)/apache2/libinjection/libinjection_sqli.c'; then $(CYGPATH_W) '$(top_srcdir)/apache2/libinjection/libinjection_sqli.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/apache2/libinjection/libinjection_sqli.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/msc_test-libinjection_sqli.Tpo $(DEPDIR)/msc_test-libinjection_sqli.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(top_srcdir)/apache2/libinjection/libinjection_sqli.c' object='msc_test-libinjection_sqli.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(msc_test_CPPFLAGS) $(CPPFLAGS) $(msc_test_CFLAGS) $(CFLAGS) -c -o msc_test-sqlparse.obj `if test -f '$(top_srcdir)/apache2/libinjection/sqlparse.c'; then $(CYGPATH_W) '$(top_srcdir)/apache2/libinjection/sqlparse.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/apache2/libinjection/sqlparse.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(msc_test_CPPFLAGS) $(CPPFLAGS) $(msc_test_CFLAGS) $(CFLAGS) -c -o msc_test-libinjection_sqli.obj `if test -f '$(top_srcdir)/apache2/libinjection/libinjection_sqli.c'; then $(CYGPATH_W) '$(top_srcdir)/apache2/libinjection/libinjection_sqli.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/apache2/libinjection/libinjection_sqli.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

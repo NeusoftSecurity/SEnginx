@@ -1,3 +1,20 @@
+Changes with senginx 1.5.3                                      13 Aug  2013
+    
+    *) Feature: upgrade to original nginx 1.5.3.
+
+    *) Feature: add IP whitelist in robot mitigation module.
+
+    *) Feature: cookie poisoning protection module.
+
+    *) Feature: update ModSecurity to 2.7.5.
+
+    *) Change: session API changed to a modern style.
+
+    *) Bugfix: fix NULL pointer issue in NS Layer while sending log.
+
+    *) Bugfix: in automated test cases.
+
+
 Changes with senginx 1.5.2                                      26 July 2013
 
     *) Feature: upgrade to original nginx 1.5.2.

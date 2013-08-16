@@ -41,7 +41,8 @@ fi
     --add-module=${TRD_DIR}/ngx_http_robot_mitigation \
     --add-module=${TRD_DIR}/ngx_http_status_page \
     --add-module=${TRD_DIR}/ngx_http_if_extend \
-    --add-module=${TRD_DIR}/ngx_http_cache_extend
+    --add-module=${TRD_DIR}/ngx_http_cache_extend \
+    --add-module=${TRD_DIR}/ngx_http_cookie_poisoning
 
 get_line_num()
 {

@@ -1033,6 +1033,8 @@ void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
     strcpy(log->action, do_action);
     strcpy(log->action + ngx_strlen(do_action), module_name);
 
+    string = (string == NULL) ? " " : string;
+
     ngx_log_error(NGX_LOG_ERR, connection->log, 0,
             "%s: \"%s\", action: \"%V\", agent: \"%s\", %s, ", 
             module_name, ngx_http_neteye_attack_log_str[log_id], 

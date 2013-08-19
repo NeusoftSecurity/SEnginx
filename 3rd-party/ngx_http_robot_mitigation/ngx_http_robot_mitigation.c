@@ -978,6 +978,8 @@ check_cookie:
         return NGX_ERROR;
     }
 #endif
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "current type: %d", (int)req_type);
     
     /* timeout or cookie lost */
     if (req_type == NGX_HTTP_RM_STATUS_PASSED) {

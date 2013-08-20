@@ -662,7 +662,10 @@ ngx_http_cp_handler(ngx_http_request_t *r)
 {
     ngx_http_cp_loc_conf_t           *cplcf;
     ngx_str_t                        cookie, cookie_name;
-    ngx_str_t                        neteye_cookie, cookie_magic;
+    ngx_str_t                        neteye_cookie;
+#if (NGX_DEBUG)
+    ngx_str_t                        cookie_magic;
+#endif
     ngx_int_t                        ret;
     ngx_uint_t                       i, j;
     ngx_table_elt_t                  **h;
@@ -741,12 +744,14 @@ ngx_http_cp_handler(ngx_http_request_t *r)
                         return NGX_HTTP_INTERNAL_SERVER_ERROR;
                     }
 
+#if (NGX_DEBUG)
                     cookie_magic.data = m_cookie->cookie_magic;
                     cookie_magic.len = NGX_HTTP_CP_MD5_LEN;
 
                     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                             "neteye_cookie_data: %V, expected: %V", 
                             &neteye_cookie, &cookie_magic);
+#endif
                     
                     if (memcmp(m_cookie->cookie_magic, neteye_cookie.data,
                                 NGX_HTTP_CP_MD5_LEN)) {

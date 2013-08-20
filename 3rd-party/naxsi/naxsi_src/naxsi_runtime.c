@@ -714,12 +714,14 @@ ngx_http_output_forbidden_page(ngx_http_request_ctx_t *ctx,
 		  0, "[naxsi] no headers_in, not forwarded to learning mode.");
   
   if (ctx->learning) {
+#ifndef NGX_HTTP_NAXSI_NETEYE_HELPER
     if (ctx->post_action) {
       ngx_http_core_loc_conf_t  *clcf;
       clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
       clcf->post_action.data = cf->denied_url->data;
       clcf->post_action.len = cf->denied_url->len;
     }
+#endif
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 
 		  0, "NAXSI_FMT: %s", fmt);
     return (NGX_DECLINED);
@@ -727,10 +729,24 @@ ngx_http_output_forbidden_page(ngx_http_request_ctx_t *ctx,
   else {
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 
 		  0, "NAXSI_FMT: %s", fmt);
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+    char *full_fmt;
+    int   full_len;
+
+    full_len = strlen(fmt) + 16;
+    full_fmt = ngx_pcalloc(r->pool, full_len + 1);
+    if (!full_fmt)
+        return NGX_ERROR;
+
+    snprintf(full_fmt, full_len, "NAXSI_FMT: %s", fmt);
+
+    return ngx_http_naxsi_do_action(r, ctx, full_fmt);
+#else
 
     rc = ngx_http_internal_redirect(r, cf->denied_url,  
 				    &denied_args); 
     return (NGX_HTTP_OK);
+#endif
   }
   return (NGX_ERROR);
 }
@@ -1814,6 +1830,9 @@ ngx_http_dummy_update_current_ctx_status(ngx_http_request_ctx_t	*ctx,
 	      ctx->allow = 1;
 	    if (cr[i].log)
 	      ctx->log = 1;
+#if (NGX_HTTP_NAXSI_NETEYE_HELPER)
+            ctx->matched_tag = sc[z].sc_tag;
+#endif
 	  }
 	}
       }

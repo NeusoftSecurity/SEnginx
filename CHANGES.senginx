@@ -1,3 +1,13 @@
+Changes with senginx 1.5.3-1                                    20 Aug  2013
+    
+    *) Feature: add naxsi into neteye security layer.
+
+    *) Bugfix: fix segmetation fault in robot mitigation module.
+
+    *) Bugfix: fix compile issue in cookie poisoning module.
+
+    *) Change: update .gitignore file.
+
 Changes with senginx 1.5.3                                      13 Aug  2013
     
     *) Feature: upgrade to original nginx 1.5.3.

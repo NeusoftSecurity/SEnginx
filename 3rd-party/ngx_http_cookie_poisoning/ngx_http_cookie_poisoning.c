@@ -606,8 +606,6 @@ ngx_http_cp_do_action(ngx_http_request_t *r,
 
     action->action = cplcf->action;
     action->session_name = cp_name;
-    action->init = ngx_http_cp_init_session_ctx_handler;
-    action->destroy = ngx_http_cp_destroy_session_ctx_handler;
     action->get_bl_count = ngx_http_cp_get_bl_count;
     action->bl_max = cplcf->bl_times;
 

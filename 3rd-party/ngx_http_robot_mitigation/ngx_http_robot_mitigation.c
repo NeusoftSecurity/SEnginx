@@ -2345,8 +2345,6 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
     action->action = rlcf->action;
 #if (NGX_HTTP_SESSION) 
     action->session_name = ac_name;
-    action->init = ngx_http_rm_init_ctx_handler;
-    action->destroy = ngx_http_rm_destroy_ctx_handler;
     action->get_bl_count = ngx_http_rm_get_bl_count;
     action->bl_max = rlcf->failed_count;
 #endif

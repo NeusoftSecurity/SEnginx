@@ -86,8 +86,6 @@ typedef struct ngx_http_neteye_security_action_s {
     /* session & blacklist group */
 #if (NGX_HTTP_SESSION) 
     u_char                                 *session_name;
-    ngx_http_session_init_ctx_t             init;
-    ngx_http_session_destroy_ctx_t          destroy;
     ngx_http_ns_get_bl_count_t              get_bl_count;
     ngx_uint_t                              bl_max;
 #endif

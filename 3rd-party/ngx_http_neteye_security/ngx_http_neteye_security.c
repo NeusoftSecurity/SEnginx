@@ -202,7 +202,7 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "neteye security phase begins, handler number: %d", 
             nr_request_chain);
-    
+
     if (nr_request_chain == 0) {
         return NGX_DECLINED;
     }
@@ -218,7 +218,7 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
 
     while (1) {
         module = request_chain[i];
-        
+
         if (module
                 && !ngx_http_ns_jump_bit_is_set(r, module->id)) {
             handler = module->request_handler;
@@ -234,8 +234,8 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
             continue;
         }
 
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                "neteye security handler: %d - %s(ret: %d)", 
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "neteye security handler: %d - %s(ret: %d)",
                 module->id, module->name, ret);
 
         /* skip other handlers */
@@ -244,8 +244,8 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
         }
 
         if (ret == NGX_ERROR) {
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                    "Request denied by handler: %d - %s", 
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                    "Request denied by handler: %d - %s",
                     module->id, module->name);
             return NGX_ERROR;
         }
@@ -257,7 +257,7 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
         /* next handler in the list */
         if (ret == NGX_DECLINED) {
             i++;
-            
+
             if (i > max_request_chain) {
                 /* all handlers have been called */
                 break;
@@ -266,33 +266,36 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
             continue;
         }
 
+        if (ret < 0) {
+            return ret;
+        }
+
         /* some internal error */
-        if (ret >= 500) {
+        if (ret >= 400) {
             return ret;
         }
 
         /* jump to another handler, ret is the new handler id */
-        if (ret > max_request_chain
-                || ret <= 0) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        if (ret > max_request_chain) {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                     "jump to unkown handler");
-            
-            return NGX_ERROR;
-       } else {
-           if (request_chain[i] == NULL) {
-               ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                       "jump to unkown handler");
-               
-               return NGX_ERROR;
-           }
 
-           i = ret;
-       }
+            return NGX_ERROR;
+        } else {
+            if (request_chain[i] == NULL) {
+                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                        "jump to unkown handler");
+
+                return NGX_ERROR;
+            }
+
+            i = ret;
+        }
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "neteye security phase ends without any deny action");
-    
+
     return NGX_DECLINED;
 }
 
@@ -471,10 +474,10 @@ ngx_int_t ngx_http_neteye_security_header_filter(ngx_http_request_t *r)
     ngx_http_neteye_security_module_t *module;
     ngx_http_ns_ctx_t           *ctx;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "neteye security response header begins, handler number: %d", 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "neteye security response header begins, handler number: %d",
             nr_response_header_chain);
-    
+
     if (nr_response_header_chain == 0) {
         return ngx_http_next_header_filter(r);
     }
@@ -486,7 +489,7 @@ ngx_int_t ngx_http_neteye_security_header_filter(ngx_http_request_t *r)
 
     while (1) {
         module = response_header_chain[i];
-        
+
         if (module
                 && !ngx_http_ns_jump_bit_is_set(r, module->id)) {
             handler = module->response_header_handler;
@@ -502,8 +505,8 @@ ngx_int_t ngx_http_neteye_security_header_filter(ngx_http_request_t *r)
             continue;
         }
 
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                "neteye security response header: %d - %s(ret: %d)", 
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "neteye security response header: %d - %s(ret: %d)",
                 module->id, module->name, ret);
 
         /* skip other handlers */
@@ -512,14 +515,14 @@ ngx_int_t ngx_http_neteye_security_header_filter(ngx_http_request_t *r)
         }
 
         if (ret == NGX_ERROR) {
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                    "Request denied by handler: %d - %s", 
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                    "Request denied by handler: %d - %s",
                     module->id, module->name);
             return NGX_ERROR;
         }
 
         /* some internal error */
-        if (ret >= 500) {
+        if (ret >= 400) {
             return ret;
         }
 
@@ -541,24 +544,24 @@ ngx_int_t ngx_http_neteye_security_header_filter(ngx_http_request_t *r)
 
         /* jump to another handler, ret is the new handler id */
         if (ret > max_response_header_chain
-                || ret <= 0) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                || ret < 0) {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                     "jump to unkown handler");
-            
+
             return NGX_ERROR;
-       } else {
-           if (response_header_chain[i] == NULL) {  
-               ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                       "jump to unkown handler");
-               
-               return NGX_ERROR;
-           }
-           
-           i = ret;
-       }
+        } else {
+            if (response_header_chain[i] == NULL) {
+                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                        "jump to unkown handler");
+
+                return NGX_ERROR;
+            }
+
+            i = ret;
+        }
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "neteye security response header ends without any deny action");
     
     return ngx_http_next_header_filter(r);
@@ -571,10 +574,10 @@ ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_
     ngx_http_neteye_security_module_t *module;
     ngx_http_ns_ctx_t           *ctx;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "neteye security response body begins, handler number: %d", 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "neteye security response body begins, handler number: %d",
             nr_response_body_chain);
-    
+
     if (nr_response_body_chain == 0) {
         return ngx_http_next_body_filter(r, in);
     }
@@ -586,7 +589,7 @@ ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_
 
     while (1) {
         module = response_body_chain[i];
-        
+
         if (module
                 && !ngx_http_ns_jump_bit_is_set(r, module->id)) {
             handler = module->response_body_handler;
@@ -602,8 +605,8 @@ ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_
             continue;
         }
 
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                "neteye security response body: %d - %s(ret: %d)", 
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "neteye security response body: %d - %s(ret: %d)",
                 module->id, module->name, ret);
 
         /* skip other handlers */
@@ -612,14 +615,14 @@ ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_
         }
 
         if (ret == NGX_ERROR) {
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                    "Request denied by handler: %d - %s", 
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                    "Request denied by handler: %d - %s",
                     module->id, module->name);
             return NGX_ERROR;
         }
 
         /* some internal error */
-        if (ret >= 500) {
+        if (ret >= 400) {
             return ret;
         }
 
@@ -630,7 +633,7 @@ ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_
         /* next handler in the list */
         if (ret == NGX_DECLINED) {
             i++;
-            
+
             if (i > max_response_body_chain) {
                 /* all handlers have been called */
                 break;
@@ -640,27 +643,26 @@ ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_
         }
 
         /* jump to another handler, ret is the new handler id */
-        if (ret > max_response_body_chain
-                || ret <= 0) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        if (ret > max_response_body_chain || ret < 0) {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                     "jump to unkown handler");
-            
+
             return NGX_ERROR;
-       } else {
-           if (response_body_chain[i] == NULL) {  
-               ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                       "jump to unkown handler");
-               
-               return NGX_ERROR;
-           }
-           
-           i = ret;
-       }
+        } else {
+            if (response_body_chain[i] == NULL) {
+                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                        "jump to unkown handler");
+
+                return NGX_ERROR;
+            }
+
+            i = ret;
+        }
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "neteye security response body ends without any deny action");
-    
+
     return ngx_http_next_body_filter(r, in);
 }
     

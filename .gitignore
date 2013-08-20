@@ -27,6 +27,31 @@ objs
 cscope.*
 tags
 
+# Modsecurity
+3rd-party/ModSecurity/apache2/.libs/
+3rd-party/ModSecurity/apache2/Makefile.in.orig
+3rd-party/ModSecurity/apache2/mod_security2.la
+3rd-party/ModSecurity/apache2/modsecurity_config_auto.h
+3rd-party/ModSecurity/apache2/stamp-h1
+3rd-party/ModSecurity/autom4te.cache/
+3rd-party/ModSecurity/build/apxs-wrapper
+3rd-party/ModSecurity/build/ar-lib
+3rd-party/ModSecurity/config.log
+3rd-party/ModSecurity/config.status
+3rd-party/ModSecurity/libtool
+3rd-party/ModSecurity/mlogc/mlogc
+3rd-party/ModSecurity/mlogc/mlogc-batch-load.pl
+3rd-party/ModSecurity/standalone/.libs/
+3rd-party/ModSecurity/standalone/Makefile.in.orig
+3rd-party/ModSecurity/standalone/standalone.la
+3rd-party/ModSecurity/tests/Makefile.in.orig
+3rd-party/ModSecurity/tests/csv_rx-pm.pl
+3rd-party/ModSecurity/tests/gen_rx-pm.pl
+3rd-party/ModSecurity/tests/regression/server_root/conf/httpd.conf
+3rd-party/ModSecurity/tests/run-regression-tests.pl
+3rd-party/ModSecurity/tests/run-unit-tests.pl
+3rd-party/ModSecurity/tools/rules-updater.pl
+
 # Others
 *.Plo
 *.Po

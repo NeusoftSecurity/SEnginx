@@ -1,3 +1,7 @@
+Changes with senginx 1.5.3-2                                    21 Aug  2013
+    
+    *) Bugfix: fix problem in NS layer.
+
 Changes with senginx 1.5.3-1                                    20 Aug  2013
     
     *) Feature: add naxsi into neteye security layer.

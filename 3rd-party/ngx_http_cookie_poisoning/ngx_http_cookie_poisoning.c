@@ -333,26 +333,31 @@ ngx_http_cp_init_session_ctx_handler(void *ctx)
     return NGX_OK;
 }
 
-static ngx_http_cp_monitored_cookie_t *
-ngx_http_cp_hash_find(ngx_http_cp_hash_t *hash, ngx_str_t *cookie_name)
+static ngx_uint_t
+ngx_http_cp_hash_key(ngx_http_cp_hash_t *hash, ngx_str_t *cookie_name)
 {
     ngx_uint_t i, key = 0;
-    ngx_http_cp_monitored_cookie_t *m_cookie;
 
     for (i = 0; i < cookie_name->len; i++) {
         key = ngx_hash(key, cookie_name->data[i]);
     }
 
-    key = key % hash->nr_buckets;
+    return key % hash->nr_buckets;
+}
+
+static ngx_http_cp_monitored_cookie_t *
+__ngx_http_cp_hash_find(ngx_http_cp_hash_t *hash, ngx_str_t *cookie_name,
+        ngx_uint_t key)
+{
+    ngx_http_cp_monitored_cookie_t *m_cookie;
 
     m_cookie = hash->buckets[key];
 
     if (!m_cookie) {
         return NULL;
     }
-    
-    for (; (m_cookie != NULL) && (m_cookie->next != NULL); 
-            m_cookie = m_cookie->next) {
+
+    for (; m_cookie != NULL; m_cookie = m_cookie->next) {
         if (m_cookie->cookie_name.len != cookie_name->len) {
             continue;
         }
@@ -367,23 +372,22 @@ ngx_http_cp_hash_find(ngx_http_cp_hash_t *hash, ngx_str_t *cookie_name)
     return NULL;
 }
 
-static ngx_int_t
-ngx_http_cp_hash_insert(ngx_http_cp_hash_t *hash,
-        ngx_http_cp_monitored_cookie_t *monitored_cookie)
+static ngx_http_cp_monitored_cookie_t *
+ngx_http_cp_hash_find(ngx_http_cp_hash_t *hash, ngx_str_t *cookie_name)
 {
-    ngx_uint_t i, key = 0;
+    ngx_uint_t key = 0;
+
+    key = ngx_http_cp_hash_key(hash, cookie_name);
+
+    return __ngx_http_cp_hash_find(hash, cookie_name, key);
+}
+
+static ngx_int_t
+__ngx_http_cp_hash_insert(ngx_http_cp_hash_t *hash,
+        ngx_http_cp_monitored_cookie_t *monitored_cookie,
+        ngx_uint_t key)
+{
     ngx_http_cp_monitored_cookie_t *m_cookie;
-    ngx_str_t *cookie_name = &monitored_cookie->cookie_name;
-    
-    if (ngx_http_cp_hash_find(hash, cookie_name)) {
-        return NGX_OK;
-    }
-
-    for (i = 0; i < cookie_name->len; i++) {
-        key = ngx_hash(key, cookie_name->data[i]);
-    }
-
-    key = key % hash->nr_buckets;
 
     m_cookie = hash->buckets[key];
 
@@ -402,18 +406,13 @@ ngx_http_cp_hash_insert(ngx_http_cp_hash_t *hash,
 static ngx_int_t
 ngx_http_cp_hash_delete(ngx_http_cp_hash_t *hash, ngx_str_t *cookie_name)
 {
-    ngx_uint_t i, key = 0;
+    ngx_uint_t key = 0;
     ngx_http_cp_monitored_cookie_t *m_cookie, *prev;
-    
-    for (i = 0; i < cookie_name->len; i++) {
-        key = ngx_hash(key, cookie_name->data[i]);
-    }
 
-    key = key % hash->nr_buckets;
+    key = ngx_http_cp_hash_key(hash, cookie_name);
 
     prev = m_cookie = hash->buckets[key];
-    for (; (m_cookie != NULL) && (m_cookie->next != NULL);
-            prev = m_cookie, m_cookie = m_cookie->next) {
+    for (; m_cookie != NULL; prev = m_cookie, m_cookie = m_cookie->next) {
         if (m_cookie->cookie_name.len != cookie_name->len) {
             continue;
         }
@@ -462,14 +461,14 @@ ngx_http_cp_delete_monitored_cookies(ngx_http_request_t *r,
     ngx_http_session_t               *session;
     ngx_http_session_ctx_t           *session_ctx;
     ngx_http_cp_session_ctx_t        *cp_ctx;
-    
+
     session = ngx_http_session_get(r);
     if (!session) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
                 "cp get session failed when update monitored cookies");
         return NGX_ERROR;
     }
-    
+
     ngx_shmtx_lock(&session->mutex);
 
     session_ctx = ngx_http_session_find_ctx(session, (u_char *)"cookie_poisoning");
@@ -479,7 +478,7 @@ ngx_http_cp_delete_monitored_cookies(ngx_http_request_t *r,
         
         return NGX_ERROR;
     }
-    
+
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "found session ctx\n");
 
@@ -489,7 +488,7 @@ ngx_http_cp_delete_monitored_cookies(ngx_http_request_t *r,
 
     ngx_shmtx_unlock(&session->mutex);
     ngx_http_session_put(r);
-   
+
     return NGX_OK;
 }
 
@@ -503,14 +502,15 @@ ngx_http_cp_update_monitored_cookies(ngx_http_request_t *r,
     ngx_http_session_ctx_t           *session_ctx;
     ngx_http_cp_session_ctx_t        *cp_ctx;
     ngx_http_cp_monitored_cookie_t   *m_cookie;
-    
+    ngx_uint_t                        key;
+
     session = ngx_http_session_get(r);
     if (!session) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
                 "cp get session failed when update monitored cookies");
         return NGX_ERROR;
     }
-    
+
     ngx_shmtx_lock(&session->mutex);
 
     session_ctx = ngx_http_session_find_ctx(session, (u_char *)"cookie_poisoning");
@@ -526,7 +526,10 @@ ngx_http_cp_update_monitored_cookies(ngx_http_request_t *r,
 
     cp_ctx = session_ctx->data;
 
-    m_cookie = ngx_http_cp_hash_find(&cp_ctx->monitored_cookies, cookie_name);
+    key = ngx_http_cp_hash_key(&cp_ctx->monitored_cookies, cookie_name);
+
+    m_cookie = __ngx_http_cp_hash_find(&cp_ctx->monitored_cookies,
+            cookie_name, key);
     if (m_cookie != NULL) {
         /* update, 32 is the length of md5 value */
         memcpy(m_cookie->cookie_magic, neteye_cookie->data, NGX_HTTP_CP_MD5_LEN);
@@ -558,12 +561,12 @@ ngx_http_cp_update_monitored_cookies(ngx_http_request_t *r,
         m_cookie->magic = magic;
         m_cookie->next = NULL;
 
-        ngx_http_cp_hash_insert(&cp_ctx->monitored_cookies, m_cookie);
+        __ngx_http_cp_hash_insert(&cp_ctx->monitored_cookies, m_cookie, key);
     }
 
     ngx_shmtx_unlock(&session->mutex);
     ngx_http_session_put(r);
-   
+
     return NGX_OK;
 }
 
@@ -766,6 +769,9 @@ ngx_http_cp_handler(ngx_http_request_t *r)
                             return ret;
                         }
                     }
+                } else {
+                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                            "cookie is not monitored");
                 }
 
 next:

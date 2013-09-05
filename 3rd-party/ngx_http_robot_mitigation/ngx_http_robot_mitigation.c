@@ -2159,11 +2159,40 @@ ngx_http_rm_test_content_type(ngx_http_request_t *r, u_char *type)
 static ngx_int_t 
 ngx_http_rm_content_handler(ngx_http_request_t *r)
 {
-    ngx_http_rm_loc_conf_t       *rlcf;
-    ngx_int_t                     rc;
-    
+    ngx_http_rm_loc_conf_t          *rlcf;
+    ngx_int_t                       rc;
+    ngx_table_elt_t                 *cc, **ccp;
+
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "in robot mitigation's content handler");
+
+    ccp = r->headers_out.cache_control.elts;
+
+    if (ccp == NULL) {
+
+        if (ngx_array_init(&r->headers_out.cache_control, r->pool,
+                           1, sizeof(ngx_table_elt_t *))
+            != NGX_OK)
+        {
+            return NGX_ERROR;
+        }
+    }
+
+    ccp = ngx_array_push(&r->headers_out.cache_control);
+    if (ccp == NULL) {
+        return NGX_ERROR;
+    }
+
+    cc = ngx_list_push(&r->headers_out.headers);
+    if (cc == NULL) {
+        return NGX_ERROR;
+    }
+
+    cc->hash = 1;
+    ngx_str_set(&cc->key, "Cache-Control");
+    ngx_str_set(&cc->value, "no-cache");
+
+    *ccp = cc;
     
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
     

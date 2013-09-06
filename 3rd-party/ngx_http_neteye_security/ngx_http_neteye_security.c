@@ -40,6 +40,8 @@ static ngx_http_neteye_security_module_t ngx_http_neteye_security_modules[] = {
         "Page Access Control", NULL, NULL, NULL,    9, 0, 0, NULL},
     {NGX_HTTP_NETEYE_NAXSI,
         "NetEye modified NAXSI", NULL, NULL, NULL,    10, 0, 0, NULL},
+    {NGX_HTTP_NETEYE_WEB_DEFACEMENT,
+        "Web Defacement", NULL, NULL, NULL,         11, 0, 0, NULL},
     {NGX_HTTP_NETEYE_STATUS_PAGE, 
         "Status Page", NULL, NULL, NULL,            0, 3, 0, NULL},
     {NGX_HTTP_NETEYE_LOG_MODULE, 
@@ -50,6 +52,7 @@ static ngx_http_neteye_security_module_t ngx_http_neteye_security_modules[] = {
 static char *ngx_http_neteye_attack_log_str[NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX] = {
     "Layer 7 DDoS",
     "Cookie Poisoning",
+    "Web Defacement",
 };
 
 /* The first slot of this array is not used */

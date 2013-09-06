@@ -1175,7 +1175,7 @@ ngx_http_rm_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
 #if (NGX_HTTP_STATUS_PAGE)
-    if (ngx_strstr(value[2].data, "notify=") != NULL) {
+    if (cf->args->nelts == 2 && ngx_strstr(value[2].data, "notify=") != NULL) {
         if ((value[2].len - strlen("notify=")) == 0) {
             rlcf->error_page.len = 0;
             rlcf->error_page.data = NULL;

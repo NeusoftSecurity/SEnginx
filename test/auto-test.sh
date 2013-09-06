@@ -164,4 +164,10 @@ TEST_NGINX_BINARY=$NGINX_DIR prove ./cookie_poisoning.t
 echo "############  cookie poisoning end  #############"
 echo ""
 
+# web defacement
+echo "############  web defacement start  ###########"
+TEST_NGINX_BINARY=$NGINX_DIR prove ./web_defacement.t
+echo "############  web defacement end  #############"
+echo ""
+
 cd -

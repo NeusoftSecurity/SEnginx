@@ -43,7 +43,8 @@ fi
     --add-module=${TRD_DIR}/ngx_http_status_page \
     --add-module=${TRD_DIR}/ngx_http_if_extend \
     --add-module=${TRD_DIR}/ngx_http_cache_extend \
-    --add-module=${TRD_DIR}/ngx_http_cookie_poisoning
+    --add-module=${TRD_DIR}/ngx_http_cookie_poisoning \
+    --add-module=${TRD_DIR}/ngx_http_web_defacement
 
 get_line_num()
 {

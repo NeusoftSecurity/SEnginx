@@ -41,6 +41,7 @@ enum ngx_http_neteye_security_module_ids {
     NGX_HTTP_NETEYE_COOKIE_POISONING,
     NGX_HTTP_NETEYE_PAGE_ACL,
     NGX_HTTP_NETEYE_NAXSI,
+    NGX_HTTP_NETEYE_WEB_DEFACEMENT,
     NGX_HTTP_NETEYE_STATUS_PAGE,
     NGX_HTTP_NETEYE_LOG_MODULE,
 
@@ -50,6 +51,7 @@ enum ngx_http_neteye_security_module_ids {
 enum ngx_http_neteye_security_attack_log_id {
     NGX_HTTP_NETEYE_ATTACK_LOG_ID_AC,
     NGX_HTTP_NETEYE_ATTACK_LOG_ID_CP,
+    NGX_HTTP_NETEYE_ATTACK_LOG_ID_WD,
     NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX
 };
 

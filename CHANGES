@@ -1,4 +1,35 @@
 
+Changes with nginx 1.5.4                                         27 Aug 2013
+
+    *) Change: the "js" extension MIME type has been changed to
+       "application/javascript"; default value of the "charset_types"
+       directive was changed accordingly.
+
+    *) Change: now the "image_filter" directive with the "size" parameter
+       returns responses with the "application/json" MIME type.
+
+    *) Feature: the ngx_http_auth_request_module.
+
+    *) Bugfix: a segmentation fault might occur on start or during
+       reconfiguration if the "try_files" directive was used with an empty
+       parameter.
+
+    *) Bugfix: memory leak if relative paths were specified using variables
+       in the "root" or "auth_basic_user_file" directives.
+
+    *) Bugfix: the "valid_referers" directive incorrectly executed regular
+       expressions if a "Referer" header started with "https://".
+       Thanks to Liangbin Li.
+
+    *) Bugfix: responses might hang if subrequests were used and an SSL
+       handshake error happened during subrequest processing.
+       Thanks to Aviram Cohen.
+
+    *) Bugfix: in the ngx_http_autoindex_module.
+
+    *) Bugfix: in the ngx_http_spdy_module.
+
+
 Changes with nginx 1.5.3                                         30 Jul 2013
 
     *) Change in internal API: now u->length defaults to -1 if working with

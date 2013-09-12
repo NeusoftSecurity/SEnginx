@@ -1,3 +1,17 @@
+Changes with senginx 1.5.4                                      12 Sep  2013
+
+    *) Feature: upgrade to original nginx 1.5.4.
+
+    *) Feature: web defacement protection.
+
+    *) Change: Add "no-cache" header to the robot mitigation's
+       challenging response to avoid being cached by front-side
+       caches.
+
+    *) Bugfix: fix segmentation fault in cookie poisoning module.
+
+    *) Bugfix: fix some confguration issues in robot mitigation module.
+
 Changes with senginx 1.5.3-2                                    21 Aug  2013
     
     *) Bugfix: fix problem in NS layer.

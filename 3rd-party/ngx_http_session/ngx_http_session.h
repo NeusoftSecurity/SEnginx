@@ -80,9 +80,6 @@ typedef struct {
     /* the hash table */
     ngx_http_session_t     *sessions[NGX_HTTP_SESSION_DEFAULT_NUMBER];
     ngx_http_session_t     *new_chain_head, *new_chain_tail;
-    ngx_queue_t             redirect_queue_head;
-    /* the number of redirecting session */
-    ngx_int_t               redirect_num;
 } ngx_http_session_list_t;
 
 typedef struct {

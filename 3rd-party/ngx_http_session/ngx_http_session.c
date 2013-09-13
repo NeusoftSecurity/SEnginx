@@ -309,24 +309,14 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
 {
     ngx_http_session_list_t          *session_list;
     ngx_http_session_t               *session, *tmp;
-    ngx_http_session_t               *redirect;
     ngx_int_t                        hash;
     ngx_http_session_conf_t         *sscf;
     u_char                           file[64];
-    ngx_queue_t                     *head;
-    ngx_queue_t                     *q;
     
     sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
     
     session_list = ngx_http_session_shm_zone->data;
     
-    head = &session_list->redirect_queue_head;
-    if (session_list->redirect_num >= NGX_HTTP_SESSION_DEFAULT_NUMBER/10) {
-        q = ngx_queue_head(head);
-        redirect = ngx_queue_data(q, ngx_http_session_t, redirect_queue_node);
-        __ngx_http_session_delete(redirect);
-    }
-
     ngx_shmtx_lock(&session_list->shpool->mutex);
 
     session = ngx_slab_alloc_locked(session_list->shpool, 
@@ -341,8 +331,6 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
         "session create: %p\n", session);
-
-    ngx_queue_init(&session->redirect_queue_node);
 
     memset(session, 0, sizeof(ngx_http_session_t));
     memcpy(session->id, cookie->data, cookie->len);
@@ -377,14 +365,7 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
 
     session->timeout = sscf->redirect_timeout;
     session->est = ngx_time();
-
-    session->ev.handler = ngx_http_session_timeout_handler;
-    session->ev.data = session;
-    session->ev.log = session_list->log;
-    ngx_add_timer(&session->ev, session->timeout);
-
-    ngx_queue_insert_tail(head, &session->redirect_queue_node);
-    session_list->redirect_num++;
+    __ngx_http_session_insert_to_new_chain(session_list, session);
 
     ngx_shmtx_unlock(&session_list->shpool->mutex);
 
@@ -443,11 +424,6 @@ __ngx_http_session_delete(ngx_http_session_t *session)
 
         if (session->ev.timer_set) {
             ngx_del_timer(&session->ev);
-        }
-
-        if (!ngx_queue_empty(&session->redirect_queue_node)) {
-            ngx_queue_remove(&session->redirect_queue_node);
-            session_list->redirect_num--;
         }
 
         __ngx_http_session_ctx_delete(session);
@@ -743,14 +719,6 @@ ngx_http_session_handler(ngx_http_request_t *r)
         session->reset = 1;
         session->timeout = sscf->timeout;
         session->est = ngx_time();
-        if (!ngx_queue_empty(&session->redirect_queue_node)) {
-            ngx_queue_remove(&session->redirect_queue_node);
-            ngx_queue_init(&session->redirect_queue_node);
-            session_list->redirect_num--;
-            if (session->ev.timer_set) {
-                ngx_del_timer(&session->ev);
-            }
-        }
         __ngx_http_session_insert_to_new_chain(session_list, session);
 
         if (session->good == 0) {
@@ -913,8 +881,6 @@ ngx_http_session_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
     session_list->log->file->fd = NGX_INVALID_FILE;
 
     session_list->shpool = shpool;
-
-    ngx_queue_init(&session_list->redirect_queue_head);
 
     shm_zone->data = session_list;
 

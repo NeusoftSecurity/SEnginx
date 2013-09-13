@@ -360,6 +360,7 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
 
     if (ngx_shmtx_create(&session->mutex, (void *)&session->lock, 
                 file) != NGX_OK) {
+        ngx_shmtx_unlock(&session_list->shpool->mutex);
         return NGX_ERROR;
     }
 

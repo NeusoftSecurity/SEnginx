@@ -74,9 +74,10 @@ typedef struct {
 
 typedef struct {
     ngx_int_t                  failed_count;
-    
+
     ngx_int_t                  enabled;
-    ngx_int_t                  ip_whitelist_x_forwarded_for; 
+    ngx_int_t                  ip_whitelist_x_forwarded_for;
+    ngx_int_t                  wl_caseless;
     ngx_int_t                  action;
     ngx_int_t                  mode;
     ngx_int_t                  log;

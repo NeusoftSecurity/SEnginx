@@ -69,6 +69,8 @@ ngx_http_rm_type_swf = ngx_string("application/x-shockwave-flash");
 static ngx_str_t ngx_http_rm_type_html = ngx_string("text/html");
 
 static char *
+ngx_http_rm_whitelist_caseless(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *
 ngx_http_rm_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_rm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -198,6 +200,13 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         0,
         NULL },
 
+    { ngx_string("robot_mitigation_whitelist_caseless"),
+        NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
+        ngx_http_rm_whitelist_caseless,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+
     { ngx_string("robot_mitigation_whitelist"),
         NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
         ngx_http_rm_whitelist,
@@ -205,20 +214,20 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         0,
         NULL },
 
-     { ngx_string("robot_mitigation_ip_whitelist"),
+    { ngx_string("robot_mitigation_ip_whitelist"),
         NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
         ngx_http_rm_ip_whitelist,
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
- 
+
 #if (NGX_HTTP_X_FORWARDED_FOR)
-     { ngx_string("robot_mitigation_ip_whitelist_x_forwarded_for"),
-         NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-         ngx_http_rm_ip_whitelist_x_forwarded_for,
-         NGX_HTTP_LOC_CONF_OFFSET,
-         0,
-         NULL },
+    { ngx_string("robot_mitigation_ip_whitelist_x_forwarded_for"),
+        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+        ngx_http_rm_ip_whitelist_x_forwarded_for,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
 #endif
 
     ngx_null_command
@@ -1161,7 +1170,7 @@ ngx_http_rm_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_rm_loc_conf_t     *rlcf = conf;
     ngx_str_t                  *value;
-    
+
     value = cf->args->elts;
 
     if (ngx_strstr(value[1].data, "pass") != NULL) {
@@ -1204,7 +1213,7 @@ ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_rm_loc_conf_t     *rlcf = conf;
     ngx_str_t                  *value;
-    
+
     value = cf->args->elts;
 
     rlcf->failed_count = ngx_atoi(value[1].data, value[1].len);
@@ -1222,7 +1231,7 @@ ngx_http_rm_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_rm_loc_conf_t     *rlcf = conf;
     ngx_str_t                  *value;
     ngx_int_t                   timeout;
-    
+
     value = cf->args->elts;
     rlcf->timeout = ngx_atoi(value[1].data, value[1].len);
 
@@ -1238,9 +1247,24 @@ ngx_http_rm_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
+static char *
+ngx_http_rm_whitelist_caseless(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_rm_loc_conf_t     *rlcf = conf;
+    ngx_str_t                  *value;
+
+    value = cf->args->elts;
+
+    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
+        rlcf->wl_caseless = 1;
+    }
+
+    return NGX_CONF_OK;
+}
+
 static ngx_int_t
 ngx_http_rm_whitelist_pattern_parse(ngx_conf_t *cf, ngx_http_regex_t **regex,
-    ngx_str_t *pattern)
+    ngx_str_t *pattern, ngx_http_rm_loc_conf_t *rlcf)
 {
 #if (NGX_PCRE)
     ngx_regex_compile_t  rc;
@@ -1255,7 +1279,11 @@ ngx_http_rm_whitelist_pattern_parse(ngx_conf_t *cf, ngx_http_regex_t **regex,
 #if (NGX_HAVE_CASELESS_FILESYSTEM)
     rc.options = NGX_REGEX_CASELESS;
 #else
-    rc.options = 0;
+    if (rlcf->wl_caseless) {
+        rc.options = NGX_REGEX_CASELESS;
+    } else {
+        rc.options = 0;
+    }
 #endif
 
     *regex = ngx_http_regex_compile(cf, &rc);
@@ -1329,7 +1357,7 @@ ngx_http_rm_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
     }
 
     item->name = name;
-    ret = ngx_http_rm_whitelist_pattern_parse(cf, &item->regex, pattern);
+    ret = ngx_http_rm_whitelist_pattern_parse(cf, &item->regex, pattern, rlcf);
     if (ret != NGX_OK) {
         return NGX_CONF_ERROR;
     }

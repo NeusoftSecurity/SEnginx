@@ -2305,6 +2305,8 @@ ngx_http_rm_request_type(ngx_http_request_t *r, ngx_uint_t op, ngx_uint_t value)
             session_name);
 
     if (!session_ctx) {
+        ngx_shmtx_unlock(&session->mutex);
+        ngx_http_session_put(r);
         return NGX_ERROR;
     }
 

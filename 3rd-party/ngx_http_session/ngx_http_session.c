@@ -1069,7 +1069,7 @@ ngx_http_session_redirect_timeout(ngx_conf_t *cf, ngx_command_t *cmd,
 static ngx_int_t
 ngx_http_session_show_handler(ngx_http_request_t *r)
 {
-    ngx_int_t                        rc, j = 0;
+    ngx_int_t                        rc, j = 0, num = 0;
     ngx_buf_t                        *b;
     ngx_chain_t                      out;
     ngx_str_t                        *test;
@@ -1107,6 +1107,21 @@ ngx_http_session_show_handler(ngx_http_request_t *r)
 
     session_list = ngx_http_session_shm_zone->data;
     ngx_shmtx_lock(&session_list->shpool->mutex);
+
+    for (i = 0; i < NGX_HTTP_SESSION_DEFAULT_NUMBER; i++) {
+        tmp = session_list->sessions[i];
+        if (!tmp) {
+            continue;
+        }
+
+        while (tmp) {
+            num++;
+            tmp = tmp->next;
+        }
+    }
+
+    j = sprintf((char *)(test->data), "total num = %d <br>", (int)num);
+    test->len += j;
 
     for (i = 0; i < NGX_HTTP_SESSION_DEFAULT_NUMBER; i++) {
         tmp = session_list->sessions[i];

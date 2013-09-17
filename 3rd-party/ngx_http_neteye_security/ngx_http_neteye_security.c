@@ -839,6 +839,8 @@ block:
                     action->session_name);
 
             if (!session_ctx) {
+                ngx_shmtx_unlock(&session->mutex);
+                ngx_http_session_put(r);
                 return NGX_HTTP_INTERNAL_SERVER_ERROR;
             }
 

@@ -1,4 +1,26 @@
 
+Changes with nginx 1.5.5                                         17 Sep 2013
+
+    *) Change: now nginx assumes HTTP/1.0 by default if it is not able to
+       detect protocol reliably.
+
+    *) Feature: the "disable_symlinks" directive now uses O_PATH on Linux.
+
+    *) Feature: now nginx uses EPOLLRDHUP events to detect premature
+       connection close by clients if the "epoll" method is used.
+
+    *) Bugfix: in the "valid_referers" directive if the "server_names"
+       parameter was used.
+
+    *) Bugfix: the $request_time variable did not work in nginx/Windows.
+
+    *) Bugfix: in the "image_filter" directive.
+       Thanks to Lanshun Zhou.
+
+    *) Bugfix: OpenSSL 1.0.1f compatibility.
+       Thanks to Piotr Sikora.
+
+
 Changes with nginx 1.5.4                                         27 Aug 2013
 
     *) Change: the "js" extension MIME type has been changed to

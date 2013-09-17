@@ -185,8 +185,10 @@ ngx_ssl_create(ngx_ssl_t *ssl, ngx_uint_t protocols, void *data)
     SSL_CTX_set_options(ssl->ctx, SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG);
     SSL_CTX_set_options(ssl->ctx, SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER);
 
+#ifdef SSL_OP_MSIE_SSLV2_RSA_PADDING
     /* this option allow a potential SSL 2.0 rollback (CAN-2005-2969) */
     SSL_CTX_set_options(ssl->ctx, SSL_OP_MSIE_SSLV2_RSA_PADDING);
+#endif
 
     SSL_CTX_set_options(ssl->ctx, SSL_OP_SSLEAY_080_CLIENT_DH_BUG);
     SSL_CTX_set_options(ssl->ctx, SSL_OP_TLS_D5_BUG);
@@ -363,6 +365,13 @@ ngx_ssl_client_certificate(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *cert,
         return NGX_ERROR;
     }
 
+    /*
+     * SSL_CTX_load_verify_locations() may leave errors in the error queue
+     * while returning success
+     */
+
+    ERR_clear_error();
+
     list = SSL_load_client_CA_file((char *) cert->data);
 
     if (list == NULL) {
@@ -406,6 +415,13 @@ ngx_ssl_trusted_certificate(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *cert,
                       cert->data);
         return NGX_ERROR;
     }
+
+    /*
+     * SSL_CTX_load_verify_locations() may leave errors in the error queue
+     * while returning success
+     */
+
+    ERR_clear_error();
 
     return NGX_OK;
 }

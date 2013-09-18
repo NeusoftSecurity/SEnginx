@@ -1,3 +1,11 @@
+Changes with senginx 1.5.4-2                                    18 Sep  2013
+
+    *) Bugfix: add session_put and unlock mutex lock in proper place
+
+    *) Bugfix: add unlock session when ngx_shmtx_create failed
+
+    *) Bugfix: in session, add timer at session manager, to solve the problem of core dump
+
 Changes with senginx 1.5.4                                      12 Sep  2013
 
     *) Feature: upgrade to original nginx 1.5.4.

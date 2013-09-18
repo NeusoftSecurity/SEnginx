@@ -22,7 +22,7 @@ use Test::Nginx;
 #select STDERR; $| = 1;
 #select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy session cookie_poisoning/)->plan(10);
+my $t = Test::Nginx->new()->has(qw/http proxy session cookie_poisoning/)->plan(12);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
 
@@ -82,6 +82,13 @@ http {
             
             proxy_pass http://127.0.0.1:8081;
         }
+
+        location /cp-local.html {
+            cookie_poisoning on;
+            cookie_poisoning_action block;
+            cookie_poisoning_log on;
+            add_header Set-Cookie "cp-local-test-cookie=7654321";
+        }
     }
 }
 
@@ -89,6 +96,7 @@ EOF
 
 my $errlog_dir = $t->{_testdir};
 my $errlog = $errlog_dir.'/'.'error.log';
+$t->write_file('cp-local.html', 'This-is-local-file');
 
 $t->run_daemon(\&http_daemon);
 $t->run();
@@ -144,6 +152,16 @@ $cookie =~ s/abcdefg/1234567/;
 $cookie = $cookie_session."\r\n".$cookie;
 
 like(http_get_with_header('/cp-disable', $cookie), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http cp-disable 2nd get with poisoned cookie');
+
+$r = http_get_with_header('/cp-local.html', $cookie_session);
+like($r, qr/cp-local-test-cookie/, 'http cp-local.html 1st get');
+
+$cookie = &cp_get_cookie($r);
+$cookie =~ s/7654321/1234567/;
+$cookie = $cookie_session."\r\n".$cookie;
+
+unlike(http_get_with_header('/cp-local.html', $cookie), qr/This-is-local-file/, 'http cp-local.html 2nd get with poisoned cookie');
+
 
 ###############################################################################
 

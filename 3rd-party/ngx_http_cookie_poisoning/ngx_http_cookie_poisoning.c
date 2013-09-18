@@ -832,8 +832,15 @@ ngx_int_t ngx_http_cp_header_handler(ngx_http_request_t *r)
     }
 
     u = r->upstream;
-    if (!u) {
-	/* response from local */
+    if (u) {
+        part = &u->headers_in.headers.part;
+    } else {
+	    /* response from local */
+        part = &r->headers_out.headers.part;
+    }
+
+    if (part == NULL) {
+        /* Have no headers */
         return NGX_DECLINED;
     }
 
@@ -841,7 +848,6 @@ ngx_int_t ngx_http_cp_header_handler(ngx_http_request_t *r)
     memset(&cookie_name, 0, sizeof(ngx_str_t));
     memset(&neteye_cookie, 0, sizeof(ngx_str_t));
 
-    part = &u->headers_in.headers.part;
     h = part->elts;
 
     for (i = 0; ; i++) {

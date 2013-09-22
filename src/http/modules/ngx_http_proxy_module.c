@@ -1732,7 +1732,7 @@ ngx_http_proxy_chunked_filter(ngx_event_pipe_t *p, ngx_buf_t *buf)
 
             if (buf->last - buf->pos >= ctx->chunked.size) {
 
-                buf->pos += ctx->chunked.size;
+                buf->pos += (size_t) ctx->chunked.size;
                 b->last = buf->pos;
                 ctx->chunked.size = 0;
 
@@ -1895,7 +1895,7 @@ ngx_http_proxy_non_buffered_chunked_filter(void *data, ssize_t bytes)
             b->tag = u->output.tag;
 
             if (buf->last - buf->pos >= ctx->chunked.size) {
-                buf->pos += ctx->chunked.size;
+                buf->pos += (size_t) ctx->chunked.size;
                 b->last = buf->pos;
                 ctx->chunked.size = 0;
 

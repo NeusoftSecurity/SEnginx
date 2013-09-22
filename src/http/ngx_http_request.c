@@ -580,6 +580,7 @@ ngx_http_create_request(ngx_connection_t *c)
     r->start_msec = tp->msec;
 
     r->method = NGX_HTTP_UNKNOWN;
+    r->http_version = NGX_HTTP_VERSION_10;
 
     r->headers_in.content_length_n = -1;
     r->headers_in.keep_alive_n = -1;
@@ -2702,6 +2703,33 @@ ngx_http_test_reading(ngx_http_request_t *r)
 
 #endif
 
+#if (NGX_HAVE_EPOLLRDHUP)
+
+    if ((ngx_event_flags & NGX_USE_EPOLL_EVENT) && rev->pending_eof) {
+        socklen_t  len;
+
+        rev->eof = 1;
+        c->error = 1;
+
+        err = 0;
+        len = sizeof(ngx_err_t);
+
+        /*
+         * BSDs and Linux return 0 and set a pending error in err
+         * Solaris returns -1 and sets errno
+         */
+
+        if (getsockopt(c->fd, SOL_SOCKET, SO_ERROR, (void *) &err, &len)
+            == -1)
+        {
+            err = ngx_errno;
+        }
+
+        goto closed;
+    }
+
+#endif
+
     n = recv(c->fd, buf, 1, MSG_PEEK);
 
     if (n == 0) {
@@ -3351,10 +3379,15 @@ ngx_http_free_request(ngx_http_request_t *r, ngx_int_t rc)
         return;
     }
 
-    for (cln = r->cleanup; cln; cln = cln->next) {
+    cln = r->cleanup;
+    r->cleanup = NULL;
+
+    while (cln) {
         if (cln->handler) {
             cln->handler(cln->data);
         }
+
+        cln = cln->next;
     }
 
 #if (NGX_STAT_STUB)

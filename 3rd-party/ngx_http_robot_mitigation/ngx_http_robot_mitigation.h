@@ -14,16 +14,12 @@
 
 #include <ngx_times.h>
 
-#if (NGX_HTTP_BLACKLIST)
-#include <ngx_http_blacklist.h>
+#if (NGX_HTTP_IP_BLACKLIST)
+#include <ngx_http_ip_blacklist.h>
 #endif
 
 #if (NGX_HTTP_STATUS_PAGE)
 #include <ngx_http_status_page.h>
-#endif
-
-#if (NGX_HTTP_SESSION)
-#include <ngx_http_session.h>
 #endif
 
 #define NGX_HTTP_RM_DEFAULT_URI NGX_HTTP_STATUS_PAGE_PATH"/403.html"
@@ -43,8 +39,6 @@
 #define NGX_HTTP_RM_MODE_SWF 2
 
 #define NGX_HTTP_RM_DEFAULT_TIMEOUT 600
-#define NGX_HTTP_RM_DEFAULT_FAIILED_COUNT 5
-#define NGX_HTTP_RM_DEFAULT_BL_TIMEOUT 60
 
 #define NGX_HTTP_RM_SWF_FILENAME_PREFIX "neteye-adsg-swf-"
 
@@ -78,7 +72,6 @@ typedef struct {
     ngx_int_t                  enabled;
     ngx_int_t                  ip_whitelist_x_forwarded_for;
     ngx_int_t                  wl_caseless;
-    ngx_int_t                  action;
     ngx_int_t                  mode;
     ngx_int_t                  log;
     ngx_str_t                  error_page;
@@ -102,6 +95,8 @@ typedef struct {
     
     ngx_str_t              cookie_f1;
     ngx_str_t              cookie_f2;
+
+    ngx_int_t              blacklist;
 } ngx_http_rm_req_ctx_t;
 
 

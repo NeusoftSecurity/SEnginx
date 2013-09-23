@@ -71,6 +71,7 @@ struct ngx_cycle_s {
     ngx_str_t                 hostname;
 
     ngx_int_t                 (*session_callback)(void);
+    ngx_int_t                 (*ip_blacklist_callback)(void);
 };
 
 

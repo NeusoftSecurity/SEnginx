@@ -12,6 +12,8 @@
 #include <ngx_http_ip_blacklist.h>
 
 static ngx_int_t
+ngx_http_ip_blacklist_manager(void);
+static ngx_int_t
 ngx_http_ip_blacklist_init(ngx_conf_t *cf);
 static ngx_int_t
 ngx_http_ip_blacklist_handler(ngx_http_request_t *r);
@@ -229,6 +231,7 @@ ngx_http_ip_blacklist_create_main_conf(ngx_conf_t *cf)
     }
 
     imcf->timeout = 60;
+    imcf->size = 1024;
 
     return imcf;
 }
@@ -239,6 +242,10 @@ ngx_http_ip_blacklist_init_main_conf(ngx_conf_t *cf, void *conf)
     ngx_http_ip_blacklist_main_conf_t     *imcf = conf;
     ngx_str_t                             *shm_name;
     ngx_int_t                              shm_size;
+
+    if (imcf->enabled == 0) {
+        return NGX_CONF_OK;
+    }
 
     shm_name = ngx_palloc(cf->pool, sizeof(*shm_name));
     ngx_str_set(shm_name, "ip_blacklist");
@@ -257,6 +264,8 @@ ngx_http_ip_blacklist_init_main_conf(ngx_conf_t *cf, void *conf)
     }
 
     ngx_http_ip_blacklist_shm_zone->init = ngx_http_ip_blacklist_init_shm_zone;
+
+    cf->cycle->ip_blacklist_callback = ngx_http_ip_blacklist_manager;
 
     return NGX_CONF_OK;
 }
@@ -439,8 +448,6 @@ ngx_http_ip_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
         imcf->enabled = 1;
     }
-
-    cf->cycle->ip_blacklist_callback = ngx_http_ip_blacklist_manager;
 
     return NGX_CONF_OK;
 }
@@ -708,10 +715,17 @@ ngx_http_ip_blacklist_show(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static ngx_int_t
 ngx_http_ip_blacklist_flush_handler(ngx_http_request_t *r)
 {
+    ngx_http_ip_blacklist_main_conf_t *imcf;
     ngx_http_ip_blacklist_tree_t      *blacklist;
     ngx_http_ip_blacklist_t           *bn;
     ngx_queue_t                       *node;
     ngx_queue_t                       *tmp;
+
+    imcf = ngx_http_get_module_main_conf(r, ngx_http_ip_blacklist_module);
+
+    if (!imcf->enabled) {
+        return NGX_HTTP_CLOSE;
+    }
 
     blacklist = ngx_http_ip_blacklist_shm_zone->data;
     ngx_shmtx_lock(&blacklist->shpool->mutex);

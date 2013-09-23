@@ -39,6 +39,13 @@ typedef struct {
     ngx_msec_t                 delay;
 } ngx_session_manager_ctx_t;
 
+typedef struct {
+    ngx_event_handler_pt       handler;
+    char                      *name;
+    ngx_msec_t                 delay;
+} ngx_ip_blacklist_manager_ctx_t;
+
+
 void ngx_master_process_cycle(ngx_cycle_t *cycle);
 void ngx_single_process_cycle(ngx_cycle_t *cycle);
 

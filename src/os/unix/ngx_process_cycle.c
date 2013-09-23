@@ -17,7 +17,7 @@ static void ngx_start_cache_manager_processes(ngx_cycle_t *cycle,
     ngx_uint_t respawn);
 static void ngx_pass_open_channel(ngx_cycle_t *cycle, ngx_channel_t *ch);
 static void ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo);
-static void ngx_signal_worker_processes_except_session(ngx_cycle_t *cycle, int signo);
+static void ngx_signal_worker_processes_except_helper(ngx_cycle_t *cycle, int signo);
 static ngx_uint_t ngx_reap_children(ngx_cycle_t *cycle);
 static void ngx_master_process_exit(ngx_cycle_t *cycle);
 static void ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data);
@@ -36,6 +36,12 @@ static void ngx_start_session_manager_processes(ngx_cycle_t *cycle,
     ngx_uint_t respawn);
 static void ngx_session_manager_process_cycle(ngx_cycle_t *cycle, void *data);
 static void ngx_session_manager_process_handler(ngx_event_t *ev);
+
+static void ngx_start_ip_blacklist_manager_processes(ngx_cycle_t *cycle,
+    ngx_uint_t respawn);
+static void ngx_ip_blacklist_manager_process_cycle(ngx_cycle_t *cycle,
+        void *data);
+static void ngx_ip_blacklist_manager_process_handler(ngx_event_t *ev);
 
 ngx_uint_t    ngx_process;
 ngx_pid_t     ngx_pid;
@@ -81,6 +87,13 @@ static ngx_cache_manager_ctx_t  ngx_cache_loader_ctx = {
 static ngx_session_manager_ctx_t  ngx_session_manager_ctx = {
     ngx_session_manager_process_handler, "session manager process", 5000
 };
+
+static ngx_ip_blacklist_manager_ctx_t  ngx_ip_blacklist_manager_ctx = {
+    ngx_ip_blacklist_manager_process_handler,
+    "IP blacklist manager process",
+    1000
+};
+
 
 static ngx_cycle_t      ngx_exit_cycle;
 static ngx_log_t        ngx_exit_log;
@@ -146,6 +159,8 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     ngx_start_cache_manager_processes(cycle, 0);
     
     ngx_start_session_manager_processes(cycle, 0);
+    
+    ngx_start_ip_blacklist_manager_processes(cycle, 0);
 
     ngx_new_binary = 0;
     delay = 0;
@@ -264,7 +279,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_msleep(100);
 
             live = 1;
-            ngx_signal_worker_processes_except_session(cycle,
+            ngx_signal_worker_processes_except_helper(cycle,
                                         ngx_signal_value(NGX_SHUTDOWN_SIGNAL));
         }
 
@@ -569,7 +584,7 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
 }
 
 static void
-ngx_signal_worker_processes_except_session(ngx_cycle_t *cycle, int signo)
+ngx_signal_worker_processes_except_helper(ngx_cycle_t *cycle, int signo)
 {
     ngx_int_t      i;
     ngx_err_t      err;
@@ -617,6 +632,10 @@ ngx_signal_worker_processes_except_session(ngx_cycle_t *cycle, int signo)
                        ngx_processes[i].just_spawn);
 
         if (ngx_strstr(ngx_processes[i].name, "session")) {
+            continue;
+        }
+
+        if (ngx_strstr(ngx_processes[i].name, "IP blacklist")) {
             continue;
         }
 
@@ -1586,6 +1605,83 @@ ngx_session_manager_process_handler(ngx_event_t *ev)
 
     if (ngx_cycle->session_callback) {
         ngx_cycle->session_callback();
+    }
+    
+    ngx_add_timer(ev, next * 1000);
+}
+
+static void
+ngx_start_ip_blacklist_manager_processes(ngx_cycle_t *cycle, ngx_uint_t respawn)
+{
+    ngx_channel_t    ch;
+    
+    ngx_spawn_process(cycle, ngx_ip_blacklist_manager_process_cycle,
+                      &ngx_ip_blacklist_manager_ctx,
+                      "IP blacklist manager process",
+                      respawn ? NGX_PROCESS_JUST_RESPAWN : NGX_PROCESS_NORESPAWN);
+
+    ch.command = NGX_CMD_OPEN_CHANNEL;
+    ch.pid = ngx_processes[ngx_process_slot].pid;
+    ch.slot = ngx_process_slot;
+    ch.fd = ngx_processes[ngx_process_slot].channel[0];
+
+    ngx_pass_open_channel(cycle, &ch);
+}
+
+static void
+ngx_ip_blacklist_manager_process_cycle(ngx_cycle_t *cycle, void *data)
+{
+    ngx_ip_blacklist_manager_ctx_t *ctx = data;
+
+    void         *ident[4];
+    ngx_event_t   ev;
+
+    cycle->connection_n = 512;
+
+    ngx_process = NGX_PROCESS_HELPER;
+
+    ngx_worker_process_init(cycle, 0);
+
+    ngx_close_listening_sockets(cycle);
+
+    ngx_memzero(&ev, sizeof(ngx_event_t));
+    ev.handler = ctx->handler;
+    ev.data = ident;
+    ev.log = cycle->log;
+    ident[3] = (void *) -1;
+
+    ngx_use_accept_mutex = 0;
+
+    ngx_setproctitle(ctx->name);
+
+    ngx_add_timer(&ev, ctx->delay);
+
+    for ( ;; ) {
+
+        if (ngx_terminate || ngx_quit) {
+            ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "exiting");
+            exit(0);
+        }
+
+        if (ngx_reopen) {
+            ngx_reopen = 0;
+            ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reopening logs");
+            ngx_reopen_files(cycle, -1);
+        }
+
+        ngx_process_events_and_timers(cycle);
+    }
+}
+
+static void
+ngx_ip_blacklist_manager_process_handler(ngx_event_t *ev)
+{
+    time_t        next;
+
+    next = 1;
+
+    if (ngx_cycle->ip_blacklist_callback) {
+        ngx_cycle->ip_blacklist_callback();
     }
     
     ngx_add_timer(ev, next * 1000);

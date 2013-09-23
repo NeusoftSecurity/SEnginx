@@ -6,8 +6,6 @@
 
 #if (NGX_HTTP_NETEYE_SECURITY)
 #include <ngx_http_neteye_security.h>
-#else
-#error "must compile with neteye security module"
 #endif
 
 #include <ngx_sha1.h>
@@ -68,6 +66,11 @@ ngx_http_rm_type_swf = ngx_string("application/x-shockwave-flash");
 
 static ngx_str_t ngx_http_rm_type_html = ngx_string("text/html");
 
+static ngx_int_t
+ngx_http_rm_add_variables(ngx_conf_t *cf);
+static ngx_int_t
+ngx_http_rm_blacklist_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 static char *
 ngx_http_rm_whitelist_caseless(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
@@ -76,10 +79,6 @@ static char *
 ngx_http_rm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_rm_cookie_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-#if (NGX_HTTP_SESSION) 
-static char *
-ngx_http_rm_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-#endif
 static char *
 ngx_http_rm_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t
@@ -114,14 +113,9 @@ static u_char *
 ngx_http_rm_post_data_decode(ngx_http_request_t *r,
         u_char *string, ngx_uint_t len, 
         ngx_uint_t *decoded_len);
-
+#if 0
 static ngx_int_t
 ngx_http_rm_do_action(ngx_http_request_t *r);
-
-#if (NGX_HTTP_SESSION)
-static ngx_int_t
-ngx_http_rm_request_type(ngx_http_request_t *r, 
-        ngx_uint_t op, ngx_uint_t value);
 #endif
 
 static ngx_int_t
@@ -141,18 +135,8 @@ static char *
 ngx_http_rm_ip_whitelist_x_forwarded_for(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 #endif
 
-#if (NGX_HTTP_SESSION)
 static char *
 ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-
-static void 
-ngx_http_rm_destroy_ctx_handler(void *ctx);
-static ngx_int_t 
-ngx_http_rm_init_ctx_handler(void *ctx);
-#endif
-
-static void
-ngx_http_rm_create_session_ctx(ngx_http_session_t *session);
 
 static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
 
@@ -177,21 +161,12 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         0,
         NULL },
     
-#if (NGX_HTTP_SESSION) 
-    { ngx_string("robot_mitigation_action"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
-        ngx_http_rm_action,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
- 
     { ngx_string("robot_mitigation_blacklist"),
         NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_rm_blacklist,
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
-#endif
     
     { ngx_string("robot_mitigation_timeout"),
         NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
@@ -233,9 +208,19 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
     ngx_null_command
 };
 
-static ngx_http_module_t 
+static ngx_http_variable_t  ngx_http_rm_vars[] = {
+
+    { ngx_string("robot_mitigation_blacklist"),
+        NULL, ngx_http_rm_blacklist_variable, 0,
+      NGX_HTTP_VAR_CHANGEABLE|NGX_HTTP_VAR_NOCACHEABLE|NGX_HTTP_VAR_NOHASH, 0 },
+
+    { ngx_null_string, NULL, NULL, 0, 0, 0 }
+};
+
+
+static ngx_http_module_t
 ngx_http_robot_mitigation_module_ctx = {
-    NULL,                                    /* preconfiguration */
+    ngx_http_rm_add_variables,               /* preconfiguration */
     ngx_http_rm_init,                        /* postconfiguration */
 
     NULL,                                    /* create main configuration */
@@ -822,7 +807,6 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_str_t                          cookie, user_agent;
     ngx_str_t                          cookie_f1, cookie_f2;
     ngx_int_t                          ret;
-    ngx_int_t                          req_type = NGX_HTTP_RM_STATUS_NEW;
     ngx_http_rm_whitelist_item_t       *item;
     ngx_http_rm_ip_whitelist_item_t    *ip_item;
     ngx_uint_t                         i;
@@ -838,21 +822,6 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
             "robot mitigation request handler begin");
     
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
-
-#if 0
-    if (!ngx_http_session_is_enabled(r)) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                "session mechanism is not enabled, skip");
-        return NGX_DECLINED;
-    }
-#endif
-
-#if (NGX_HTTP_SESSION)
-    if (ngx_http_session_test_create(r) 
-            || ngx_http_session_test_bypass(r)) {
-        return NGX_DECLINED;
-    }
-#endif
 
     if (rlcf->enabled != 1) {
         return NGX_DECLINED;
@@ -875,7 +844,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 
         /* check ip whitelist */
         for (i = 0; i < rlcf->ip_whitelist_items->nelts; i++) {
-            if (ip_item[i].start_addr > ntohl(src_addr) || 
+            if (ip_item[i].start_addr > ntohl(src_addr) ||
                     ip_item[i].end_addr < ntohl(src_addr)) {
                 goto challenge;
             }
@@ -928,25 +897,9 @@ challenge:
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-#if (NGX_HTTP_SESSION)
-    if (ngx_http_session_is_enabled(r)) {
-        gen_time = (ngx_int_t)ngx_http_rm_request_type(r, 
-                NGX_HTTP_RM_GET_TIME, 0);
-        if (ngx_time() >= gen_time + rlcf->timeout) {
-            gen_time = ngx_time();
-            ngx_http_rm_request_type(r, 
-                NGX_HTTP_RM_RECORD_TIME,
-                (ngx_uint_t)gen_time);
-        }
-        goto check_cookie;
-    }
-#endif
     gen_time = ngx_time();
     gen_time = gen_time - (gen_time % rlcf->timeout);
 
-#if (NGX_HTTP_SESSION)
-check_cookie:
-#endif
     ret = ngx_http_rm_generate_cookie(r, &cookie, gen_time);
     if (ret != NGX_OK) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -960,72 +913,28 @@ check_cookie:
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
                 "robot mitigation passed");
 
-#if (NGX_HTTP_SESSION)
-        ngx_http_rm_request_type(r, 
-                NGX_HTTP_RM_SET_STATUS, 
-                NGX_HTTP_RM_STATUS_PASSED);
-#endif
-
         return NGX_DECLINED;
     }
  
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "cookie valid: %d", (int)ret);
-   
     if (ret == NGX_ERROR) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    /* 2: if failed and reason is no cookie value, 
-     * try to find session 
-     * and record the blacklist failure count 
-     */
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+            "robot mitgation failed, re-challenge");
 
-#if (NGX_HTTP_SESSION)
-    req_type = ngx_http_rm_request_type(r, NGX_HTTP_RM_GET_STATUS, 0);
-    if (req_type == NGX_ERROR) {
-        return NGX_ERROR;
-    }
-#endif
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            "current type: %d", (int)req_type);
-    
-    /* timeout or cookie lost */
-    if (req_type == NGX_HTTP_RM_STATUS_PASSED) {
-#if (NGX_HTTP_SESSION)
-        ngx_http_rm_request_type(r, 
-                NGX_HTTP_RM_SET_STATUS, 
-                NGX_HTTP_RM_STATUS_NEW);
-#endif
-    }
-
-    if (ret == NGX_HTTP_RM_RET_INVALID_COOKIE
-            && req_type == NGX_HTTP_RM_STATUS_CHALLENGING) {
-        if ((ret = ngx_http_rm_do_action(r)) != NGX_OK) {
-#if (NGX_HTTP_SESSION)
-            /* set status to NEW, thus next time will rechallenge */ 
-            ngx_http_rm_request_type(r, 
-                    NGX_HTTP_RM_SET_STATUS, 
-                    NGX_HTTP_RM_STATUS_NEW);
-#endif
-            return ret;
-        }
-
-        /* pass to next ns checker */
-        if (ret == NGX_OK) {
-#if (NGX_HTTP_SESSION)
-            /* set status to NEW, thus next time will rechallenge */ 
-            ngx_http_rm_request_type(r, 
-                    NGX_HTTP_RM_SET_STATUS, 
-                    NGX_HTTP_RM_STATUS_NEW);
-#endif
-            return NGX_DECLINED;
+    /* handle blacklist here */
+    if (rlcf->failed_count > 0) {
+        ret = ngx_http_ip_blacklist_update(r,
+                    &r->connection->addr_text,
+                    rlcf->failed_count + 1,
+                    &ngx_http_robot_mitigation_module);
+        fprintf(stderr, "update ret: %ld\n", ret);
+        if (ret == 1) {
+            return NGX_ERROR;
         }
     }
 
-    /*
-     * 3: record cookie value to ctx, and begin challenge 
-     */
     if ((r->method != NGX_HTTP_GET)
             && (r->method != NGX_HTTP_POST)) {
         return NGX_DECLINED;
@@ -1035,7 +944,7 @@ check_cookie:
     if (ctx == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-   
+
     cookie_f1.data = ngx_pcalloc(r->pool, NGX_HTTP_RM_DEFAULT_COOKIE_LEN + 1);
     if (cookie_f1.data == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -1064,18 +973,8 @@ check_cookie:
 
     r->content_handler = ngx_http_rm_content_handler;
 
-#if (NGX_HTTP_SESSION)
-    if (req_type == NGX_HTTP_RM_STATUS_NEW) {
-        ngx_http_rm_request_type(r, NGX_HTTP_RM_SET_STATUS, 
-                NGX_HTTP_RM_STATUS_CHALLENGING);
-    }
-#endif
-
 out:
     ngx_http_ns_set_bypass_all(r);
-#if (NGX_HTTP_SESSION)
-    ngx_http_session_set_bypass(r);
-#endif
 
     return NGX_DECLINED;
 }
@@ -1086,17 +985,19 @@ static ngx_int_t ngx_http_rm_init(ngx_conf_t *cf)
 
     ret = ngx_http_neteye_security_ctx_register(NGX_HTTP_NETEYE_ROBOT_MITIGATION, 
             ngx_http_rm_request_ctx_init);
-    
+
     if (ret != NGX_OK) {
         return ret;
     }
 
-    ngx_http_session_register_create_ctx_handler(
-            ngx_http_rm_create_session_ctx);
+    ret = ngx_http_ip_blacklist_register_mod(&ngx_http_robot_mitigation_module);
+    if (ret != NGX_OK) {
+        return ret;
+    }
 
     /* we only a request handler for this feature */
     return ngx_http_neteye_security_request_register(
-            NGX_HTTP_NETEYE_ROBOT_MITIGATION, 
+            NGX_HTTP_NETEYE_ROBOT_MITIGATION,
             ngx_http_rm_request_handler);
 }
 
@@ -1131,7 +1032,8 @@ static char *ngx_http_rm_ip_whitelist_x_forwarded_for(ngx_conf_t *cf,
 }
 #endif
 
-static char *ngx_http_rm_cookie_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+static char *ngx_http_rm_cookie_name(ngx_conf_t *cf,
+        ngx_command_t *cmd, void *conf)
 {
     ngx_http_rm_loc_conf_t *rlcf = conf;
     ngx_str_t               *value = NULL;
@@ -1164,50 +1066,6 @@ ngx_http_rm_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-#if (NGX_HTTP_SESSION) 
-static char *
-ngx_http_rm_action(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_rm_loc_conf_t     *rlcf = conf;
-    ngx_str_t                  *value;
-
-    value = cf->args->elts;
-
-    if (ngx_strstr(value[1].data, "pass") != NULL) {
-        rlcf->action = NGX_HTTP_NS_ACTION_PASS;
-    } else if (ngx_strstr(value[1].data, "block") != NULL) {
-        rlcf->action = NGX_HTTP_NS_ACTION_BLOCK;
-    } else if (ngx_strstr(value[1].data, "blacklist") != NULL) {
-        rlcf->action = NGX_HTTP_NS_ACTION_BLACKLIST;
-    } else {
-        return "Unknow robot_mitigation_action type";
-    }
-
-#if (NGX_HTTP_STATUS_PAGE)
-    if (cf->args->nelts < 3) {
-        return NGX_CONF_OK;
-    }
-
-    if (ngx_strstr(value[2].data, "notify=") != NULL) {
-        if ((value[2].len - strlen("notify=")) == 0) {
-            rlcf->error_page.len = 0;
-            rlcf->error_page.data = NULL;
-        } else {
-            rlcf->error_page.data = value[2].data + strlen("notify=");
-            rlcf->error_page.len = value[2].len - strlen("notify=");
-            if (rlcf->error_page.len == 3) {
-                if (!ngx_memcmp(rlcf->error_page.data, "off", 3)) {
-                    rlcf->error_page.len = 0;
-                    rlcf->error_page.data = NULL;
-                }
-            }
-        }
-    }
-#endif
-
-    return NGX_CONF_OK;
-}
-
 static char *
 ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1221,9 +1079,12 @@ ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return "Invalid blacklist count";
     }
 
+    if (rlcf->failed_count <= 0) {
+        return "Invalid blacklist count";
+    }
+
     return NGX_CONF_OK;
 }
-#endif
 
 static char *
 ngx_http_rm_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
@@ -2261,114 +2122,7 @@ ngx_http_rm_content_handler(ngx_http_request_t *r)
     return NGX_OK;
 }
 
-#if (NGX_HTTP_SESSION)
-static void 
-ngx_http_rm_destroy_ctx_handler(void *ctx)
-{
-    ngx_http_session_ctx_t *session_ctx;
-
-    session_ctx = (ngx_http_session_ctx_t *)ctx;
-
-    return ngx_http_session_shm_free_nolock(session_ctx->data);
-}
-
-static ngx_int_t 
-ngx_http_rm_init_ctx_handler(void *ctx)
-{
-    ngx_http_session_ctx_t *session_ctx;
-
-    session_ctx = (ngx_http_session_ctx_t *)ctx;
-
-    /* initial session ctx */
-    session_ctx->data = 
-        ngx_http_session_shm_alloc_nolock(sizeof(ngx_http_rm_session_ctx_t));
-    if (!session_ctx->data) {
-        fprintf(stderr, "create ac ctx error\n");
-        return NGX_ERROR;
-    }
-
-    memset(session_ctx->data, 0, sizeof(ngx_http_rm_session_ctx_t));
-
-    return NGX_OK;
-}
-
-static ngx_uint_t *
-ngx_http_rm_get_bl_count(ngx_http_session_ctx_t *ctx)
-{
-    ngx_http_rm_session_ctx_t         *ac_ctx;
-    
-    ac_ctx = ctx->data;
-
-    return &(ac_ctx->failed_count);
-}
-
-/*
- * set:
- * 0 for get the request_type
- * 1 for set the request_type to 1
- *
- * ret:
- * 0
- * 1
- * -1 for error occurred.
- */
-static ngx_int_t
-ngx_http_rm_request_type(ngx_http_request_t *r, ngx_uint_t op, ngx_uint_t value)
-{
-    ngx_http_session_t                *session;
-    ngx_http_session_ctx_t            *session_ctx;
-    ngx_int_t                          ret = NGX_OK;
-    ngx_http_rm_session_ctx_t         *ac_ctx;
-    u_char                            *session_name = (u_char *)"a/challenge";
-
-    session = ngx_http_session_get(r);
-    if (!session) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                "get session failed, treat this session as new\n");
-        return NGX_HTTP_RM_STATUS_NEW;
-    }
-
-    ngx_shmtx_lock(&session->mutex);
-    session_ctx = ngx_http_session_find_ctx(session, 
-            session_name);
-
-    if (!session_ctx) {
-        return NGX_ERROR;
-    }
-
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            "found session ctx\n");
-    ac_ctx = session_ctx->data;
-
-    switch (op)
-    {
-        case NGX_HTTP_RM_SET_STATUS:
-            ac_ctx->request_type = value;
-            break;
-        case NGX_HTTP_RM_GET_STATUS:
-            ret = ac_ctx->request_type;
-            break;
-        case NGX_HTTP_RM_CLEAR_STATUS:
-            ac_ctx->request_type = NGX_HTTP_RM_STATUS_NEW;
-            break;
-        case NGX_HTTP_RM_RECORD_TIME:
-            ac_ctx->generate_time = (ngx_int_t)value;
-            break;
-        case NGX_HTTP_RM_GET_TIME:
-            ret = (ngx_uint_t)ac_ctx->generate_time;
-            break;
-        default:
-            ret = NGX_ERROR;
-            break;
-    }
-
-    ngx_shmtx_unlock(&session->mutex);
-    ngx_http_session_put(r);
-
-    return ret;
-}
-#endif
-
+#if 0
 static void
 ngx_http_rm_write_attack_log(ngx_http_request_t *r)
 {  
@@ -2388,9 +2142,6 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
 {
     ngx_http_rm_loc_conf_t            *rlcf;
     ngx_http_ns_action_t              *action;
-#if (NGX_HTTP_SESSION) 
-    u_char                            *ac_name = (u_char *)"a/challenge";
-#endif
     ngx_int_t                          ret;
 
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
@@ -2404,11 +2155,6 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
     }
 
     action->action = rlcf->action;
-#if (NGX_HTTP_SESSION) 
-    action->session_name = ac_name;
-    action->get_bl_count = ngx_http_rm_get_bl_count;
-    action->bl_max = rlcf->failed_count;
-#endif
     if (rlcf->error_page.data != NULL) {
         action->has_redirect = 1;
         action->redirect_page = &rlcf->error_page;
@@ -2422,6 +2168,7 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
 
     return ret;
 }
+#endif
 
 static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
 {
@@ -2434,12 +2181,11 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
     }
 
     conf->mode = NGX_HTTP_RM_MODE_JS;
-    conf->action = NGX_HTTP_NS_ACTION_BLOCK;
     conf->enabled = 0;
 #if (NGX_HTTP_X_FORWARDED_FOR)
     conf->ip_whitelist_x_forwarded_for = 0;
 #endif
-    conf->failed_count = NGX_HTTP_RM_DEFAULT_FAIILED_COUNT;
+    conf->failed_count = -1;
     conf->timeout = NGX_HTTP_RM_DEFAULT_TIMEOUT;
     conf->cookie_name = cookie_name;
     conf->no_expires = 0;
@@ -2478,20 +2224,47 @@ ngx_http_rm_get_request_ctx(ngx_http_request_t *r)
     return ctx;
 }
 
-static void
-ngx_http_rm_create_session_ctx(ngx_http_session_t *session)
+static ngx_int_t
+ngx_http_rm_blacklist_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
-    ngx_http_session_ctx_t           *session_ctx;
-    u_char                           *session_name = (u_char *)"a/challenge";
+    ngx_http_rm_req_ctx_t  *ctx;
 
-    session_ctx = ngx_http_session_create_ctx(session,
-            session_name,
-            ngx_http_rm_init_ctx_handler,
-            ngx_http_rm_destroy_ctx_handler);
+    ctx = ngx_http_rm_get_request_ctx(r);
 
-    if (!session_ctx) {
-        return;
+    if (ctx == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
     }
 
-    /* TODO: maybe do some intialization here? */
+    if (ctx->blacklist) {
+        ngx_str_set(v, "true");
+    } else {
+        v->data = NULL;
+        v->len = 0;
+    }
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+static ngx_int_t
+ngx_http_rm_add_variables(ngx_conf_t *cf)
+{
+    ngx_http_variable_t  *var, *v;
+
+    for (v = ngx_http_rm_vars; v->name.len; v++) {
+        var = ngx_http_add_variable(cf, &v->name, v->flags);
+        if (var == NULL) {
+            return NGX_ERROR;
+        }
+
+        var->get_handler = v->get_handler;
+        var->data = v->data;
+    }
+
+    return NGX_OK;
 }

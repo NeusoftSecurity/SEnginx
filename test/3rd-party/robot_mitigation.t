@@ -43,7 +43,6 @@ http {
             robot_mitigation on;
             robot_mitigation_cookie_name rm-autotest;
             robot_mitigation_mode js;
-            robot_mitigation_action block;
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
@@ -58,7 +57,6 @@ http {
             robot_mitigation on;
             robot_mitigation_cookie_name rm-autotest;
             robot_mitigation_mode js;
-            robot_mitigation_action block;
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist_caseless on;
@@ -74,7 +72,6 @@ http {
             robot_mitigation on;
             robot_mitigation_cookie_name rm-autotest;
             robot_mitigation_mode js;
-            robot_mitigation_action block;
             robot_mitigation_timeout 600;
 
             robot_mitigation_ip_whitelist {
@@ -93,7 +90,6 @@ http {
             robot_mitigation on;
             robot_mitigation_cookie_name rm-autotest;
             robot_mitigation_mode js;
-            robot_mitigation_action block;
             robot_mitigation_timeout 600;
 
             robot_mitigation_ip_whitelist {

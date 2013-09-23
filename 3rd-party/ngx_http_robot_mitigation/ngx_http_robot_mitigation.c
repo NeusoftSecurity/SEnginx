@@ -929,7 +929,6 @@ challenge:
                     &r->connection->addr_text,
                     rlcf->failed_count + 1,
                     &ngx_http_robot_mitigation_module);
-        fprintf(stderr, "update ret: %ld\n", ret);
         if (ret == 1) {
             return NGX_ERROR;
         }

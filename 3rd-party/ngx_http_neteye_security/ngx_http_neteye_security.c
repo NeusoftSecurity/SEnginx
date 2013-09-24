@@ -204,6 +204,10 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
             "neteye security phase begins, handler number: %d", 
             nr_request_chain);
 
+    if (ngx_http_ns_test_bypass_all(r)) {
+        return NGX_DECLINED;
+    }
+
     if (nr_request_chain == 0) {
         return NGX_DECLINED;
     }
@@ -238,6 +242,11 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
         ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "neteye security handler: %d - %s(ret: %d)",
                 module->id, module->name, ret);
+
+        /* terminate current process in nginx */
+        if (ret == NGX_DONE) {
+            return NGX_DONE;
+        }
 
         /* skip other handlers */
         if (ret == NGX_OK) {
@@ -479,6 +488,10 @@ ngx_int_t ngx_http_neteye_security_header_filter(ngx_http_request_t *r)
             "neteye security response header begins, handler number: %d",
             nr_response_header_chain);
 
+    if (ngx_http_ns_test_bypass_all(r)) {
+        return ngx_http_next_header_filter(r);
+    }
+
     if (nr_response_header_chain == 0) {
         return ngx_http_next_header_filter(r);
     }
@@ -509,6 +522,11 @@ ngx_int_t ngx_http_neteye_security_header_filter(ngx_http_request_t *r)
         ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "neteye security response header: %d - %s(ret: %d)",
                 module->id, module->name, ret);
+
+        /* terminate current process in nginx */
+        if (ret == NGX_DONE) {
+            return NGX_DONE;
+        }
 
         /* skip other handlers */
         if (ret == NGX_OK) {
@@ -579,6 +597,10 @@ ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_
             "neteye security response body begins, handler number: %d",
             nr_response_body_chain);
 
+    if (ngx_http_ns_test_bypass_all(r)) {
+        return ngx_http_next_body_filter(r, in);
+    }
+
     if (nr_response_body_chain == 0) {
         return ngx_http_next_body_filter(r, in);
     }
@@ -609,6 +631,11 @@ ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_
         ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "neteye security response body: %d - %s(ret: %d)",
                 module->id, module->name, ret);
+
+        /* terminate current process in nginx */
+        if (ret == NGX_DONE) {
+            return NGX_DONE;
+        }
 
         /* skip other handlers */
         if (ret == NGX_OK) {

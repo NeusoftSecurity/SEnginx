@@ -819,7 +819,7 @@ ngx_http_rm_check_ajax_request(ngx_http_request_t *r)
     h = part->elts;
 
     for (i = 0; i < part->nelts; i++) {
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "ajax_request_check: %V %V", &h[i].key, &h[i].value);
         if (h[i].key.len != NGX_HTTP_RM_AJAX_KEY_LEN) {
             continue;
@@ -835,7 +835,7 @@ ngx_http_rm_check_ajax_request(ngx_http_request_t *r)
             if (!ngx_strncasecmp(h[i].value.data,
                         (u_char *)NGX_HTTP_RM_AJAX_VALUE,
                         NGX_HTTP_RM_AJAX_VALUE_LEN)) {
-                ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                         "ajax_request_match: %V %V", &h[i].key, &h[i].value);
                 return 1;
             }
@@ -940,8 +940,12 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 challenge:
     /* 0: check special active-challenge urls ignoring the location */
     if (ngx_http_rm_special_swf_uri(r)) {
-        r->content_handler = ngx_http_rm_send_swf_handler;
-        goto out;
+        ngx_http_ns_set_bypass_all(r);
+
+        r->write_event_handler = ngx_http_request_empty_handler;
+        ngx_http_finalize_request(r, ngx_http_rm_send_swf_handler(r));
+
+        return NGX_DONE;
     }
 
     /* 1: check special cookie */
@@ -1036,12 +1040,12 @@ challenge:
     ctx->cookie_f2.data = cookie_f2.data;
     ctx->cookie_f2.len = cookie_f2.len;
 
-    r->content_handler = ngx_http_rm_content_handler;
-
-out:
     ngx_http_ns_set_bypass_all(r);
 
-    return NGX_DECLINED;
+    r->write_event_handler = ngx_http_request_empty_handler;
+    ngx_http_finalize_request(r, ngx_http_rm_content_handler(r));
+
+    return NGX_DONE;
 }
 
 static ngx_int_t ngx_http_rm_init(ngx_conf_t *cf)

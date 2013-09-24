@@ -244,9 +244,13 @@ ngx_http_ip_blacklist_init_main_conf(ngx_conf_t *cf, void *conf)
     ngx_int_t                              shm_size;
 
     if (imcf->enabled == 0) {
+        cf->cycle->ip_blacklist_callback = ngx_http_ip_blacklist_manager;
+        cf->cycle->ip_blacklist_enabled = 0;
+
         return NGX_CONF_OK;
     }
 
+    /* set up shared memory for ip blacklist */
     shm_name = ngx_palloc(cf->pool, sizeof(*shm_name));
     ngx_str_set(shm_name, "ip_blacklist");
 
@@ -265,7 +269,9 @@ ngx_http_ip_blacklist_init_main_conf(ngx_conf_t *cf, void *conf)
 
     ngx_http_ip_blacklist_shm_zone->init = ngx_http_ip_blacklist_init_shm_zone;
 
+    /* set and enable ip blacklist manager */
     cf->cycle->ip_blacklist_callback = ngx_http_ip_blacklist_manager;
+    cf->cycle->ip_blacklist_enabled = 1;
 
     return NGX_CONF_OK;
 }

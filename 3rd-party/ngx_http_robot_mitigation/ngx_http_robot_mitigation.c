@@ -66,6 +66,8 @@ ngx_http_rm_type_swf = ngx_string("application/x-shockwave-flash");
 
 static ngx_str_t ngx_http_rm_type_html = ngx_string("text/html");
 
+static char *
+ngx_http_rm_challenge_ajax(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t
 ngx_http_rm_add_variables(ngx_conf_t *cf);
 static ngx_int_t
@@ -204,6 +206,13 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         0,
         NULL },
 #endif
+
+    { ngx_string("robot_mitigation_challenge_ajax"),
+        NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
+        ngx_http_rm_challenge_ajax,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
 
     ngx_null_command
 };
@@ -800,6 +809,43 @@ ngx_int_t ngx_http_rm_special_swf_uri(ngx_http_request_t *r)
 }
 
 static ngx_int_t
+ngx_http_rm_check_ajax_request(ngx_http_request_t *r)
+{
+    ngx_table_elt_t             *h;
+    ngx_list_part_t             *part;
+    ngx_uint_t                   i;
+
+    part = &r->headers_in.headers.part;
+    h = part->elts;
+
+    for (i = 0; i < part->nelts; i++) {
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                "ajax_request_check: %V %V", &h[i].key, &h[i].value);
+        if (h[i].key.len != NGX_HTTP_RM_AJAX_KEY_LEN) {
+            continue;
+        }
+
+        if (!ngx_strncasecmp(h[i].key.data, (u_char *)NGX_HTTP_RM_AJAX_KEY,
+                NGX_HTTP_RM_AJAX_KEY_LEN)) {
+            /* key matched, check value */
+            if (h[i].value.len != NGX_HTTP_RM_AJAX_VALUE_LEN) {
+                continue;
+            }
+
+            if (!ngx_strncasecmp(h[i].value.data,
+                        (u_char *)NGX_HTTP_RM_AJAX_VALUE,
+                        NGX_HTTP_RM_AJAX_VALUE_LEN)) {
+                ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                        "ajax_request_match: %V %V", &h[i].key, &h[i].value);
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+static ngx_int_t
 ngx_http_rm_request_handler(ngx_http_request_t *r)
 {
     ngx_http_rm_loc_conf_t            *rlcf;  
@@ -817,6 +863,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_array_t                         *xfwd;
     ngx_table_elt_t                     **h;
 #endif
+    ngx_str_t                          src_addr_text;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "robot mitigation request handler begin");
@@ -825,6 +872,12 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 
     if (rlcf->enabled != 1) {
         return NGX_DECLINED;
+    }
+
+    if (rlcf->pass_ajax) {
+        if (ngx_http_rm_check_ajax_request(r)) {
+            return NGX_DECLINED;
+        }
     }
 
     if (rlcf->ip_whitelist_items) {
@@ -923,17 +976,29 @@ challenge:
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "robot mitgation failed, re-challenge");
 
-    /* handle blacklist here */
+#if NGX_HTTP_IP_BLACKLIST
+#if (NGX_HTTP_X_FORWARDED_FOR)
+        if (rlcf->ip_whitelist_x_forwarded_for && 
+                r->headers_in.x_forwarded_for.nelts > 0) {
+            xfwd = &r->headers_in.x_forwarded_for;
+            h = xfwd->elts;
+            src_addr_text = h[0]->value;
+        } else
+#endif
+        {
+            src_addr_text = r->connection->addr_text;
+        }
+ 
     if (rlcf->failed_count > 0) {
         ret = ngx_http_ip_blacklist_update(r,
-                    &r->connection->addr_text,
+                    &src_addr_text,
                     rlcf->failed_count + 1,
                     &ngx_http_robot_mitigation_module);
-        fprintf(stderr, "update ret: %ld\n", ret);
         if (ret == 1) {
             return NGX_ERROR;
         }
     }
+#endif
 
     if ((r->method != NGX_HTTP_GET)
             && (r->method != NGX_HTTP_POST)) {
@@ -1103,6 +1168,21 @@ ngx_http_rm_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (timeout == 0) {
         rlcf->no_expires = 1;
+    }
+
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_rm_challenge_ajax(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_rm_loc_conf_t     *rlcf = conf;
+    ngx_str_t                  *value;
+
+    value = cf->args->elts;
+
+    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
+        rlcf->pass_ajax = 0;
     }
 
     return NGX_CONF_OK;
@@ -2190,6 +2270,7 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
     conf->cookie_name = cookie_name;
     conf->no_expires = 0;
     conf->whitelist_items = NULL;
+    conf->pass_ajax = 1;
 
     return conf;
 }

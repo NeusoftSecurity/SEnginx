@@ -255,6 +255,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
                 ngx_start_worker_processes(cycle, ccf->worker_processes,
                                            NGX_PROCESS_RESPAWN);
                 ngx_start_cache_manager_processes(cycle, 0);
+                ngx_start_ip_blacklist_manager_processes(cycle, 0);
                 ngx_noaccepting = 0;
 
                 continue;
@@ -274,6 +275,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_start_worker_processes(cycle, ccf->worker_processes,
                                        NGX_PROCESS_JUST_RESPAWN);
             ngx_start_cache_manager_processes(cycle, 1);
+            ngx_start_ip_blacklist_manager_processes(cycle, 1);
 
             /* allow new processes to start */
             ngx_msleep(100);
@@ -288,6 +290,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_start_worker_processes(cycle, ccf->worker_processes,
                                        NGX_PROCESS_RESPAWN);
             ngx_start_cache_manager_processes(cycle, 0);
+            ngx_start_ip_blacklist_manager_processes(cycle, 0);
             live = 1;
         }
 
@@ -632,10 +635,6 @@ ngx_signal_worker_processes_except_helper(ngx_cycle_t *cycle, int signo)
                        ngx_processes[i].just_spawn);
 
         if (ngx_strstr(ngx_processes[i].name, "session")) {
-            continue;
-        }
-
-        if (ngx_strstr(ngx_processes[i].name, "IP blacklist")) {
             continue;
         }
 
@@ -1614,11 +1613,16 @@ static void
 ngx_start_ip_blacklist_manager_processes(ngx_cycle_t *cycle, ngx_uint_t respawn)
 {
     ngx_channel_t    ch;
-    
+
+    if (!cycle->ip_blacklist_enabled) {
+        /* ip blacklist not enabled, don't start the helper */
+        return;
+    }
+
     ngx_spawn_process(cycle, ngx_ip_blacklist_manager_process_cycle,
                       &ngx_ip_blacklist_manager_ctx,
                       "IP blacklist manager process",
-                      respawn ? NGX_PROCESS_JUST_RESPAWN : NGX_PROCESS_NORESPAWN);
+                      respawn ? NGX_PROCESS_JUST_RESPAWN : NGX_PROCESS_RESPAWN);
 
     ch.command = NGX_CMD_OPEN_CHANNEL;
     ch.pid = ngx_processes[ngx_process_slot].pid;

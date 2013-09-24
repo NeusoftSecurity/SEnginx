@@ -17,7 +17,6 @@ static void ngx_start_cache_manager_processes(ngx_cycle_t *cycle,
     ngx_uint_t respawn);
 static void ngx_pass_open_channel(ngx_cycle_t *cycle, ngx_channel_t *ch);
 static void ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo);
-static void ngx_signal_worker_processes_except_helper(ngx_cycle_t *cycle, int signo);
 static ngx_uint_t ngx_reap_children(ngx_cycle_t *cycle);
 static void ngx_master_process_exit(ngx_cycle_t *cycle);
 static void ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data);
@@ -255,6 +254,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
                 ngx_start_worker_processes(cycle, ccf->worker_processes,
                                            NGX_PROCESS_RESPAWN);
                 ngx_start_cache_manager_processes(cycle, 0);
+                ngx_start_session_manager_processes(cycle, 0);
                 ngx_start_ip_blacklist_manager_processes(cycle, 0);
                 ngx_noaccepting = 0;
 
@@ -275,13 +275,14 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_start_worker_processes(cycle, ccf->worker_processes,
                                        NGX_PROCESS_JUST_RESPAWN);
             ngx_start_cache_manager_processes(cycle, 1);
+            ngx_start_session_manager_processes(cycle, 1);
             ngx_start_ip_blacklist_manager_processes(cycle, 1);
 
             /* allow new processes to start */
             ngx_msleep(100);
 
             live = 1;
-            ngx_signal_worker_processes_except_helper(cycle,
+            ngx_signal_worker_processes(cycle,
                                         ngx_signal_value(NGX_SHUTDOWN_SIGNAL));
         }
 
@@ -290,6 +291,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_start_worker_processes(cycle, ccf->worker_processes,
                                        NGX_PROCESS_RESPAWN);
             ngx_start_cache_manager_processes(cycle, 0);
+            ngx_start_session_manager_processes(cycle, 0);
             ngx_start_ip_blacklist_manager_processes(cycle, 0);
             live = 1;
         }
@@ -565,109 +567,6 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
 
         ngx_log_debug2(NGX_LOG_DEBUG_CORE, cycle->log, 0,
                        "kill (%P, %d)", ngx_processes[i].pid, signo);
-
-        if (kill(ngx_processes[i].pid, signo) == -1) {
-            err = ngx_errno;
-            ngx_log_error(NGX_LOG_ALERT, cycle->log, err,
-                          "kill(%P, %d) failed", ngx_processes[i].pid, signo);
-
-            if (err == NGX_ESRCH) {
-                ngx_processes[i].exited = 1;
-                ngx_processes[i].exiting = 0;
-                ngx_reap = 1;
-            }
-
-            continue;
-        }
-
-        if (signo != ngx_signal_value(NGX_REOPEN_SIGNAL)) {
-            ngx_processes[i].exiting = 1;
-        }
-    }
-}
-
-static void
-ngx_signal_worker_processes_except_helper(ngx_cycle_t *cycle, int signo)
-{
-    ngx_int_t      i;
-    ngx_err_t      err;
-    ngx_channel_t  ch;
-
-#if (NGX_BROKEN_SCM_RIGHTS)
-
-    ch.command = 0;
-
-#else
-
-    switch (signo) {
-
-    case ngx_signal_value(NGX_SHUTDOWN_SIGNAL):
-        ch.command = NGX_CMD_QUIT;
-        break;
-
-    case ngx_signal_value(NGX_TERMINATE_SIGNAL):
-        ch.command = NGX_CMD_TERMINATE;
-        break;
-
-    case ngx_signal_value(NGX_REOPEN_SIGNAL):
-        ch.command = NGX_CMD_REOPEN;
-        break;
-
-    default:
-        ch.command = 0;
-    }
-
-#endif
-
-    ch.fd = -1;
-
-
-    for (i = 0; i < ngx_last_process; i++) {
-
-        ngx_log_debug7(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
-                       "child: %d %P e:%d t:%d d:%d r:%d j:%d",
-                       i,
-                       ngx_processes[i].pid,
-                       ngx_processes[i].exiting,
-                       ngx_processes[i].exited,
-                       ngx_processes[i].detached,
-                       ngx_processes[i].respawn,
-                       ngx_processes[i].just_spawn);
-
-        if (ngx_strstr(ngx_processes[i].name, "session")) {
-            continue;
-        }
-
-        if (ngx_processes[i].detached || ngx_processes[i].pid == -1) {
-            continue;
-        }
-
-        if (ngx_processes[i].just_spawn) {
-            ngx_processes[i].just_spawn = 0;
-            continue;
-        }
-
-        if (ngx_processes[i].exiting
-            && signo == ngx_signal_value(NGX_SHUTDOWN_SIGNAL))
-        {
-            continue;
-        }
-
-        if (ch.command) {
-            if (ngx_write_channel(ngx_processes[i].channel[0],
-                                  &ch, sizeof(ngx_channel_t), cycle->log)
-                == NGX_OK)
-            {
-                if (signo != ngx_signal_value(NGX_REOPEN_SIGNAL)) {
-                    ngx_processes[i].exiting = 1;
-                }
-
-                continue;
-            }
-        }
-
-        ngx_log_debug2(NGX_LOG_DEBUG_CORE, cycle->log, 0,
-                       "kill (%P, %d)" , ngx_processes[i].pid, signo);
 
         if (kill(ngx_processes[i].pid, signo) == -1) {
             err = ngx_errno;
@@ -1540,7 +1439,7 @@ ngx_start_session_manager_processes(ngx_cycle_t *cycle, ngx_uint_t respawn)
     
     ngx_spawn_process(cycle, ngx_session_manager_process_cycle,
                       &ngx_session_manager_ctx, "session manager process",
-                      respawn ? NGX_PROCESS_JUST_RESPAWN : NGX_PROCESS_NORESPAWN);
+                      respawn ? NGX_PROCESS_JUST_RESPAWN : NGX_PROCESS_RESPAWN);
 
     ch.command = NGX_CMD_OPEN_CHANNEL;
     ch.pid = ngx_processes[ngx_process_slot].pid;

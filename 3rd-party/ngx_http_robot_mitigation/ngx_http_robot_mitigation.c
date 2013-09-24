@@ -817,6 +817,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_array_t                         *xfwd;
     ngx_table_elt_t                     **h;
 #endif
+    ngx_str_t                          src_addr_text;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "robot mitigation request handler begin");
@@ -923,16 +924,29 @@ challenge:
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "robot mitgation failed, re-challenge");
 
-    /* handle blacklist here */
+#if NGX_HTTP_IP_BLACKLIST
+#if (NGX_HTTP_X_FORWARDED_FOR)
+        if (rlcf->ip_whitelist_x_forwarded_for && 
+                r->headers_in.x_forwarded_for.nelts > 0) {
+            xfwd = &r->headers_in.x_forwarded_for;
+            h = xfwd->elts;
+            src_addr_text = h[0]->value;
+        } else
+#endif
+        {
+            src_addr_text = r->connection->addr_text;
+        }
+ 
     if (rlcf->failed_count > 0) {
         ret = ngx_http_ip_blacklist_update(r,
-                    &r->connection->addr_text,
+                    &src_addr_text,
                     rlcf->failed_count + 1,
                     &ngx_http_robot_mitigation_module);
         if (ret == 1) {
             return NGX_ERROR;
         }
     }
+#endif
 
     if ((r->method != NGX_HTTP_GET)
             && (r->method != NGX_HTTP_POST)) {

@@ -31,7 +31,6 @@ typedef struct {
 
 typedef struct {
     u_char     found:1;
-    u_char     create:1;
     u_char     bypass:1;
     u_char     local:1;
     void      *session;
@@ -47,12 +46,11 @@ typedef struct {
     void                    *prev;
 
     void                    *new_chain_next;
-    ngx_queue_t             redirect_queue_node;
     
     void                    **slot;         /* point to sessions list, 
                                                only the first node has this */
 
-    int                     ref:1;          /* ref count */
+    int                     ref;            /* ref count */
     int                     des:1;          /* should be destroyed or not */
     int                     timed:1;        /* should be destroyed or not */
     int                     reset:1;        /* need to reset timer */
@@ -62,7 +60,6 @@ typedef struct {
     time_t                  est;            /* time of creating/reseting */
     
     ngx_int_t               timeout;        /* session timeout */
-    ngx_int_t               bl_timeout;     /* timeout of blacklist */
     ngx_event_t             ev;       /* ngx_event, used to establish timer */
 
     /* store other modules' ctx */
@@ -85,7 +82,6 @@ typedef struct {
 typedef struct {
     ngx_int_t              enabled;
     ngx_int_t              timeout;  /* in seconds */
-    ngx_int_t              bl_timeout;  /* in seconds */
     ngx_int_t              redirect_timeout;  /* in seconds */
     ngx_str_t              keyword;
     ngx_int_t              session_show_enabled;
@@ -137,14 +133,10 @@ void ngx_http_session_clr_bypass(ngx_http_request_t *r);
 void ngx_http_session_clr_local(ngx_http_request_t *r);
 
 ngx_uint_t ngx_http_session_test_found(ngx_http_request_t *r);
-ngx_uint_t ngx_http_session_test_create(ngx_http_request_t *r);
 ngx_uint_t ngx_http_session_test_bypass(ngx_http_request_t *r);
 ngx_uint_t ngx_http_session_test_local(ngx_http_request_t *r);
 
 ngx_int_t
 ngx_http_session_is_enabled(ngx_http_request_t *r);
-
-ngx_int_t
-ngx_http_session_get_bl_timeout(ngx_http_request_t *r);
 
 #endif

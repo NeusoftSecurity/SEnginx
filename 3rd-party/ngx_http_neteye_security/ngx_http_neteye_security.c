@@ -208,6 +208,10 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
+    if (r->internal) {
+        return NGX_DECLINED;
+    }
+
     if (ngx_http_ns_ctx_init(r) != NGX_OK) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -789,13 +793,7 @@ ngx_int_t
 ngx_http_ns_do_action(ngx_http_request_t *r, 
         ngx_http_ns_action_t *action)
 {
-#if (NGX_HTTP_SESSION) 
-    ngx_http_session_t                *session;
-    ngx_http_session_ctx_t            *session_ctx;
-    ngx_uint_t                        *bl_count;
-#endif
     ngx_uint_t                         i;
-    ngx_int_t                          timeout;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "neteye security do action: %d", (int)action->action);
@@ -806,9 +804,6 @@ ngx_http_ns_do_action(ngx_http_request_t *r,
             /* do nothing */
             return NGX_OK;
         case NGX_HTTP_NS_ACTION_BLOCK:
-#if (NGX_HTTP_SESSION) 
-block:
-#endif
 #if (NGX_HTTP_STATUS_PAGE)
             if (action->has_redirect) {
                 ngx_http_status_page_send_page(r, action->redirect_page, 
@@ -822,57 +817,6 @@ block:
             }
 
             return NGX_OK;
-#if (NGX_HTTP_SESSION) 
-        case NGX_HTTP_NS_ACTION_BLACKLIST:
-            session = ngx_http_session_get(r);
-            if (!session) {
-                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                        "get session failed, must enable session mechanism\n");
-                /* fall back to block */
-                goto block;
-            }
-
-            ngx_shmtx_lock(&session->mutex);
-            session_ctx = ngx_http_session_find_ctx(session, 
-                    action->session_name);
-
-            if (!session_ctx) {
-                return NGX_HTTP_INTERNAL_SERVER_ERROR;
-            }
-
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                    "found session ctx\n");
-            bl_count = action->get_bl_count(session_ctx);
-
-            if (bl_count == NULL) {
-                ngx_shmtx_unlock(&session->mutex);
-                ngx_http_session_put(r);
-                
-                return NGX_HTTP_INTERNAL_SERVER_ERROR;
-            }
-
-            (*bl_count)++;
-
-            if (*bl_count >= action->bl_max) {
-                *bl_count = 0;
-                timeout = ngx_http_session_get_bl_timeout(r);
-                ngx_shmtx_unlock(&session->mutex);
-
-#if (NGX_HTTP_STATUS_PAGE)
-                if (action->has_redirect) {
-                    ngx_http_status_page_send_page(r, action->redirect_page, 
-                            action->in_body, NGX_HTTP_FORBIDDEN);
-                }
-#endif
-                ngx_shmtx_lock(&session->mutex);
-                /*Add to blacklist*/
-                session->bl_timeout = ngx_time() + timeout;
-            }
-
-            ngx_shmtx_unlock(&session->mutex);
-            ngx_http_session_put(r);
-            return NGX_ERROR;
-#endif
     }
 
     return NGX_OK;

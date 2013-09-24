@@ -683,8 +683,7 @@ ngx_http_cp_handler(ngx_http_request_t *r)
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "cookie poison handler begin");
     
-    if (ngx_http_session_test_create(r)
-            || ngx_http_session_test_bypass(r)) {
+    if (ngx_http_session_test_bypass(r)) {
         return NGX_DECLINED;
     }
 
@@ -815,8 +814,7 @@ ngx_int_t ngx_http_cp_header_handler(ngx_http_request_t *r)
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 
             0, "cookie poison header handler");
     
-    if (ngx_http_session_test_create(r)
-            || ngx_http_session_test_bypass(r)) {
+    if (ngx_http_session_test_bypass(r)) {
         return NGX_DECLINED;
     }
 

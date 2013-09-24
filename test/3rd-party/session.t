@@ -21,7 +21,7 @@ use Test::Nginx;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy session/)->plan(2);
+my $t = Test::Nginx->new()->has(qw/http proxy session/)->plan(4);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
 
@@ -57,6 +57,7 @@ $t->run();
 
 my $r = http_get('/');
 like($r, qr/auto-test/, 'http get request');
+like($r, qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request');
 
 my @content = split /\r\n/, $r;
 my @cookies;
@@ -71,7 +72,9 @@ foreach $x (@content) {
     }
 }
 
-like(http_get_with_header('/', $cookie), qr/TEST-OK-IF-YOU-SEE-THIS/, 'pass session with cookie');
+$r = http_get_with_header('/', $cookie);
+like($r, qr/TEST-OK-IF-YOU-SEE-THIS/, 'pass session with cookie');
+unlike($r, qr/auto-test/, 'pass session with cookie');
 
 ###############################################################################
 

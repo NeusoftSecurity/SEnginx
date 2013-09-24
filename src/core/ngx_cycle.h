@@ -72,6 +72,7 @@ struct ngx_cycle_s {
 
     ngx_int_t                 (*session_callback)(void);
     ngx_int_t                 (*ip_blacklist_callback)(void);
+    u_char                    ip_blacklist_enabled:1;
 };
 
 

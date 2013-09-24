@@ -54,6 +54,12 @@
 #define NGX_HTTP_RM_FORM_VARIABLES_2 "\" value=\""
 #define NGX_HTTP_RM_FORM_VARIABLES_3 "\">\n"
 
+#define NGX_HTTP_RM_AJAX_KEY "X-Requested-With"
+#define NGX_HTTP_RM_AJAX_KEY_LEN 16
+#define NGX_HTTP_RM_AJAX_VALUE "XMLHttpRequest"
+#define NGX_HTTP_RM_AJAX_VALUE_LEN 14
+
+
 typedef struct {
     ngx_str_t *name;
 #if (NGX_PCRE)
@@ -68,16 +74,16 @@ typedef struct {
 
 typedef struct {
     ngx_int_t                  failed_count;
-
-    ngx_int_t                  enabled;
-    ngx_int_t                  ip_whitelist_x_forwarded_for;
-    ngx_int_t                  wl_caseless;
     ngx_int_t                  mode;
-    ngx_int_t                  log;
-    ngx_str_t                  error_page;
+
+    ngx_uint_t                 enabled:1;
+    ngx_uint_t                 ip_whitelist_x_forwarded_for:1;
+    ngx_uint_t                 wl_caseless:1;
+    ngx_uint_t                 log:1;
+    ngx_uint_t                 no_expires:1;
+    ngx_uint_t                 pass_ajax:1;
     ngx_str_t                  cookie_name;
     time_t                     timeout;
-    ngx_int_t                  no_expires;
 
     ngx_array_t               *whitelist_items;
     ngx_array_t               *ip_whitelist_items;

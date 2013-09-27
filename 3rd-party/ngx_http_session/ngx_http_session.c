@@ -42,9 +42,6 @@ ngx_http_session_create_loc_conf(ngx_conf_t *cf);
 static char *
 ngx_http_session_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 
-static void 
-ngx_http_session_timeout_handler(ngx_event_t *ev);
-
 static ngx_int_t
 ngx_http_session_request_ctx_init(ngx_http_request_t *r);
 
@@ -256,7 +253,7 @@ __ngx_http_session_search(ngx_http_request_t *r, ngx_str_t *cookie)
         
     while (tmp) {
         if (!memcmp(tmp->id, cookie->data, cookie->len)
-                && !tmp->des && !tmp->timed) {
+                && !tmp->des > 0) {
             ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
                 "session search ok, id: %s, addr: %p\n", tmp->id, tmp);
             return tmp;
@@ -266,33 +263,6 @@ __ngx_http_session_search(ngx_http_request_t *r, ngx_str_t *cookie)
     }
 
     return NULL;
-}
-
-static ngx_int_t
-__ngx_http_session_insert_to_new_chain(ngx_http_session_list_t *session_list, 
-        ngx_http_session_t *session)
-{
-    if (session->wait) {
-        /* already on new chain */
-        return NGX_OK;
-    }
-
-    /* hang session to new session chain */
-    if (session_list->new_chain_tail) {
-        session_list->new_chain_tail->new_chain_next 
-            = session;
-        session_list->new_chain_tail = session;
-        session->new_chain_next = NULL;
-    } else {
-        /* the first session in new chain */
-        session_list->new_chain_head = session;
-        session_list->new_chain_tail = session;
-        session->new_chain_next = NULL;
-    }
-
-    session->wait = 1;
-
-    return NGX_OK;
 }
 
 static ngx_int_t
@@ -368,9 +338,7 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
         return NGX_ERROR;
     }
 
-    session->timeout = sscf->redirect_timeout;
-    session->est = ngx_time();
-    __ngx_http_session_insert_to_new_chain(session_list, session);
+    session->ter_time = ngx_time() + sscf->redirect_timeout;
     ngx_http_session_set_request_session(r, session);
     __ngx_http_session_get_ref(r);
 
@@ -438,10 +406,6 @@ __ngx_http_session_delete(ngx_http_session_t *session)
 
         session->next = session->prev = NULL;
 
-        if (session->ev.timer_set) {
-            ngx_del_timer(&session->ev);
-        }
-
         __ngx_http_session_ctx_delete(session);
         ngx_shmtx_destroy(&session->mutex);
 
@@ -504,44 +468,6 @@ __ngx_http_session_put_ref(ngx_http_request_t *r)
         ngx_http_session_clr_request_session(r);
 
     return NGX_OK;
-}
-
-static void 
-ngx_http_session_timeout_handler(ngx_event_t *ev)
-{
-    ngx_http_session_t               *session;
-    ngx_http_session_list_t          *session_list;
-
-    session = ev->data;
-    session_list = ngx_http_session_shm_zone->data;
-    
-    ngx_shmtx_lock(&session_list->shpool->mutex);
-   
-    if (session->reset) {
-        /* although session timeout, but do not delete
-         * wait for manager to reset this session */
-
-        goto out;
-    }
-
-    if (session->ref == 0) {
-        __ngx_http_session_delete(session);
-    } else {
-        session->timed = 1;
-        session->des = 1;
-
-        session->timeout = session->timeout / 2;
-        if (session->timeout < 20000) {
-            session->timeout = 20000;
-        }
-
-        ngx_add_timer(ev, session->timeout);
-    }
-
-out:
-    ngx_shmtx_unlock(&session_list->shpool->mutex);
-
-    return;
 }
 
 static ngx_int_t
@@ -638,13 +564,10 @@ create_session:
 
         /* reset timer */
         ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "reset timer: %p, timeout: %d, ref: %d, good: %d\n", 
-            session, session->timeout, session->ref, session->good);
+            "session: %p, ter_time: %d, ref: %d, good: %d\n", 
+            session, session->ter_time, session->ref, session->good);
 
-        session->reset = 1;
-        session->timeout = sscf->timeout;
-        session->est = ngx_time();
-        __ngx_http_session_insert_to_new_chain(session_list, session);
+        session->ter_time = ngx_time() + sscf->timeout;
 
         ngx_shmtx_unlock(&session_list->shpool->mutex);
     }
@@ -793,48 +716,31 @@ static ngx_int_t
 ngx_http_session_manager(void)
 {
     ngx_http_session_t             *session;
+    ngx_http_session_t             *next;
     ngx_http_session_list_t        *session_list;
+    ngx_uint_t                     i;
 
     session_list = ngx_http_session_shm_zone->data;
 
     ngx_shmtx_lock(&session_list->shpool->mutex);
 
-    session = session_list->new_chain_head;
-    
-    if (!session) {
-        goto out;
+    for (i = 0; i < NGX_HTTP_SESSION_DEFAULT_NUMBER; i++) {
+        session = session_list->sessions[i];
+        while (session) {
+            next = session->next;
+
+            if (session->ter_time <= ngx_time()) {
+                if (session->ref == 0) {
+                    __ngx_http_session_delete(session);
+                } else {
+                    session->des = 1;
+                }
+            }
+
+            session = next;
+        }
     }
 
-    while (session) {
-        /* add timer to session */
-        session->ev.handler = ngx_http_session_timeout_handler;
-        session->ev.data = session;
-        session->ev.log = session_list->log;
-
-        if (session->timeout == 0) {
-            session->timeout = 60;
-        }
-
-        session->timeout = session->timeout - (ngx_time() - session->est) * 1000;
-        
-        if (session->ev.timer_set) {
-            ngx_del_timer(&session->ev);
-        }
-
-        ngx_add_timer(&session->ev, session->timeout);
-        
-        session_list->new_chain_head = session->new_chain_next;
-        
-        session->new_chain_next = NULL;
-        session->wait = 0;
-        session->reset = 0;
-        
-        session = session_list->new_chain_head;
-    }
-
-    session_list->new_chain_head = session_list->new_chain_tail = NULL;
-
-out:
     ngx_shmtx_unlock(&session_list->shpool->mutex);
 
     return NGX_OK;
@@ -849,6 +755,8 @@ ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
     if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
          sscf->enabled = 1;
+         cf->cycle->session_callback = ngx_http_session_manager;
+         cf->cycle->session_enabled = 1;
     } else if (!strncmp((char *)(value[1].data), "off", value[1].len)) {
          sscf->enabled = 0;
     } else {
@@ -858,8 +766,6 @@ ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (ngx_http_session_shm_zone == NULL) {
         return "not config session_max_size";
     }
-
-    cf->cycle->session_callback = ngx_http_session_manager;
 
     return NGX_CONF_OK;
 }
@@ -876,7 +782,6 @@ ngx_http_session_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     return NGX_CONF_OK;
 }
-
 
 static char *
 ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
@@ -919,9 +824,9 @@ ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t        *value;
 
     value = cf->args->elts;
-    sscf->timeout = ngx_atoi(value[1].data, value[1].len) * 1000;
+    sscf->timeout = ngx_atoi(value[1].data, value[1].len);
 
-    if (sscf->timeout < 20000) {
+    if (sscf->timeout < 20) {
         return "Invalid timeout value, must larger than 20 seconds";
     }
 
@@ -940,7 +845,7 @@ ngx_http_session_redirect_timeout(ngx_conf_t *cf, ngx_command_t *cmd,
     ngx_str_t                   *value;
 
     value = cf->args->elts;
-    sscf->redirect_timeout = ngx_atoi(value[1].data, value[1].len) * 1000;
+    sscf->redirect_timeout = ngx_atoi(value[1].data, value[1].len);
 
     if (sscf->redirect_timeout <= 0) {
         return "Invalid timeout value, must larger than 0 seconds";
@@ -1000,8 +905,9 @@ ngx_http_session_show_handler(ngx_http_request_t *r)
 
         while (tmp) {
             j = sprintf((char *)(test->data + test->len), 
-                    "id: %s, timeout: %d, timedout: %d, des: %d, ref: %d <br>",
-                    tmp->id, (int)tmp->timeout, tmp->timed, tmp->des, tmp->ref);
+                    "id: %s, timeout: %d, des: %d, ref: %d <br>",
+                    tmp->id, (int)(tmp->ter_time - ngx_time()), 
+                    tmp->des, tmp->ref);
 
             test->len += j;
 

@@ -8,8 +8,8 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-#define NGX_HTTP_SESSION_DEFAULT_TMOUT              60 * 1000
-#define NGX_HTTP_SESSION_DEFAULT_REDIRECT_TMOUT     5 * 1000
+#define NGX_HTTP_SESSION_DEFAULT_TMOUT              60      //second 
+#define NGX_HTTP_SESSION_DEFAULT_REDIRECT_TMOUT     5       //second
 #define NGX_HTTP_SESSION_DEFAULT_NUMBER             50000
 #define NGX_HTTP_SESSION_DEFAULT_COOKIE             "SENGINX-SESSION-ID"
 #define NGX_HTTP_SESSION_CTX_SIZE                   512
@@ -45,22 +45,13 @@ typedef struct {
     void                    *next;
     void                    *prev;
 
-    void                    *new_chain_next;
-    
     void                    **slot;         /* point to sessions list, 
                                                only the first node has this */
-
     int                     ref;            /* ref count */
     int                     des:1;          /* should be destroyed or not */
-    int                     timed:1;        /* should be destroyed or not */
-    int                     reset:1;        /* need to reset timer */
-    int                     wait:1;         /* on the new session chain */
     int                     good:1;         /* on the new session chain */
     
-    time_t                  est;            /* time of creating/reseting */
-    
-    ngx_int_t               timeout;        /* session timeout */
-    ngx_event_t             ev;       /* ngx_event, used to establish timer */
+    time_t                  ter_time;        /* time te be terminated */
 
     /* store other modules' ctx */
     ngx_http_session_ctx_t  ctx[NGX_HTTP_SESSION_MAX_CTX];
@@ -76,7 +67,6 @@ typedef struct {
     
     /* the hash table */
     ngx_http_session_t     *sessions[NGX_HTTP_SESSION_DEFAULT_NUMBER];
-    ngx_http_session_t     *new_chain_head, *new_chain_tail;
 } ngx_http_session_list_t;
 
 typedef struct {

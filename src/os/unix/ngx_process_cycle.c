@@ -1436,7 +1436,11 @@ static void
 ngx_start_session_manager_processes(ngx_cycle_t *cycle, ngx_uint_t respawn)
 {
     ngx_channel_t    ch;
-    
+
+    if (!cycle->session_enabled) {
+        return;
+    }
+
     ngx_spawn_process(cycle, ngx_session_manager_process_cycle,
                       &ngx_session_manager_ctx, "session manager process",
                       respawn ? NGX_PROCESS_JUST_RESPAWN : NGX_PROCESS_RESPAWN);
@@ -1499,7 +1503,7 @@ ngx_session_manager_process_handler(ngx_event_t *ev)
 {
     time_t        next;
 
-    next = 5;
+    next = 1;
 
     if (ngx_cycle->session_callback) {
         ngx_cycle->session_callback();

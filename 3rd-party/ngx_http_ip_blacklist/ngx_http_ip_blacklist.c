@@ -170,6 +170,7 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
     ngx_array_t                               *xfwd;
     ngx_table_elt_t                          **h;
     ngx_str_t                                  src_addr_text;
+    ngx_int_t                                  i;
     
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "ip blacklist handler begin");
@@ -178,6 +179,16 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
     
     if (!imcf->enabled) {
         return NGX_DECLINED;
+    }
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_ip_blacklist_module);
+    if (!ctx) {
+        ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_ip_blacklist_ctx_t));
+        if (!ctx) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        ngx_http_set_ctx(r, ctx, ngx_http_ip_blacklist_module);
     }
 
 #if (NGX_HTTP_X_FORWARDED_FOR)
@@ -206,20 +217,18 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
     }
 
     if (!node->blacklist) {
-        ctx = ngx_http_get_module_ctx(r, ngx_http_ip_blacklist_module);
-        if (!ctx) {
-            ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_ip_blacklist_ctx_t));
-            if (!ctx) {
-                ngx_shmtx_unlock(&blacklist->shpool->mutex);
-                return NGX_HTTP_INTERNAL_SERVER_ERROR;
-            }
+        if (node->timed) {
+            /* node is timed out, reuse this node, reset the count */
+            node->timed = 0;
 
-            ngx_http_set_ctx(r, ctx, ngx_http_ip_blacklist_module);
+            for (i = 0; i < NGX_HTTP_IP_BLACKLIST_MOD_NUM; i++) {
+                node->counts[i].count = 0;
+            }
         }
 
         /* avoid being destroyed by manager */
-        node->ref++;
         ctx->node = node;
+        node->ref++;
 
         ngx_http_ip_blacklist_request_cleanup_init(r);
 
@@ -312,6 +321,13 @@ ngx_http_ip_blacklist_manager(void)
         bn = ngx_queue_data(node, ngx_http_ip_blacklist_t, queue);
         if (bn->blacklist) {
             if (bn->timeout <= ngx_time()) {
+                if (bn->ref != 0) {
+                    /* wait for request cleanup handler to delete this */
+                    bn->timed = 1;
+                    bn->blacklist = 0;
+
+                    goto out;
+                }
                 /* blacklist timed out */
                 tmp = node;
                 node = ngx_queue_prev(node);
@@ -560,22 +576,20 @@ ngx_http_ip_blacklist_cleanup(void *data)
     }
 
     node = ctx->node;
-    
+
+    blacklist = ngx_http_ip_blacklist_shm_zone->data;
+    ngx_shmtx_lock(&blacklist->shpool->mutex);
+
     node->ref--;
 
     if (node->timed && node->ref == 0) {
-        blacklist = ngx_http_ip_blacklist_shm_zone->data;
-
-        ngx_shmtx_lock(&blacklist->shpool->mutex);
-
         /* this means the node is timed out, delete it */
         ngx_rbtree_delete(&blacklist->blacklist, &node->node);
         ngx_queue_remove(&node->queue);
         ngx_slab_free_locked(blacklist->shpool, node);
-
-        ngx_shmtx_unlock(&blacklist->shpool->mutex);
     }
 
+    ngx_shmtx_unlock(&blacklist->shpool->mutex);
     return;
 }
 
@@ -760,6 +774,12 @@ ngx_http_ip_blacklist_flush_handler(ngx_http_request_t *r)
             node = ngx_queue_next(node)) {
         bn = ngx_queue_data(node, ngx_http_ip_blacklist_t, queue);
 
+        if (bn->ref != 0) {
+            /* force node to time out */
+            bn->timed = 1;
+            continue;
+        }
+
         tmp = node;
         node = ngx_queue_prev(node);
 
@@ -845,6 +865,7 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
     ngx_http_ip_blacklist_tree_t              *blacklist;
     uint32_t                                   hash;
     ngx_int_t                                  i;
+    ngx_http_ip_blacklist_ctx_t               *ctx;
     
     imcf = ngx_http_get_module_main_conf(r, ngx_http_ip_blacklist_module);
     ilcf = ngx_http_get_module_loc_conf(r, ngx_http_ip_blacklist_module);
@@ -857,53 +878,80 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
         return -1;
     }
 
-    hash = ngx_crc32_short(addr->data, addr->len);
+    ctx = ngx_http_get_module_ctx(r, ngx_http_ip_blacklist_module);
+    if (!ctx) {
+        /* ctx should always be prepared by blacklist module */
+        return -1;
+    }
 
     blacklist = ngx_http_ip_blacklist_shm_zone->data;
     ngx_shmtx_lock(&blacklist->shpool->mutex);
 
-    node = ngx_http_ip_blacklist_lookup(&blacklist->blacklist,
-            addr,
-            hash);
-    if (node == NULL) {
-        /* add new rbtree item to record this addr */
-        node = ngx_slab_alloc_locked(blacklist->shpool,
-                sizeof(ngx_http_ip_blacklist_t));
+    if (ctx->node) {
+        node = ctx->node;
+    } else {
+        /* maybe other requests set the node, so let's do a lookup */
+        hash = ngx_crc32_short(addr->data, addr->len);
+
+        node = ngx_http_ip_blacklist_lookup(&blacklist->blacklist,
+                addr,
+                hash);
+
         if (node == NULL) {
-            ngx_shmtx_unlock(&blacklist->shpool->mutex);
-            return -1;
-        }
+            /* add new rbtree item to record this addr */
+            node = ngx_slab_alloc_locked(blacklist->shpool,
+                    sizeof(ngx_http_ip_blacklist_t));
+            if (node == NULL) {
+                ngx_shmtx_unlock(&blacklist->shpool->mutex);
+                return -1;
+            }
 
-        memset(node, 0, sizeof(ngx_http_ip_blacklist_t));
+            memset(node, 0, sizeof(ngx_http_ip_blacklist_t));
 
-        memcpy(node->addr, addr->data, addr->len);
-        node->len = (u_short)addr->len;
+            memcpy(node->addr, addr->data, addr->len);
+            node->len = (u_short)addr->len;
 
-        node->timeout = ngx_time() + imcf->timeout;
+            node->timeout = ngx_time() + imcf->timeout;
 
-        for (i = 0; i < NGX_HTTP_IP_BLACKLIST_MOD_NUM; i++) {
-            if (ngx_http_ip_blacklist_modules[i] != NULL) {
-                node->counts[i].module = ngx_http_ip_blacklist_modules[i];
+            for (i = 0; i < NGX_HTTP_IP_BLACKLIST_MOD_NUM; i++) {
+                if (ngx_http_ip_blacklist_modules[i] != NULL) {
+                    node->counts[i].module = ngx_http_ip_blacklist_modules[i];
 
-                if (ngx_http_ip_blacklist_modules[i] == module) {
-                    node->counts[i].count++;
+                    if (ngx_http_ip_blacklist_modules[i] == module) {
+                        node->counts[i].count++;
+                        break;
+                    }
                 }
             }
+
+            node->node.key = hash;
+
+            ngx_rbtree_insert(&blacklist->blacklist, &node->node);
+            ngx_queue_insert_head(&blacklist->garbage, &node->queue);
+
+            ctx->node = node;
+            node->ref++;
+
+            ngx_http_ip_blacklist_request_cleanup_init(r);
+
+            ngx_shmtx_unlock(&blacklist->shpool->mutex);
+            return 0;
         }
-
-        node->node.key = hash;
-
-        ngx_rbtree_insert(&blacklist->blacklist, &node->node);
-        ngx_queue_insert_head(&blacklist->garbage, &node->queue);
-
-        ngx_shmtx_unlock(&blacklist->shpool->mutex);
-        return 0;
     }
 
     if (node->blacklist) {
         /* Perhaps other workers set this IP addr to match with max count */
         ngx_shmtx_unlock(&blacklist->shpool->mutex);
         return 1;
+    }
+
+    if (node->timed) {
+        /* node is timed out, reuse this node, reset the count */
+        node->timed = 0;
+
+        for (i = 0; i < NGX_HTTP_IP_BLACKLIST_MOD_NUM; i++) {
+            node->counts[i].count = 0;
+        }
     }
 
     /* otherwise, increase the count and check if it matches with max count */

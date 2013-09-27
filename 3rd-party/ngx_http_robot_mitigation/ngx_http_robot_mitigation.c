@@ -982,8 +982,7 @@ challenge:
 
 #if NGX_HTTP_IP_BLACKLIST
 #if (NGX_HTTP_X_FORWARDED_FOR)
-        if (rlcf->ip_whitelist_x_forwarded_for && 
-                r->headers_in.x_forwarded_for.nelts > 0) {
+        if (r->headers_in.x_forwarded_for.nelts > 0) {
             xfwd = &r->headers_in.x_forwarded_for;
             h = xfwd->elts;
             src_addr_text = h[0]->value;

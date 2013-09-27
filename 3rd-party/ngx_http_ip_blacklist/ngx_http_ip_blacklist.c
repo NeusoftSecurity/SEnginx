@@ -167,6 +167,9 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
     ngx_http_ip_blacklist_tree_t              *blacklist;
     ngx_http_ip_blacklist_ctx_t               *ctx;
     uint32_t                                   hash;
+    ngx_array_t                               *xfwd;
+    ngx_table_elt_t                          **h;
+    ngx_str_t                                  src_addr_text;
     
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "ip blacklist handler begin");
@@ -177,14 +180,25 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    hash = ngx_crc32_short(r->connection->addr_text.data,
-            r->connection->addr_text.len);
+#if (NGX_HTTP_X_FORWARDED_FOR)
+    if (r->headers_in.x_forwarded_for.nelts > 0) {
+        xfwd = &r->headers_in.x_forwarded_for;
+        h = xfwd->elts;
+        src_addr_text = h[0]->value;
+    } else
+#endif
+    {
+        src_addr_text = r->connection->addr_text;
+    }
+
+    hash = ngx_crc32_short(src_addr_text.data,
+            src_addr_text.len);
 
     blacklist = ngx_http_ip_blacklist_shm_zone->data;
     ngx_shmtx_lock(&blacklist->shpool->mutex);
 
     node = ngx_http_ip_blacklist_lookup(&blacklist->blacklist,
-            &r->connection->addr_text,
+            &src_addr_text,
             hash);
     if (node == NULL) {
         ngx_shmtx_unlock(&blacklist->shpool->mutex);
@@ -849,7 +863,7 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
     ngx_shmtx_lock(&blacklist->shpool->mutex);
 
     node = ngx_http_ip_blacklist_lookup(&blacklist->blacklist,
-            &r->connection->addr_text,
+            addr,
             hash);
     if (node == NULL) {
         /* add new rbtree item to record this addr */

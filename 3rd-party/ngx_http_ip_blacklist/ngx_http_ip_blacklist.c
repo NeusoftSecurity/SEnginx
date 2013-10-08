@@ -565,7 +565,7 @@ ngx_http_ip_blacklist_cleanup(void *data)
     ngx_http_ip_blacklist_ctx_t  *ctx;
     ngx_http_ip_blacklist_t      *node;
     ngx_http_ip_blacklist_tree_t *blacklist;
-    
+
     ctx = ngx_http_get_module_ctx(r, ngx_http_ip_blacklist_module);
     if (!ctx) {
         return;
@@ -692,7 +692,7 @@ ngx_http_ip_blacklist_show_handler(ngx_http_request_t *r)
                     "addr: %s, timeout: %d, "
                     "timed out: %d, blacklist: %d, ref: %d <br>",
                     tmp, (int)(bn->timeout - ngx_time()),
-                    bn->timed, bn->blacklist, bn->ref);
+                    bn->timed, bn->blacklist, (int)bn->ref);
 
             test->len += j;
             total++;

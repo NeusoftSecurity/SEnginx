@@ -32,11 +32,11 @@ typedef struct {
     u_char                          addr[NGX_HTTP_IP_BLACKLIST_ADDR_LEN];
     u_short                         len;
 
-    u_char                          ref:1;
     u_char                          blacklist:1;
     u_char                          timed:1;
  
     ngx_int_t                       timeout;
+    ngx_int_t                       ref;
 
     ngx_http_ip_blacklist_module_t  counts[NGX_HTTP_IP_BLACKLIST_MOD_NUM];
 } ngx_http_ip_blacklist_t;

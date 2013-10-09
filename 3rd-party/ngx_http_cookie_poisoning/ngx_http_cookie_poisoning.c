@@ -51,6 +51,8 @@ ngx_http_cp_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 ngx_int_t ngx_http_cp_header_handler(ngx_http_request_t *r);
 static ngx_int_t
 ngx_http_cp_handler(ngx_http_request_t *r);
+static void
+ngx_http_cp_hash_destory(ngx_http_cp_hash_t *hash);
 
 static ngx_command_t  ngx_http_cp_commands[] = {
 
@@ -308,9 +310,12 @@ ngx_http_cp_send_log(ngx_http_request_t *r,
 static void 
 ngx_http_cp_destroy_session_ctx_handler(void *ctx)
 {
-    ngx_http_session_ctx_t *session_ctx;
+    ngx_http_session_ctx_t          *session_ctx;
+    ngx_http_cp_session_ctx_t       *cp_ctx;
 
     session_ctx = (ngx_http_session_ctx_t *)ctx;
+    cp_ctx = session_ctx->data;
+    ngx_http_cp_hash_destory(&cp_ctx->monitored_cookies);
 
     return ngx_http_session_shm_free_nolock(session_ctx->data);
 }
@@ -452,6 +457,32 @@ ngx_http_cp_hash_init(ngx_http_cp_hash_t *hash, size_t size)
     memset(hash->buckets, 0, sizeof(ngx_http_cp_monitored_cookie_t *) * size);
 
     return NGX_OK;
+}
+
+static void
+ngx_http_cp_hash_destory(ngx_http_cp_hash_t *hash)
+{
+    ngx_http_cp_monitored_cookie_t      *m_cookie, *next;
+    ngx_uint_t                          i;
+
+    if (!hash->buckets) {
+        return;
+    }
+
+    for (i = 0; i < hash->nr_buckets; i++) {
+        m_cookie = hash->buckets[i];
+        while (m_cookie != NULL) {
+            /*the first one*/
+            next = m_cookie->next;
+
+            /* free the memory */
+            ngx_http_session_shm_free_nolock(m_cookie->cookie_name.data);
+            ngx_http_session_shm_free_nolock(m_cookie);
+            m_cookie = next;
+        }
+    }
+
+    ngx_http_session_shm_free_nolock(hash->buckets);
 }
 
 static ngx_int_t

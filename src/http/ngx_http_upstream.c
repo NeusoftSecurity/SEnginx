@@ -1719,10 +1719,6 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     if (u->headers_in.status_n >= NGX_HTTP_SPECIAL_RESPONSE) {
 
-        if (r->subrequest_in_memory) {
-            u->buffer.last = u->buffer.pos;
-        }
-
         if (ngx_http_upstream_test_next(r, u) == NGX_OK) {
             return;
         }
@@ -3478,6 +3474,12 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
     }
 
 #endif
+
+    if (r->subrequest_in_memory
+        && u->headers_in.status_n >= NGX_HTTP_SPECIAL_RESPONSE)
+    {
+        u->buffer.last = u->buffer.pos;
+    }
 
     if (rc == NGX_DECLINED) {
         return;

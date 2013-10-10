@@ -1,4 +1,33 @@
 
+Changes with nginx 1.5.6                                         01 Oct 2013
+
+    *) Feature: the "fastcgi_buffering" directive.
+
+    *) Feature: the "proxy_ssl_protocols" and "proxy_ssl_ciphers"
+       directives.
+       Thanks to Piotr Sikora.
+
+    *) Feature: optimization of SSL handshakes when using long certificate
+       chains.
+
+    *) Feature: the mail proxy supports SMTP pipelining.
+
+    *) Bugfix: in the ngx_http_auth_basic_module when using "$apr1$"
+       password encryption method.
+       Thanks to Markus Linnala.
+
+    *) Bugfix: in MacOSX, Cygwin, and nginx/Windows incorrect location might
+       be used to process a request if locations were given using characters
+       in different cases.
+
+    *) Bugfix: automatic redirect with appended trailing slash for proxied
+       locations might not work.
+
+    *) Bugfix: in the mail proxy server.
+
+    *) Bugfix: in the ngx_http_spdy_module.
+
+
 Changes with nginx 1.5.5                                         17 Sep 2013
 
     *) Change: now nginx assumes HTTP/1.0 by default if it is not able to

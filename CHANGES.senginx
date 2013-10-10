@@ -1,3 +1,29 @@
+Changes with senginx 1.5.5                                      09 Oct  2013
+
+    *) Feature: upgrade to original nginx 1.5.5.
+
+    *) Feature: IP blacklist module.
+
+    *) Feature: Support caseless match in robot mitigation's whitelist.
+
+    *) Feature: Support local mode in cookie poisoning module.
+
+    *) Feature: Support ajax request bypass in robot mitigation module.
+
+    *) Change: don't use redirect response in session module, and don't use ngx_timer
+       in session module any more.
+
+    *) Change: move robot mitigation to the beginning of the security chain.
+
+    *) Change: delete robot_mitigation_action directive in robot mitigation module.
+
+    *) Bugfix: solve the compatibility problem with try_file directive when enabling
+       robot mitigation.
+
+    *) Bugfix: solve the memory leaking problem in cookie poison module.
+
+    *) Bugfix: some unlock issues in session module.
+
 Changes with senginx 1.5.4                                      12 Sep  2013
 
     *) Feature: upgrade to original nginx 1.5.4.

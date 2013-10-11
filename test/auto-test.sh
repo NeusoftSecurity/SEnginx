@@ -128,46 +128,11 @@ echo "#####################################"
 
 cd 3rd-party
 
-# session
-echo "############  session start  ###########"
-TEST_NGINX_BINARY=$NGINX_DIR prove ./session.t
-echo "############  session end  #############"
-echo ""
-
-# anti-robot
-echo "############  anti-robot start  ###########"
-TEST_NGINX_BINARY=$NGINX_DIR prove ./robot_mitigation.t
-echo "############  anti-robot end  #############"
-echo ""
-
-# fastest
-echo "############  fastest start  ###########"
-TEST_NGINX_BINARY=$NGINX_DIR prove ./fastest.t
-echo "############  fastest end  #############"
-echo ""
-
-# if extend
-echo "############  if extend start  ###########"
-TEST_NGINX_BINARY=$NGINX_DIR prove ./if_extend.t
-echo "############  if extend end  #############"
-echo ""
-
-# cache extend
-echo "############  cache extend start  ###########"
-TEST_NGINX_BINARY=$NGINX_DIR prove ./cache_extend.t
-echo "############  cache extend end  #############"
-echo ""
-
-# cache extend
-echo "############  cookie poisoning start  ###########"
-TEST_NGINX_BINARY=$NGINX_DIR prove ./cookie_poisoning.t
-echo "############  cookie poisoning end  #############"
-echo ""
-
-# web defacement
-echo "############  web defacement start  ###########"
-TEST_NGINX_BINARY=$NGINX_DIR prove ./web_defacement.t
-echo "############  web defacement end  #############"
-echo ""
-
-cd -
+NETEYE_TEST_CASES=`ls *.t`
+for test_cases in $NETEYE_TEST_CASES
+do
+    case_name=`echo $test_cases | sed 's/\.t//'`
+    echo "############  $case_name start  ###########"
+    TEST_NGINX_BINARY=$NGINX_DIR prove ./$test_cases 
+    echo "############  $case_name end  ###########"
+done

@@ -764,7 +764,6 @@ failed:
     return NGX_ERROR;
 }
 
-
 void
 ngx_resolve_addr_done(ngx_resolver_ctx_t *ctx)
 {

@@ -570,6 +570,7 @@ struct ngx_http_request_s {
 
 #if (NGX_HTTP_NETEYE_SECURITY)
     void                            **ns_ctx;
+    void                            *se_handler;
 #endif
 };
 

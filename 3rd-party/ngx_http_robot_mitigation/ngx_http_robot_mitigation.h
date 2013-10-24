@@ -59,12 +59,12 @@
 #define NGX_HTTP_RM_AJAX_VALUE "XMLHttpRequest"
 #define NGX_HTTP_RM_AJAX_VALUE_LEN 14
 
+#define NGX_HTTP_RM_ADDR_LEN 64
+#define NGX_HTTP_RM_ADDR_TIMEOUT (30*1000)  //30s
 
 typedef struct {
-    ngx_str_t *name;
-#if (NGX_PCRE)
     ngx_http_regex_t  *regex;
-#endif
+    ngx_http_regex_t  *domain_name;
 } ngx_http_rm_whitelist_item_t;
 
 typedef struct {
@@ -73,22 +73,29 @@ typedef struct {
 } ngx_http_rm_ip_whitelist_item_t;
 
 typedef struct {
-    ngx_int_t                  failed_count;
-    ngx_int_t                  mode;
+    ngx_int_t                   failed_count;
+    ngx_int_t                   mode;
 
-    ngx_uint_t                 enabled:1;
-    ngx_uint_t                 ip_whitelist_x_forwarded_for:1;
-    ngx_uint_t                 whitelist_any:1;
-    ngx_uint_t                 wl_caseless:1;
-    ngx_uint_t                 log:1;
-    ngx_uint_t                 no_expires:1;
-    ngx_uint_t                 pass_ajax:1;
-    ngx_str_t                  cookie_name;
-    time_t                     timeout;
+    ngx_uint_t                  enabled:1;
+    ngx_uint_t                  ip_whitelist_x_forwarded_for:1;
+    ngx_uint_t                  whitelist_any:1;
+    ngx_uint_t                  wl_caseless:1;
+    ngx_uint_t                  log:1;
+    ngx_uint_t                  no_expires:1;
+    ngx_uint_t                  pass_ajax:1;
+    ngx_str_t                   cookie_name;
+    time_t                      timeout;
 
-    ngx_array_t               *whitelist_items;
-    ngx_array_t               *ip_whitelist_items;
+    ngx_array_t                 *whitelist_items;
+    ngx_array_t                 *ip_whitelist_items;
 } ngx_http_rm_loc_conf_t;
+
+typedef struct {
+    ngx_msec_t                  resolver_timeout;      /* resolver_timeout */
+    ngx_resolver_t              *resolver;             /* resolver */
+    ngx_uint_t                  wl_domain_enable:1;
+} ngx_http_rm_main_conf_t;
+
 
 typedef struct {
     ngx_uint_t                 failed_count;
@@ -105,6 +112,14 @@ typedef struct {
 
     ngx_int_t              blacklist;
 } ngx_http_rm_req_ctx_t;
+
+typedef struct {
+    ngx_rbtree_node_t               node;
+    u_char                          addr[NGX_HTTP_RM_ADDR_LEN];
+    size_t                          len;
+    ngx_str_t                       name;
+    ngx_event_t                     timeout_ev;
+} ngx_http_rm_dns_t;
 
 
 #define NGX_HTTP_RM_ATTACK_LOG_ID               1201001

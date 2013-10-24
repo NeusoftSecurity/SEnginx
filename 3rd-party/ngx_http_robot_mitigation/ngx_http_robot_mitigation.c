@@ -9,6 +9,7 @@
 #endif
 
 #include <ngx_sha1.h>
+#include <ngx_resolver.h>
 
 #include <zlib.h>
 
@@ -17,6 +18,10 @@ extern const ngx_uint_t ngx_http_rm_get_js_tpls_nr;
 extern const char *ngx_http_rm_post_js_tpls[];
 extern const ngx_uint_t ngx_http_rm_post_js_tpls_nr;
 
+static ngx_rbtree_t                 ngx_http_rm_dns_rbtree;
+static ngx_rbtree_node_t            ngx_http_rm_dns_sentinel;
+static ngx_log_t                    ngx_http_rm_timer_log;
+          
 #define NGX_HTTP_RM_GET_SWF \
     "<html>\n<body>\n" \
     "<OBJECT classid=\"clsid:D27CDB6E-AE6D-11cf-96B8-444553540000\"" \
@@ -115,6 +120,11 @@ static u_char *
 ngx_http_rm_post_data_decode(ngx_http_request_t *r,
         u_char *string, ngx_uint_t len, 
         ngx_uint_t *decoded_len);
+static ngx_http_rm_dns_t *
+ngx_http_rm_dns_lookup(ngx_rbtree_t *tree, ngx_str_t *addr, uint32_t hash);
+static void *
+ngx_http_rm_create_main_conf(ngx_conf_t *cf);
+
 #if 0
 static ngx_int_t
 ngx_http_rm_do_action(ngx_http_request_t *r);
@@ -134,6 +144,9 @@ ngx_http_rm_whitelist_any(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static char *
 ngx_http_rm_ip_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+
+static char *
+ngx_http_rm_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 #if (NGX_HTTP_X_FORWARDED_FOR)
 static char *
@@ -186,6 +199,20 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
+
+    { ngx_string("robot_mitigation_resolver"),
+      NGX_HTTP_MAIN_CONF|NGX_CONF_1MORE,
+      ngx_http_rm_resolver,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("robot_mitigation_resolver_timeout"),
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_msec_slot,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      offsetof(ngx_http_rm_main_conf_t, resolver_timeout),
+      NULL },
 
     { ngx_string("robot_mitigation_whitelist"),
         NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
@@ -243,7 +270,7 @@ ngx_http_robot_mitigation_module_ctx = {
     ngx_http_rm_add_variables,               /* preconfiguration */
     ngx_http_rm_init,                        /* postconfiguration */
 
-    NULL,                                    /* create main configuration */
+    ngx_http_rm_create_main_conf,            /* create main configuration */
     NULL,                                    /* init main configuration */
 
     NULL,                                    /* create server configuration */
@@ -856,13 +883,86 @@ ngx_http_rm_check_ajax_request(ngx_http_request_t *r)
     return 0;
 }
 
+static void 
+ngx_http_rm_dns_timeout_handler(ngx_event_t *event) 
+{
+    ngx_http_rm_dns_t               *node;
+
+    node = event->data;
+
+    ngx_rbtree_delete(&ngx_http_rm_dns_rbtree, &node->node);
+
+    free(node->name.data);
+    free(node);
+}
+
+static void
+ngx_http_rm_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
+{
+    ngx_http_request_t              *r;
+    ngx_http_rm_dns_t               *node;
+    uint32_t                        hash;
+
+    r = ctx->data;
+    r->phase_handler = NGX_HTTP_NETEYE_SECURITY_PHASE;
+    r->se_handler = ngx_http_rm_request_handler;
+
+    hash = ngx_crc32_short(r->connection->addr_text.data, 
+            r->connection->addr_text.len);
+    node = ngx_http_rm_dns_lookup(&ngx_http_rm_dns_rbtree,
+            &r->connection->addr_text, hash);
+
+    if (node == NULL) {
+        node = calloc(1, sizeof(*node));
+        if (node == NULL) {
+            goto no_memory;
+        }
+        
+        if (ctx->name.len > 0) {
+            node->name.data = calloc(1, ctx->name.len);
+            if (node->name.data == NULL) {
+                goto no_memory;
+            }
+
+            memcpy(node->name.data, ctx->name.data, ctx->name.len);
+
+        }
+        node->name.len = ctx->name.len;
+
+        memcpy(node->addr, r->connection->addr_text.data, 
+                r->connection->addr_text.len);
+        node->len = r->connection->addr_text.len;
+        node->timeout_ev.handler = ngx_http_rm_dns_timeout_handler;
+        node->timeout_ev.data = node;
+        node->timeout_ev.timer_set = 0;
+        node->timeout_ev.log = &ngx_http_rm_timer_log;
+        ngx_add_timer(&node->timeout_ev, NGX_HTTP_RM_ADDR_TIMEOUT);
+
+        node->node.key = hash;
+        ngx_rbtree_insert(&ngx_http_rm_dns_rbtree, &node->node);
+    }
+
+    ngx_resolve_addr_done(ctx);
+    ngx_http_core_run_phases(r);
+
+    return;
+
+no_memory:
+    ngx_resolve_addr_done(ctx);
+    ngx_http_finalize_request(r, NGX_ERROR);
+}
+
 static ngx_int_t
 ngx_http_rm_request_handler(ngx_http_request_t *r)
 {
     ngx_http_rm_loc_conf_t            *rlcf;  
+    ngx_http_rm_main_conf_t           *rmcf;
+    ngx_resolver_ctx_t                *rctx;
     ngx_http_rm_req_ctx_t             *ctx;
     ngx_str_t                          cookie, user_agent;
     ngx_str_t                          cookie_f1, cookie_f2;
+    ngx_str_t                          src_addr_text;
+    ngx_str_t                          *domain_name = NULL;
     ngx_int_t                          ret;
     ngx_http_rm_whitelist_item_t       *item;
     ngx_http_rm_ip_whitelist_item_t    *ip_item;
@@ -870,11 +970,12 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_int_t                          gen_time;
     ngx_int_t                          in_list = 0;
     in_addr_t                          src_addr;
+    ngx_http_rm_dns_t                  *node;
+    uint32_t                           hash;
 #if (NGX_HTTP_X_FORWARDED_FOR)
     ngx_array_t                         *xfwd;
     ngx_table_elt_t                     **h;
 #endif
-    ngx_str_t                          src_addr_text;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "robot mitigation request handler begin");
@@ -929,8 +1030,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 #if (NGX_PCRE)
     /* -1: check whitelist */
 check_header:
-    if (r->headers_in.user_agent != NULL
-            && rlcf->whitelist_items) {
+    if (r->headers_in.user_agent != NULL && rlcf->whitelist_items) {
         user_agent = r->headers_in.user_agent->value;
         item = rlcf->whitelist_items->elts;
 
@@ -939,10 +1039,75 @@ check_header:
 
             if (ret == NGX_OK) {
                 /* match */
-                ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                        "robot mitigation match whitelist: %V with %V", 
-                        item[i].name, &user_agent);
-                
+                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                        "robot mitigation match whitelist: %V", 
+                        &user_agent);
+
+                if (item[i].domain_name) {
+                    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                        "d name = %p\n", domain_name);
+                    if (domain_name == NULL) {
+                        hash = ngx_crc32_short(r->connection->addr_text.data, 
+                                r->connection->addr_text.len);
+                        node = ngx_http_rm_dns_lookup(&ngx_http_rm_dns_rbtree,
+                                &r->connection->addr_text, hash);
+
+                        if (node) {
+                            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, 
+                                    r->connection->log, 0, 
+                                    "found node\n");
+                            if (node->name.len == 0) {
+                                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, 
+                                        r->connection->log, 0, 
+                                        "found node, but no name\n");
+                                continue;
+                            }
+                            domain_name = &node->name;
+                        }
+                    }
+
+                    if (domain_name) {
+                        ret = ngx_http_regex_exec(r, item[i].domain_name, domain_name);
+                        if (ret == NGX_OK) {
+                            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                                    "matched\n");
+                            return NGX_DECLINED;
+                        }
+
+                        if (ret == NGX_ERROR) {
+                            return NGX_ERROR;
+                        }
+
+                        continue;
+                    }
+
+                    rmcf = ngx_http_get_module_main_conf(r, 
+                            ngx_http_robot_mitigation_module);
+                    if (rmcf->resolver == NULL) {
+                        continue;
+                    }
+                    rctx = ngx_resolve_start(rmcf->resolver, NULL);
+                    if (rctx == NULL) {
+                        return NGX_ERROR;
+                    }
+                    rctx->addr = ngx_inet_addr(r->connection->addr_text.data, 
+                            r->connection->addr_text.len);
+                    rctx->handler = ngx_http_rm_resolve_addr_handler;
+                    rctx->data = r;
+                    rctx->timeout = rmcf->resolver_timeout;
+
+                    ret = ngx_resolve_addr(rctx);
+
+                    if (ret == NGX_ERROR) {
+                        return NGX_ERROR;
+                    }
+
+                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                            "wait for query\n");
+                    /* Stop request and waiting for the DNS respoonse */
+                    return NGX_DONE;
+                }
+
                 return NGX_DECLINED;
             }
 
@@ -1030,11 +1195,6 @@ challenge:
         return NGX_DECLINED;
     }
 
-    ctx = ngx_http_rm_get_request_ctx(r);
-    if (ctx == NULL) {
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-    }
-
     cookie_f1.data = ngx_pcalloc(r->pool, NGX_HTTP_RM_DEFAULT_COOKIE_LEN + 1);
     if (cookie_f1.data == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -1053,6 +1213,11 @@ challenge:
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "fake cookie generated: %V/%V", &cookie_f1, &cookie_f2);
 
+    ctx = ngx_http_rm_get_request_ctx(r);
+    if (ctx == NULL) {
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
+
     ctx->request = r;
     ctx->cookie.data = cookie.data;
     ctx->cookie.len = cookie.len;
@@ -1069,9 +1234,102 @@ challenge:
     return NGX_DONE;
 }
 
+static ngx_http_rm_dns_t *
+ngx_http_rm_dns_lookup(ngx_rbtree_t *tree, ngx_str_t *addr, uint32_t hash)
+{
+    ngx_int_t                   rc;
+    ngx_rbtree_node_t           *node, *sentinel;
+    ngx_http_rm_dns_t           *rn;
+
+    node = tree->root;
+    sentinel = tree->sentinel;
+
+    while (node != sentinel) {
+
+        if (hash < node->key) {
+            node = node->left;
+            continue;
+        }
+
+        if (hash > node->key) {
+            node = node->right;
+            continue;
+        }
+
+        /* hash == node->key */
+
+        rn = (ngx_http_rm_dns_t *) node;
+
+        rc = ngx_memn2cmp(addr->data, rn->addr, addr->len, rn->len);
+
+        if (rc == 0) {
+            return rn;
+        }
+
+        node = (rc < 0) ? node->left : node->right;
+    }
+
+    /* not found */
+
+    return NULL;
+}
+
+static void
+ngx_http_rm_dns_rbtree_insert_value(ngx_rbtree_node_t *temp,
+    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel)
+{
+    ngx_rbtree_node_t       **p;
+    ngx_http_rm_dns_t       *rd, *rd_temp;
+
+    for ( ;; ) {
+
+        if (node->key < temp->key) {
+
+            p = &temp->left;
+
+        } else if (node->key > temp->key) {
+
+            p = &temp->right;
+
+        } else { /* node->key == temp->key */
+
+            rd = (ngx_http_rm_dns_t *) node;
+            rd_temp = (ngx_http_rm_dns_t *) temp;
+
+            p = (ngx_memn2cmp(rd->addr, rd_temp->addr, rd->len, rd_temp->len)
+                 < 0) ? &temp->left : &temp->right;
+        }
+
+        if (*p == sentinel) {
+            break;
+        }
+
+        temp = *p;
+    }
+
+    *p = node;
+    node->parent = temp;
+    node->left = sentinel;
+    node->right = sentinel;
+    ngx_rbt_red(node);
+}
+
+
 static ngx_int_t ngx_http_rm_init(ngx_conf_t *cf)
 {
-    ngx_int_t ret;
+    ngx_http_rm_main_conf_t     *rmcf;
+    ngx_int_t                   ret;
+
+    rmcf = ngx_http_conf_get_module_main_conf(cf, 
+            ngx_http_robot_mitigation_module);
+
+    if (rmcf->wl_domain_enable && rmcf->resolver == NULL) {
+        fprintf(stderr, "robot_mitigation_resolver not configured\n");
+        return NGX_ERROR;
+    } else if (rmcf->wl_domain_enable && 
+            rmcf->resolver_timeout == NGX_CONF_UNSET_MSEC) {
+        rmcf->resolver_timeout = 3000; //3s
+    }
 
     ret = ngx_http_neteye_security_ctx_register(NGX_HTTP_NETEYE_ROBOT_MITIGATION, 
             ngx_http_rm_request_ctx_init);
@@ -1084,6 +1342,16 @@ static ngx_int_t ngx_http_rm_init(ngx_conf_t *cf)
     if (ret != NGX_OK) {
         return ret;
     }
+
+    ngx_http_rm_timer_log.file = ngx_palloc(cf->pool, sizeof(ngx_open_file_t));
+    if (ngx_http_rm_timer_log.file == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_http_rm_timer_log.file->fd = NGX_INVALID_FILE;
+
+    ngx_rbtree_init(&ngx_http_rm_dns_rbtree, &ngx_http_rm_dns_sentinel,
+                    ngx_http_rm_dns_rbtree_insert_value);
 
     /* we only a request handler for this feature */
     return ngx_http_neteye_security_request_register(
@@ -1100,6 +1368,43 @@ static char *ngx_http_rm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
         rlcf->enabled = 1;
+    }
+
+    return NGX_CONF_OK;
+}
+
+static void *
+ngx_http_rm_create_main_conf(ngx_conf_t *cf)
+{
+    ngx_http_rm_main_conf_t  *rmcf;
+
+    rmcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_rm_main_conf_t));
+    if (rmcf == NULL) {
+        return NULL;
+    }
+
+    memset(rmcf, 0, sizeof(*rmcf));
+    rmcf->resolver_timeout = NGX_CONF_UNSET_MSEC;
+
+    return rmcf;
+}
+
+
+static char *
+ngx_http_rm_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_rm_main_conf_t  *rmcf = conf;
+    ngx_str_t               *value;
+
+    if (rmcf->resolver) {
+        return "is duplicate";
+    }
+
+    value = cf->args->elts;
+
+    rmcf->resolver = ngx_resolver_create(cf, &value[1], cf->args->nelts - 1);
+    if (rmcf->resolver == NULL) {
+        return NGX_CONF_ERROR;
     }
 
     return NGX_CONF_OK;
@@ -1272,10 +1577,11 @@ ngx_http_rm_whitelist_pattern_parse(ngx_conf_t *cf, ngx_http_regex_t **regex,
 static char *
 ngx_http_rm_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 {
-    ngx_http_rm_loc_conf_t  *rlcf = conf;
-    ngx_str_t               *name, *pattern, *value;
-    ngx_http_rm_whitelist_item_t  *item;
-    ngx_int_t                      ret;
+    ngx_http_rm_loc_conf_t          *rlcf = conf;
+    ngx_str_t                       *pattern, *domain_name, *value;
+    ngx_http_rm_whitelist_item_t    *item;
+    ngx_int_t                       ret;
+    ngx_http_rm_main_conf_t         *rmcf;
 
     value = cf->args->elts;
 
@@ -1290,48 +1596,54 @@ ngx_http_rm_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
         return ngx_conf_include(cf, dummy, conf);
     }
 
-    if (cf->args->nelts != 2) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                "invalid number of arguments"
-                " in a name-pattern pair");
-        
-        return NGX_CONF_ERROR;
-    }
-
-    name = ngx_palloc(cf->pool, sizeof(ngx_str_t));
-    if (name == NULL) {
-        return NGX_CONF_ERROR;
-    }
-
-    *name = value[0];
-
     pattern = ngx_palloc(cf->pool, sizeof(ngx_str_t));
     if (pattern == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    *pattern = value[1];
+    *pattern = value[0];
 
     ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, 
-            "robot mitigation: "
-            "original pattern name is \"%V\", pattern is \"%V\"", 
-            name, pattern);
+            "robot mitigation: original pattern is \"%V\"", pattern);
 
     item = ngx_array_push(rlcf->whitelist_items);
     if (item == NULL) {
         return NGX_CONF_ERROR;
     }
 
-    item->name = name;
     ret = ngx_http_rm_whitelist_pattern_parse(cf, &item->regex, pattern, rlcf);
     if (ret != NGX_OK) {
         return NGX_CONF_ERROR;
     }
 
+    if (cf->args->nelts == 2) {
+        domain_name = ngx_palloc(cf->pool, sizeof(ngx_str_t));
+        if (domain_name == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        *domain_name = value[1];
+
+        ret = ngx_http_rm_whitelist_pattern_parse(cf, &item->domain_name, 
+                domain_name, rlcf);
+        if (ret != NGX_OK) {
+            return NGX_CONF_ERROR;
+        }
+
+        rmcf = ngx_http_conf_get_module_main_conf(cf, 
+            ngx_http_robot_mitigation_module);
+
+        rmcf->wl_domain_enable = 1;
+        ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0,
+                "robot mitigation: "
+                "original pattern is \"%V\"", domain_name);
+    } else {
+        item->domain_name = NULL;
+    }
+
     ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, 
             "robot mitigation: "
-            "regex pattern name is \"%V\", pattern is \"%p\"", 
-            item->name, item->regex);
+            "regex pattern is \"%p\"", item->regex);
     
     return NGX_CONF_OK;
 }

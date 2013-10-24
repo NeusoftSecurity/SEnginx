@@ -10,6 +10,7 @@ use warnings;
 use strict;
 
 use Test::More;
+use Net::DNS::Nameserver;
 
 BEGIN { use FindBin; chdir($FindBin::Bin); }
 
@@ -21,7 +22,7 @@ use Test::Nginx;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy robot_mitigation/)->plan(20);
+my $t = Test::Nginx->new()->has(qw/http proxy robot_mitigation/)->plan(9);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
 
@@ -35,38 +36,12 @@ events {
 http {
     %%TEST_GLOBALS_HTTP%%
 
+    robot_mitigation_resolver 127.0.0.1;
+    robot_mitigation_resolver_timeout 1s;
+            
     server {
         listen       127.0.0.1:8080;
         server_name  localhost;
-
-        location / {
-            robot_mitigation on;
-            robot_mitigation_cookie_name rm-autotest;
-            robot_mitigation_mode js;
-            robot_mitigation_timeout 600;
-
-            robot_mitigation_whitelist {
-                "autotest";
-            }
-
-            proxy_pass http://127.0.0.1:8081;
-            proxy_read_timeout 1s;
-        }
-
-        location /whitelist_caseless {
-            robot_mitigation on;
-            robot_mitigation_cookie_name rm-autotest;
-            robot_mitigation_mode js;
-            robot_mitigation_timeout 600;
-
-            robot_mitigation_whitelist_caseless on;
-            robot_mitigation_whitelist {
-                "autotest";
-            }
-
-            proxy_pass http://127.0.0.1:8081;
-            proxy_read_timeout 1s;
-        }
 
         location /ip_whitelist1 {
             robot_mitigation on;
@@ -79,7 +54,7 @@ http {
             }
 
             robot_mitigation_whitelist {
-                "autotest";
+                "autotest" ".*.test.com";
             }
             
             proxy_pass http://127.0.0.1:8081;
@@ -107,7 +82,7 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
-                "autotest";
+                "autotest" ".*.test.com";
             }
             
             robot_mitigation_ip_whitelist {
@@ -125,11 +100,11 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
-                "autotest";
+                "autotest" ".*.test.com";
             }
             
             robot_mitigation_ip_whitelist {
-                "12.0.0.1";
+                12.0.0.1;
             }
 
             proxy_pass http://127.0.0.1:8081;
@@ -143,7 +118,7 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
-                "autotest";
+                "autotest" ".*.test.com";
             }
             
             robot_mitigation_ip_whitelist {
@@ -162,7 +137,7 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
-                "autotest";
+                "autotest" ".*.test.com";
             }
             
             robot_mitigation_ip_whitelist {
@@ -179,20 +154,17 @@ http {
 EOF
 
 $t->run_daemon(\&http_daemon);
+$t->run_daemon(\&dns_server_daemon);
 $t->run();
 
 ###############################################################################
 
-like(http_get('/'), qr/rm-autotest/, 'http get request, ac method js');
-
-like(http_get_with_header('/', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent to bypass anti-robot, ac method js');
-like(http_get_with_header('/whitelist_caseless', 'User-Agent: AUTOTEST'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent to bypass anti-robot, ac method js');
-like(http_get_with_header('/ip_whitelist1', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
+like(http_get_with_header('/ip_whitelist1', 'User-Agent: autotest'), qr/rm-autotest/, 'http get request with special user-agent and location to bypass anti-robot but should failed, ac method js');
 
 like(http_get('/ip_whitelist1'), qr/rm-autotest/, 'http get request, ac method js');
 like(http_get('/ip_whitelist2'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special location to bypass anti-robot, ac method js');
-#Send http request with both of header whitelist and ip whitelist matched, expect get response from server
-like(http_get_with_header('/ip_whitelist3', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
+#Send http request with both of header whitelist and ip whitelist matched, but domain not match, expect get js
+like(http_get_with_header('/ip_whitelist3', 'User-Agent: autotest'), qr/rm-autotest/, 'http get request with special user-agent and location to bypass anti-robot, but should failed, ac method js');
 #Send http request with ip whitelist matched but header whitelist not matched, expect get js
 like(http_get('/ip_whitelist3'), qr/rm-autotest/, 'http get request, ac method js');
 #Send http request with header whitelist matched but ip whitelist not matched, expect get js
@@ -201,23 +173,7 @@ like(http_get_with_header('/ip_whitelist4', 'User-Agent: autotest'), qr/rm-autot
 like(http_get_with_header('/ip_whitelist5', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
 #Send http request with ip whitelist matched but header whitelist not matched, expect get response from server
 like(http_get('/ip_whitelist5'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
-#Send http request with header whitelist matched but ip whitelist not matched, expect get response from server
-like(http_get_with_header('/ip_whitelist6', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
-#Send http request with both of ip whitelist and header whitelist not matched, expect get js
 like(http_get('/ip_whitelist6'), qr/rm-autotest/, 'http get request, ac method js');
-like(http_post('/post', 'a=1&b=2'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"a\" value=\"1\">\n<input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');
-
-like(http_post('/post', '&b=2'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');
-
-like(http_post('/post', 'b=2'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');
-
-like(http_post('/post', 'b=2&'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');
-
-like(http_post('/post', 'b=2&&'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');
-
-like(http_post('/post', '&&b=2'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');
-
-unlike(http_head('/'), qr/SEE-THIS/, 'http head request, ac method js');
 
 ###############################################################################
 
@@ -336,5 +292,28 @@ EOF
         close $client;
     }
 }
+
+sub reply_handler {
+    my ($qname, $qclass, $qtype, $peerhost,$query,$conn) = @_;
+    my ($rcode, $rr, $ttl, $rdata, @ans, @auth, @add,);
+
+    $query->print;
+
+    $rcode = "NXDOMAIN";
+
+# Only return "Not found"
+    return ($rcode, \@ans, \@auth, \@add, { aa => 1 });
+}
+
+sub dns_server_daemon {
+    my $ns = new Net::DNS::Nameserver(
+        LocalPort    => 53,
+        ReplyHandler => \&reply_handler,
+    Verbose      => 1
+    ) || die "couldn't create nameserver object\n";
+
+    $ns->main_loop;
+}
+
 
 ###############################################################################

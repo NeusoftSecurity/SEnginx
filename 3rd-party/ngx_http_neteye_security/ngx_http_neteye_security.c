@@ -228,8 +228,15 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
     while (1) {
         module = request_chain[i];
 
-        if (module
-                && !ngx_http_ns_jump_bit_is_set(r, module->id)) {
+        if (r->se_handler != NULL) {
+            if (module == NULL || r->se_handler != module->request_handler) {
+                i++;
+                continue;
+            }
+            r->se_handler = NULL;
+        }
+
+        if (module && !ngx_http_ns_jump_bit_is_set(r, module->id)) {
             handler = module->request_handler;
             ret = handler(r);
         } else {

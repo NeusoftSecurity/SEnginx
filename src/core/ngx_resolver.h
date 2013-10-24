@@ -144,5 +144,4 @@ ngx_int_t ngx_resolve_addr(ngx_resolver_ctx_t *ctx);
 void ngx_resolve_addr_done(ngx_resolver_ctx_t *ctx);
 char *ngx_resolver_strerror(ngx_int_t err);
 
-
 #endif /* _NGX_RESOLVER_H_INCLUDED_ */

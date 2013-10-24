@@ -1,3 +1,12 @@
+Changes with senginx 1.5.6                                      24 Oct  2013
+    *) Feature: upgrade to original nginx 1.5.6.
+
+    *) Feature: support domain name in rotot mitigation whitliet.
+    
+    *) Feature: support match any of ip_whitelist and http_header_whitelist in robot_mitigation.
+    
+    *) Bugfix: if only one IP in a line in ip_whitelist, the match of ip_whitelist may be error.
+
 Changes with senginx 1.5.5                                      09 Oct  2013
 
     *) Feature: upgrade to original nginx 1.5.5.

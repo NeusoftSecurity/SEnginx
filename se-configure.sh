@@ -30,7 +30,6 @@ fi
 
 ./configure $NGX_ARGS \
     --add-module=${TRD_DIR}/ngx_http_neteye_security \
-    --add-module=${TRD_DIR}/ngx_http_naxsi_neteye_helper \
     --add-module=${TRD_DIR}/naxsi/naxsi_src \
     --add-module=${TRD_DIR}/nginx-upstream-fair \
     --add-module=${TRD_DIR}/headers-more-nginx-module \

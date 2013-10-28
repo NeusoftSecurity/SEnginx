@@ -151,8 +151,10 @@ install:	$NGX_OBJS${ngx_dirsep}nginx${ngx_binext} \
 		|| cp -R $NGX_HTML '\$(DESTDIR)$NGX_PREFIX'
 	
 	test -d '\$(DESTDIR)$NGX_PREFIX/naxsi' || mkdir -p '\$(DESTDIR)$NGX_PREFIX/naxsi'
-	cp -R 3rd-party/naxsi/contrib '\$(DESTDIR)$NGX_PREFIX/naxsi/'
+	cp -R 3rd-party/naxsi/nx_util '\$(DESTDIR)$NGX_PREFIX/naxsi/'
 	cp -R 3rd-party/naxsi/naxsi_config '\$(DESTDIR)$NGX_PREFIX/naxsi/'
+	sed -i 's#naxsi_core_rules=.*#naxsi_core_rules=\$(DESTDIR)$NGX_PREFIX/naxsi/naxsi_config/naxsi_core.rules#' '\$(DESTDIR)$NGX_PREFIX/naxsi/nx_util/nx_util.conf'
+	sed -i 's#data_dir=.*#data_dir=\$(DESTDIR)$NGX_PREFIX/naxsi/nx_util/nx_datas#' '\$(DESTDIR)$NGX_PREFIX/naxsi/nx_util/nx_util.conf'
 END
 
 

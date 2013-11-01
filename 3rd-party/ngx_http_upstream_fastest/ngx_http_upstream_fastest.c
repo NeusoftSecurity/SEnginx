@@ -196,7 +196,7 @@ ngx_http_upstream_get_fastest_peer(ngx_peer_connection_t *pc, void *data)
     p = 0;
 
 #if (NGX_HTTP_PERSISTENCE)
-    persist_index = ngx_http_upstream_persistence_get(fp->rrp.request,
+    persist_index = ngx_http_upstream_ps_get(fp->rrp.request,
         fp->rrp.peers->number, fp->rrp.group);
 #endif
     for (i = 0; i < peers->number; i++) {
@@ -288,7 +288,7 @@ ngx_http_upstream_get_fastest_peer(ngx_peer_connection_t *pc, void *data)
     fp->accessed_msec = ngx_current_msec;
 
 #if (NGX_HTTP_PERSISTENCE)
-    ngx_http_upstream_persistence_set(fp->rrp.request, fp->rrp.current, 
+    ngx_http_upstream_ps_set(fp->rrp.request, fp->rrp.current, 
             fp->rrp.group);
 #endif
     return NGX_OK;

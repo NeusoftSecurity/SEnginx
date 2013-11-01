@@ -123,7 +123,7 @@ struct ngx_http_upstream_srv_conf_s {
     ngx_array_t                     *servers;  /* ngx_http_upstream_server_t */
 
 #if (NGX_HTTP_PERSISTENCE)
-    ngx_http_upstream_persistence_group_t group;
+    ngx_http_upstream_ps_group_t    group;
 #endif
 
 #if (NGX_HTTP_UPSTREAM_HASH) 

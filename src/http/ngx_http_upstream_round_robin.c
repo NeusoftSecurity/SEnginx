@@ -479,7 +479,7 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
     ngx_int_t                     persist_index;
 
 
-    persist_index = ngx_http_upstream_persistence_get(rrp->request,
+    persist_index = ngx_http_upstream_ps_get(rrp->request,
         rrp->peers->number, rrp->group);
 #endif
  
@@ -570,7 +570,7 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
     }
 
 #if (NGX_HTTP_PERSISTENCE)
-    ngx_http_upstream_persistence_set(rrp->request, rrp->current, rrp->group);
+    ngx_http_upstream_ps_set(rrp->request, rrp->current, rrp->group);
 #endif
 
     return best;

@@ -195,7 +195,7 @@ ngx_http_upstream_get_least_conn_peer(ngx_peer_connection_t *pc, void *data)
 #endif
 
 #if (NGX_HTTP_PERSISTENCE)
-    persist_index = ngx_http_upstream_persistence_get(lcp->rrp.request,
+    persist_index = ngx_http_upstream_ps_get(lcp->rrp.request,
         lcp->rrp.peers->number, lcp->rrp.group);
 #endif
     for (i = 0; i < peers->number; i++) {
@@ -343,7 +343,7 @@ ngx_http_upstream_get_least_conn_peer(ngx_peer_connection_t *pc, void *data)
     }
 
 #if (NGX_HTTP_PERSISTENCE)
-    ngx_http_upstream_persistence_set(lcp->rrp.request, lcp->rrp.current, 
+    ngx_http_upstream_ps_set(lcp->rrp.request, lcp->rrp.current, 
             lcp->rrp.group);
 #endif
     return NGX_OK;

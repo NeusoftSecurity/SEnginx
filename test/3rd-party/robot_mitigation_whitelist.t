@@ -22,7 +22,7 @@ use Test::Nginx;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy robot_mitigation/)->plan(23);
+my $t = Test::Nginx->new()->has(qw/http proxy robot_mitigation/)->plan(18);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
 
@@ -80,6 +80,7 @@ http {
 
             robot_mitigation_ip_whitelist {
                 "127.0.0.1";
+                "3.0.0.1" "3.2.1.254";
             }
 
             robot_mitigation_whitelist {
@@ -97,6 +98,7 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_ip_whitelist {
+                "1.0.0.1" "2.2.1.254";
                 "127.0.0.1";
             }
 
@@ -115,7 +117,9 @@ http {
             }
             
             robot_mitigation_ip_whitelist {
+                "1.0.0.1" "3.2.1.254";
                 "127.0.0.1";
+                "3.0.0.1" "5.2.1.254";
             }
 
             proxy_pass http://127.0.0.1:8081;
@@ -133,7 +137,9 @@ http {
             }
             
             robot_mitigation_ip_whitelist {
+                "1.0.0.1" "3.2.1.254";
                 "12.0.0.1";
+                "3.0.0.1" "7.2.1.254";
             }
 
             proxy_pass http://127.0.0.1:8081;
@@ -147,14 +153,9 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
-                "autotest";
+                "autotest" "senginx.test.com";
             }
             
-            robot_mitigation_ip_whitelist {
-                "127.0.0.1";
-            }
-
-            robot_mitigation_whitelist_any on;
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
         }
@@ -166,14 +167,9 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
-                "autotest";
+                "autotest" "www.test.com";
             }
             
-            robot_mitigation_ip_whitelist {
-                "12.0.0.1";
-            }
-
-            robot_mitigation_whitelist_any on;
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
         }
@@ -185,7 +181,7 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
-                "autotest" "senginx.test.com";
+                "autotest" ".*.test.com";
             }
             
             proxy_pass http://127.0.0.1:8081;
@@ -199,8 +195,13 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
-                "autotest" "www.test.com";
+                "autotest" ".*.test.com";
             }
+            
+            robot_mitigation_ip_whitelist {
+                "127.0.0.1" "127.0.0.189";
+            }
+
             
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -216,6 +217,11 @@ http {
                 "autotest" ".*.test.com";
             }
             
+            robot_mitigation_ip_whitelist {
+                "12.0.0.1";
+            }
+
+            
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
         }
@@ -227,92 +233,14 @@ http {
             robot_mitigation_timeout 600;
 
             robot_mitigation_whitelist {
-                "autotest" ".*.test.com";
-            }
-            
-            robot_mitigation_ip_whitelist {
-                "127.0.0.1";
-            }
-
-            
-            proxy_pass http://127.0.0.1:8081;
-            proxy_read_timeout 1s;
-        }
-
-        location /ip_whitelist11 {
-            robot_mitigation on;
-            robot_mitigation_cookie_name rm-autotest;
-            robot_mitigation_mode js;
-            robot_mitigation_timeout 600;
-
-            robot_mitigation_whitelist {
-                "autotest" ".*.test.com";
-            }
-            
-            robot_mitigation_ip_whitelist {
-                "12.0.0.1";
-            }
-
-            
-            proxy_pass http://127.0.0.1:8081;
-            proxy_read_timeout 1s;
-        }
-
-        location /ip_whitelist12 {
-            robot_mitigation on;
-            robot_mitigation_cookie_name rm-autotest;
-            robot_mitigation_mode js;
-            robot_mitigation_timeout 600;
-
-            robot_mitigation_whitelist {
                 "autotest" "www.test.com";
             }
             
             robot_mitigation_ip_whitelist {
-                "127.0.0.1";
+                "1.0.1.1" "127.0.0.12";
             }
 
             
-            proxy_pass http://127.0.0.1:8081;
-            proxy_read_timeout 1s;
-        }
-
-        location /ip_whitelist13 {
-            robot_mitigation on;
-            robot_mitigation_cookie_name rm-autotest;
-            robot_mitigation_mode js;
-            robot_mitigation_timeout 600;
-
-            robot_mitigation_whitelist {
-                "autotest" "www.test.com";
-            }
-            
-            robot_mitigation_ip_whitelist {
-                "127.0.0.1";
-            }
-
-            
-            robot_mitigation_whitelist_any on;
-            proxy_pass http://127.0.0.1:8081;
-            proxy_read_timeout 1s;
-        }
-
-        location /ip_whitelist14 {
-            robot_mitigation on;
-            robot_mitigation_cookie_name rm-autotest;
-            robot_mitigation_mode js;
-            robot_mitigation_timeout 600;
-
-            robot_mitigation_whitelist {
-                "autotest" ".*.test.com";
-            }
-            
-            robot_mitigation_ip_whitelist {
-                "12.0.0.1";
-            }
-
-            
-            robot_mitigation_whitelist_any on;
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
         }
@@ -333,43 +261,32 @@ like(http_get_with_header('/', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-TH
 like(http_get_with_header('/whitelist_caseless', 'User-Agent: AUTOTEST'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent to bypass anti-robot, ac method js');
 like(http_get_with_header('/ip_whitelist1', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
 
-like(http_get('/ip_whitelist1'), qr/rm-autotest/, 'http get request, ac method js');
+like(http_get('/ip_whitelist1'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request, ac method js');
 like(http_get('/ip_whitelist2'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special location to bypass anti-robot, ac method js');
 #Send http request with both of header whitelist and ip whitelist matched, expect get response from server
 like(http_get_with_header('/ip_whitelist3', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
-#Send http request with ip whitelist matched but header whitelist not matched, expect get js
-like(http_get('/ip_whitelist3'), qr/rm-autotest/, 'http get request, ac method js');
-#Send http request with header whitelist matched but ip whitelist not matched, expect get js
-like(http_get_with_header('/ip_whitelist4', 'User-Agent: autotest'), qr/rm-autotest/, 'http get request with special user-agent and location to bypass anti-robot, but shuold be failed, ac method js');
+#Send http request with ip whitelist matched but header whitelist not matched, expect get response from server
+like(http_get('/ip_whitelist3'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request, ac method js');
+#Send http request with header whitelist matched but ip whitelist not matched, expect get response from server
+like(http_get_with_header('/ip_whitelist4', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, but shuold be failed, ac method js');
 #Send http request with both of header whitelist and ip whitelist matched, expect get response from server
 like(http_get_with_header('/ip_whitelist5', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
-#Send http request with ip whitelist matched but header whitelist not matched, expect get response from server
-like(http_get('/ip_whitelist5'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
-#Send http request with header whitelist matched but ip whitelist not matched, expect get response from server
-like(http_get_with_header('/ip_whitelist6', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
+#Send http request with domain whitelist matched but header whitelist not matched, expect get js
+like(http_get('/ip_whitelist5'), qr/rm-autotest/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
+#Send http request with header whitelist matched but ip whitelist not matched, expect get js
+like(http_get_with_header('/ip_whitelist6', 'User-Agent: autotest'), qr/rm-autotest/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
 #Send http request with both of ip whitelist and header whitelist not matched, expect get js
 like(http_get('/ip_whitelist6'), qr/rm-autotest/, 'http get request, ac method js');
-##########
-#Send http request with both of header and domain name matched, expect get response from server
-like(http_get_with_header('/ip_whitelist7', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
-#Send http request with domain name matched but header not matched, expect get js
-like(http_get('/ip_whitelist7'), qr/rm-autotest/, 'http get request, ac method js');
-#Send http request with header matched but domain name not matched, expect get js
-like(http_get('/ip_whitelist8'), qr/rm-autotest/, 'http get request, ac method js');
 #Send http request with both of header and domain name matched by regular expression, expect get response from server
-like(http_get_with_header('/ip_whitelist9', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
+like(http_get_with_header('/ip_whitelist7', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
 #Send http request with all of header, domain name and ip whitelist matched, expect get response from server
-like(http_get_with_header('/ip_whitelist10', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
-#Send http request with header and domain matched but ip whitelist not matched, expect get js
-like(http_get_with_header('/ip_whitelist11', 'User-Agent: autotest'), qr/rm-autotest/, 'http get request with special user-agent and location to bypass anti-robot, but shuold be failed, ac method js');
-#Send http request with header and ip whitelist matched but domain not matched, expect get js
-like(http_get('/ip_whitelist12'), qr/rm-autotest/, 'http get request, ac method js');
-#Send http request with header and ip whitelist matched but domain name not matched, expect get response from server
-like(http_get('/ip_whitelist13'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
-#Send http request with header and domain name matched but ip whitelist not matched, expect get response from server
-like(http_get_with_header('/ip_whitelist15', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
+like(http_get_with_header('/ip_whitelist8', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
+#Send http request with header and domain matched but ip whitelist not matched, expect get response from server
+like(http_get_with_header('/ip_whitelist9', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
 #Send http request with both of ip whitelist and header whitelist not matched, expect get js
-like(http_get('/ip_whitelist14'), qr/rm-autotest/, 'http get request, ac method js');
+like(http_get('/ip_whitelist9'), qr/rm-autotest/, 'http get request, ac method js');
+#Send http request with header and ip whitelist matched but domain not matched, expect get response from server
+like(http_get('/ip_whitelist10'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent and location to bypass anti-robot, ac method js');
 ###############################################################################
 
 sub http_daemon {
@@ -499,52 +416,6 @@ Connection: close
 EOF
             print $client "TEST-OK-IF-YOU-SEE-THIS"
             unless $headers =~ /^HEAD/i;
-
-        } elsif ($uri eq '/ip_whitelist11') {
-            print $client <<'EOF';
-HTTP/1.1 200 OK
-Connection: close
-
-EOF
-            print $client "TEST-OK-IF-YOU-SEE-THIS"
-            unless $headers =~ /^HEAD/i;
-
-        } elsif ($uri eq '/ip_whitelist12') {
-            print $client <<'EOF';
-HTTP/1.1 200 OK
-Connection: close
-
-EOF
-            print $client "TEST-OK-IF-YOU-SEE-THIS"
-            unless $headers =~ /^HEAD/i;
-
-        } elsif ($uri eq '/ip_whitelist13') {
-            print $client <<'EOF';
-HTTP/1.1 200 OK
-Connection: close
-
-EOF
-            print $client "TEST-OK-IF-YOU-SEE-THIS"
-            unless $headers =~ /^HEAD/i;
-
-        } elsif ($uri eq '/ip_whitelist14') {
-            print $client <<'EOF';
-HTTP/1.1 200 OK
-Connection: close
-
-EOF
-            print $client "TEST-OK-IF-YOU-SEE-THIS"
-            unless $headers =~ /^HEAD/i;
-
-        } elsif ($uri eq '/ip_whitelist15') {
-            print $client <<'EOF';
-HTTP/1.1 200 OK
-Connection: close
-
-EOF
-            print $client "TEST-OK-IF-YOU-SEE-THIS"
-            unless $headers =~ /^HEAD/i;
-
 
         } elsif ($uri eq '/post') {
 

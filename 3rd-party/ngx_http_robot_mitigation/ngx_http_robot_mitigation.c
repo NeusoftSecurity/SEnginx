@@ -140,9 +140,6 @@ static char *
 ngx_http_rm_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static char *
-ngx_http_rm_whitelist_any(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-
-static char *
 ngx_http_rm_ip_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static char *
@@ -220,14 +217,6 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
-
-    { ngx_string("robot_mitigation_whitelist_any"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_rm_whitelist_any,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
-
  
     { ngx_string("robot_mitigation_ip_whitelist"),
         NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
@@ -968,7 +957,6 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_http_rm_ip_whitelist_item_t    *ip_item;
     ngx_uint_t                         i;
     ngx_int_t                          gen_time;
-    ngx_int_t                          in_list = 0;
     in_addr_t                          src_addr;
     ngx_http_rm_dns_t                  *node;
     uint32_t                           hash;
@@ -1007,29 +995,25 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 
         ip_item = rlcf->ip_whitelist_items->elts;
 
+        src_addr = ntohl(src_addr);
         /* check ip whitelist */
         for (i = 0; i < rlcf->ip_whitelist_items->nelts; i++) {
-            if (ip_item[i].start_addr > ntohl(src_addr) ||
-                    ip_item[i].end_addr < ntohl(src_addr)) {
-#if (NGX_PCRE)
-                if (rlcf->whitelist_any) {
-                    in_list = 0;
-                    goto check_header;
-                }
-#endif
-                goto challenge;
+            if (ip_item[i].start_addr <= src_addr &&
+                    ip_item[i].end_addr >= src_addr) {
+                break;
             }
-            in_list = 1;
         }
 
-        if (in_list && rlcf->whitelist_any) {
+        /* Matched */
+        if (i != rlcf->ip_whitelist_items->nelts) {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                    "ip whitelist matched\n");
             return NGX_DECLINED;
-        }
+        } 
     }
 
 #if (NGX_PCRE)
     /* -1: check whitelist */
-check_header:
     if (r->headers_in.user_agent != NULL && rlcf->whitelist_items) {
         user_agent = r->headers_in.user_agent->value;
         item = rlcf->whitelist_items->elts;
@@ -1117,14 +1101,11 @@ check_header:
 
             /* NGX_DECLINED means not macth, we continue search */
         }
-    } else if (rlcf->whitelist_items == NULL && in_list) {
-        return NGX_DECLINED;
     }
 #else
 #error "must compile with PCRE"
 #endif
 
-challenge:
     /* 0: check special active-challenge urls ignoring the location */
     if (ngx_http_rm_special_swf_uri(r)) {
         ngx_http_ns_set_bypass_all(r);
@@ -1674,23 +1655,6 @@ ngx_http_rm_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     *cf = save;
 
     return rv;
-}
-
-static char *
-ngx_http_rm_whitelist_any(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_rm_loc_conf_t  *rlcf = conf;
-    ngx_str_t               *value = NULL;
-
-    value = cf->args->elts;
-
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-        rlcf->whitelist_any = 1;
-    } else {
-        rlcf->whitelist_any = 0;
-    }
-
-    return NGX_CONF_OK;
 }
 
 static char *
@@ -2619,7 +2583,6 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
 #if (NGX_HTTP_X_FORWARDED_FOR)
     conf->ip_whitelist_x_forwarded_for = 0;
 #endif
-    conf->whitelist_any = 0;
     conf->failed_count = -1;
     conf->timeout = NGX_HTTP_RM_DEFAULT_TIMEOUT;
     conf->cookie_name = cookie_name;

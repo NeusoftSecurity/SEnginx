@@ -78,7 +78,6 @@ typedef struct {
 
     ngx_uint_t                  enabled:1;
     ngx_uint_t                  ip_whitelist_x_forwarded_for:1;
-    ngx_uint_t                  whitelist_any:1;
     ngx_uint_t                  wl_caseless:1;
     ngx_uint_t                  log:1;
     ngx_uint_t                  no_expires:1;

@@ -11,7 +11,7 @@ use strict;
 
 use base qw/ Exporter /;
 
-our @EXPORT = qw/ log_in log_out http http_get http_head http_post http_get_with_header /;
+our @EXPORT = qw/ log_in log_out http http_get http_head http_post http_post_multipart http_get_with_header /;
 our @EXPORT_OK = qw/ http_gzip_request http_gzip_like /;
 our %EXPORT_TAGS = (
 	gzip => [ qw/ http_gzip_request http_gzip_like / ]
@@ -438,6 +438,20 @@ POST $url HTTP/1.0
 Host: localhost
 Connection: close
 Content-Type: application/x-www-form-urlencoded
+Content-Length: $body_len
+
+$body
+EOF
+}
+
+sub http_post_multipart($;%) {
+	my ($url, $body, %extra) = @_;
+        my $body_len = length($body);
+	return http(<<EOF, %extra);
+POST $url HTTP/1.0
+Host: localhost
+Connection: close
+Content-Type: multipart/form-data; boundary: ___abcdefg___
 Content-Length: $body_len
 
 $body

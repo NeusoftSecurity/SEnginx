@@ -951,19 +951,20 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_str_t                          cookie, user_agent;
     ngx_str_t                          cookie_f1, cookie_f2;
     ngx_str_t                          src_addr_text;
-    ngx_str_t                          *domain_name = NULL;
+    ngx_str_t                         *domain_name = NULL;
     ngx_int_t                          ret;
-    ngx_http_rm_whitelist_item_t       *item;
-    ngx_http_rm_ip_whitelist_item_t    *ip_item;
-    ngx_uint_t                         i;
+    ngx_http_rm_whitelist_item_t      *item;
+    ngx_http_rm_ip_whitelist_item_t   *ip_item;
+    ngx_uint_t                         i, len;
     ngx_int_t                          gen_time;
     in_addr_t                          src_addr;
-    ngx_http_rm_dns_t                  *node;
+    ngx_http_rm_dns_t                 *node;
     uint32_t                           hash;
 #if (NGX_HTTP_X_FORWARDED_FOR)
-    ngx_array_t                         *xfwd;
-    ngx_table_elt_t                     **h;
+    ngx_array_t                       *xfwd;
+    ngx_table_elt_t                  **h;
 #endif
+    ngx_str_t                         *content_type;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "robot mitigation request handler begin");
@@ -1174,6 +1175,24 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     if ((r->method != NGX_HTTP_GET)
             && (r->method != NGX_HTTP_POST)) {
         return NGX_DECLINED;
+    }
+
+    /* currently we only support application/x-www-form-urlencoded style post
+     * TODO: support it
+     */
+    if (r->method == NGX_HTTP_POST) {
+        if (r->headers_in.content_type) {
+            content_type = &r->headers_in.content_type->value;
+            len = sizeof(NGX_HTTP_RM_POST_TYPE) - 1;
+
+            if (content_type->len < len) {
+                return NGX_DECLINED;
+            }
+
+            if (ngx_memcmp(content_type->data, NGX_HTTP_RM_POST_TYPE, len)) {
+                return NGX_DECLINED;
+            }
+        }
     }
 
     cookie_f1.data = ngx_pcalloc(r->pool, NGX_HTTP_RM_DEFAULT_COOKIE_LEN + 1);

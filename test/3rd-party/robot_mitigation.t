@@ -21,7 +21,7 @@ use Test::Nginx;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy robot_mitigation/)->plan(19);
+my $t = Test::Nginx->new()->has(qw/http proxy robot_mitigation/)->plan(20);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
 
@@ -198,6 +198,8 @@ like(http_post('/post', 'b=2&'), qr/<form name=\"response\" method=\"post\"><inp
 like(http_post('/post', 'b=2&&'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');
 
 like(http_post('/post', '&&b=2'), qr/<form name=\"response\" method=\"post\"><input type=\"hidden\" name=\"b\" value=\"2\">\n<\/form>/, 'http post request, ac method js');
+
+like(http_post_multipart('/post', 'some dummy things'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http multipart post request, ac method js');
 
 unlike(http_head('/'), qr/SEE-THIS/, 'http head request, ac method js');
 

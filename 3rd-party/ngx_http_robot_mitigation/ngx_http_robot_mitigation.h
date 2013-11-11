@@ -47,6 +47,7 @@
 #define NGX_HTTP_RM_SWF_PLACEHOLDER_TIMEOUT "Roboo_validity_0"
 
 
+#define NGX_HTTP_RM_POST_TYPE "application/x-www-form-urlencoded"
 #define NGX_HTTP_RM_FORM_VARIABLES \
     "<input type=\"hidden\" name=\"%s\" value=\"%s\">\n"
 

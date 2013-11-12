@@ -11,16 +11,15 @@
 #include <ngx_http_session.h>
 #endif
 
-#define NGX_HTTP_SESSION_PS_COOKIE_KEY        "cookie_name="
-#define NGX_HTTP_SESSION_PS_ID_COOKIE          "ADSG-PSENCE_ID"
-#define NGX_HTTP_SESSION_DEFAULT_TIMEOUT            (7*24*60*60)   //7 days
-
-#define NGX_HTTP_FASTEST_VALID_TIME_LENGTH          (60*1000)      //ms
+#define NGX_HTTP_PS_INSERT_COOKIE        "cookie_name="
+#define NGX_HTTP_PS_MONITOR_COOKIE       "monitor_cookie="
+#define NGX_HTTP_PS_TIMEOUT              "timeout="
 
 #if (NGX_HTTP_SESSION)
 static u_char *ngx_http_upstream_ps_session_name = (u_char *)"persistence";
 #endif
-
+static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
+ 
 static char *ngx_http_upstream_ps(ngx_conf_t *cf, ngx_command_t *cmd,
                                     void *conf);
 static ngx_int_t ngx_http_upstream_ps_init(ngx_conf_t *cf);
@@ -84,13 +83,13 @@ ngx_int_t ngx_http_upstream_ps_get(ngx_http_request_t *r,
         return -1;
     }
 
-    if (p_group->sess_persistence_get == NULL) {
+    if (p_group->ps_get == NULL) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
                 "persistence get not set\n");
         return -1;
     }
  
-    current = p_group->sess_persistence_get(r, group); 
+    current = p_group->ps_get(r, group); 
     if (current >= (ngx_int_t)peer_number) {
         return -1;
     }
@@ -109,18 +108,17 @@ void ngx_http_upstream_ps_set(ngx_http_request_t *r,
         return;
     }
 
-    if (p_group->sess_persistence_set == NULL) {
+    if (p_group->ps_set == NULL) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
                 "persistence set not set\n");
         return;
     }
     
-    p_group->sess_persistence_set(r, current, group); 
+    p_group->ps_set(r, current, group); 
 }
 
 static ngx_int_t
-ngx_http_upstream_ps_cookie_get_peer(ngx_http_request_t *r, 
-                ngx_str_t *data)
+ngx_http_upstream_ps_cookie_get_peer(ngx_http_request_t *r, ngx_str_t *data)
 {
     ngx_str_t       index_string;
     ngx_int_t       n;
@@ -148,7 +146,7 @@ ngx_http_upstream_ps_cookie_get_peer(ngx_http_request_t *r,
 
 static void
 ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r, 
-        ngx_uint_t current, ngx_str_t *opt, ngx_uint_t timeout,
+        ngx_uint_t current, ngx_str_t *opt, ngx_int_t timeout,
         ngx_str_t *value)
 {
     ngx_table_elt_t                 *set_cookie;
@@ -179,7 +177,7 @@ ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r,
 
     tmp = ngx_sprintf(cookie, "%s=%d", value->data, current);
 
-    if (timeout) {
+    if (timeout > 0) {
         tmp = ngx_cpymem(tmp, "; expires=", strlen("; expires="));
         tmp = ngx_http_cookie_time(tmp, ngx_time() + timeout);
     }
@@ -206,7 +204,18 @@ ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r,
 static ngx_int_t ngx_http_upstream_ps_cookie_get(ngx_http_request_t *r, 
         ngx_http_upstream_ps_group_t *group)
 {
-    return ngx_http_upstream_ps_cookie_get_peer(r, group->data);
+    ngx_int_t       n;
+    ngx_str_t       value;
+
+    if (group->monitor_cookie.len) {
+        n = ngx_http_parse_multi_header_lines(&r->headers_in.cookies,
+                &group->monitor_cookie, &value);
+        if (n == NGX_DECLINED || value.len == 0) {
+            return -1;
+        }
+    }
+
+    return ngx_http_upstream_ps_cookie_get_peer(r, &group->insert_cookie);
 }
 
 static void ngx_http_upstream_ps_cookie_set(ngx_http_request_t *r, 
@@ -215,54 +224,166 @@ static void ngx_http_upstream_ps_cookie_set(ngx_http_request_t *r,
 {
     ngx_str_t     opt_path = ngx_string("; Path=/; HttpOnly");
 
-    if (ngx_http_upstream_ps_cookie_get_peer(r, group->data) >= 0) {
+    if (group->monitor_cookie.len) {
+        r->group = group;
+        r->current = current;
+        return;
+    }
+
+    if (ngx_http_upstream_ps_cookie_get_peer(r, &group->insert_cookie) >= 0) {
         return;
     }
 
     ngx_http_upstream_ps_set_cookie(r, current, &opt_path, 
-            group->timeout, group->data);
+            group->timeout, &group->insert_cookie);
 }
 
-static ngx_int_t ngx_http_upstream_ps_session_cookie_get(ngx_http_request_t *r, 
-        ngx_http_upstream_ps_group_t *group)
+static void
+ngx_http_upstream_ps_get_cookie_opt(ngx_str_t *str, 
+        char *name, ngx_str_t *result)
 {
-    ngx_str_t     session_string;
-    ngx_str_t     session_key = ngx_string(NGX_HTTP_SESSION_PS_ID_COOKIE);
-    ngx_int_t     n;
+    char                                    *sp; //';' postion in str
+    char                                    *start;
+    size_t                                  offset = 0;
+    size_t                                  soffset = 0;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "http_session_cookie_get_peer\n");
-
-    n = ngx_http_parse_multi_header_lines (&r->headers_in.cookies,
-            (ngx_str_t *)group->data, &session_string);
-
-    if (n == NGX_DECLINED || session_string.len == 0) {
-        return -1;
+    if (str->len <= 0) {
+        goto no_result;
     }
 
-    return ngx_http_upstream_ps_cookie_get_peer(r, &session_key);
-}
+    start = (char *)str->data;
+    while (offset < str->len) {
+        if (*start == ' ') {
+            start++;
+            offset++;
+            continue;
+        }
 
-static void ngx_http_upstream_ps_session_cookie_set(ngx_http_request_t *r,
-        ngx_uint_t current,
-        ngx_http_upstream_ps_group_t *group)
-{
-    ngx_str_t     opt_path = ngx_string("; Path=/; HttpOnly");
-    ngx_str_t     session_key = ngx_string(NGX_HTTP_SESSION_PS_ID_COOKIE);
-    ngx_str_t     session_string;
-    ngx_int_t     n;
+        if (str->len - offset < strlen(name) + 1) {
+            break;
+        }
 
-    n = ngx_http_parse_multi_header_lines(&r->headers_in.cookies,
-            (ngx_str_t *)group->data, &session_string);
+        if (ngx_strncmp(start, name, strlen(name)) == 0) {
+            soffset = strlen(name);
+            if (start[soffset] != '=') {
+                while (start[soffset] == ' ') {
+                    if (str->len <= soffset + offset) {
+                        break;
+                    }
+                    soffset++;
+                }
+            }
+            if (start[soffset] != '=') {
+                goto next;
+            }
 
-    if (n != NGX_DECLINED && session_string.len != 0) {
-        if (ngx_http_upstream_ps_cookie_get_peer(r, &session_key) >= 0) {
+            result->data = (u_char *)start;
+            sp = ngx_strstr(start, ";");
+            if (sp) {
+                result->len = (sp - start);
+            } else {
+                result->len = str->len - offset;
+            }
             return;
         }
+
+next:
+        sp = ngx_strstr(start, ";");
+        if (sp == NULL) {
+            goto no_result;
+        }
+        start = sp + 1;
+        offset = (size_t)(start - (char *)str->data);
+        continue;
     }
 
-    ngx_http_upstream_ps_set_cookie(r, current, &opt_path, 
-            group->timeout, &session_key);
+no_result:
+    result->data = NULL;
+    result->len = 0;
+}
+
+static ngx_int_t
+ngx_http_upstream_ps_header_filter(ngx_http_request_t *r)
+{
+    ngx_str_t                           opt_value = ngx_string("; HttpOnly");
+    ngx_str_t                           opt;
+    ngx_str_t                           monitor_cookie;
+    ngx_str_t                           opt_path;
+    ngx_str_t                           opt_expires;
+    ngx_http_upstream_ps_group_t        *group;
+    ngx_list_part_t                     *part;
+    ngx_uint_t                          i;
+    ngx_table_elt_t                     *header;
+    ngx_str_t                           *cookie_name;
+    u_char                              *tmp;
+
+    group = r->group;
+    if (group == NULL) {
+        goto next;
+    }
+
+    cookie_name = &group->monitor_cookie;
+    part = &r->headers_out.headers.part;
+    header = part->elts;
+
+    for (i = 0; /* void */; i++) {
+        if (i >= part->nelts) {
+            if (part->next == NULL) {
+                break;
+            }
+
+            part = part->next;
+            header = part->elts;
+            i = 0;
+        }
+        if (i < part->nelts && 
+                ngx_strncmp(header->key.data, "Set-Cookie", 
+                    header->key.len) == 0) {
+            ngx_http_upstream_ps_get_cookie_opt(&header->value, 
+                    (char *)cookie_name->data, &monitor_cookie);
+            if (monitor_cookie.len == 0) {
+                /* Not monitored cookie */
+                continue;
+            }
+
+            if (group->timeout < 0) {
+                ngx_http_upstream_ps_get_cookie_opt(&header->value, 
+                        "expires", &opt_expires);
+            } else {
+                memset(&opt_expires, 0, sizeof(opt_expires));
+            }
+
+            ngx_http_upstream_ps_get_cookie_opt(&header->value, 
+                    "path", &opt_path);
+            opt.len = opt_value.len + opt_expires.len + 2 + opt_path.len + 2;
+            opt.data = ngx_pcalloc(r->pool, opt.len);
+            if (opt.data == NULL) {
+                goto next;
+            }
+            tmp = opt.data;
+            if (opt_expires.len) {
+                *tmp++ = ';';
+                *tmp++ = ' ';
+                tmp = ngx_cpymem(tmp, opt_expires.data, opt_expires.len);
+            }
+
+            if (opt_path.len) {
+                *tmp++ = ';';
+                *tmp++ = ' ';
+                tmp = ngx_cpymem(tmp, opt_path.data, opt_path.len);
+            }
+
+            memcpy(tmp, opt_value.data, opt_value.len);
+
+            ngx_http_upstream_ps_set_cookie(r, r->current, &opt, 
+                    group->timeout, &group->insert_cookie);
+        }
+        header = (ngx_table_elt_t *)((char *)header + 
+                r->headers_out.headers.size);
+    }
+
+next:
+    return ngx_http_next_header_filter(r);
 }
 
 #if (NGX_HTTP_SESSION)
@@ -352,14 +473,18 @@ static char *
 ngx_http_upstream_ps_config(ngx_http_upstream_ps_group_t 
         *group, ngx_conf_t *cf)
 {
-    ngx_str_t                        *value, *str;
+    ngx_str_t                        *value;
     ngx_uint_t                        i;
+    size_t                           slen;
+    u_char                           *timeout;
 
     value = cf->args->elts;
 
+    group->timeout = 0;
+
     for (i = 1; i < cf->args->nelts; i++) {
-        if (ngx_strcasecmp((u_char *)"http_cookie", (u_char *)value[i].data) == 0) {
-            if (group->sess_persistence_get != NULL) {
+        if (ngx_strcmp("http_cookie", value[i].data) == 0) {
+            if (group->ps_get != NULL) {
                 return "duplicate session persister";
             }
 
@@ -367,30 +492,15 @@ ngx_http_upstream_ps_config(ngx_http_upstream_ps_group_t
                 return NGX_CONF_ERROR;
             }
 
-            group->sess_persistence_get = ngx_http_upstream_ps_cookie_get;
-            group->sess_persistence_set = ngx_http_upstream_ps_cookie_set;
-            continue;
-        }
-
-        if (ngx_strcasecmp((u_char *)"session_cookie", (u_char *)value[i].data) == 0) {
-
-            if (group->sess_persistence_get != NULL) {
-                return "duplicate session persister";
-            }
-
-            if (cf->module_type != NGX_HTTP_MODULE) {
-                return NGX_CONF_ERROR;
-            }
-
-            group->sess_persistence_get = &ngx_http_upstream_ps_session_cookie_get;
-            group->sess_persistence_set = &ngx_http_upstream_ps_session_cookie_set;
+            group->ps_get = ngx_http_upstream_ps_cookie_get;
+            group->ps_set = ngx_http_upstream_ps_cookie_set;
             continue;
         }
 
 #if (NGX_HTTP_SESSION)
-        if (ngx_strcasecmp((u_char *)"session_based", (u_char *)value[i].data) == 0) {
+        if (ngx_strcmp("session_based", value[i].data) == 0) {
 
-            if (group->sess_persistence_get != NULL) {
+            if (group->ps_get != NULL) {
                 return "duplicate session persister";
             }
 
@@ -398,52 +508,56 @@ ngx_http_upstream_ps_config(ngx_http_upstream_ps_group_t
                 return NGX_CONF_ERROR;
             }
 
-            group->sess_persistence_get = &ngx_http_upstream_ps_session_get;
-            group->sess_persistence_set = &ngx_http_upstream_ps_session_set;
+            group->ps_get = ngx_http_upstream_ps_session_get;
+            group->ps_set = ngx_http_upstream_ps_session_set;
             return NGX_CONF_OK;
         }
 #endif
 
-        if (ngx_strncmp(value[i].data, NGX_HTTP_SESSION_PS_COOKIE_KEY, 
-                    ngx_strlen(NGX_HTTP_SESSION_PS_COOKIE_KEY)) == 0) {
-            if (group->data != NULL) {
-                return "duplicate cookie_name";
-            }
-
-            str = ngx_pcalloc(cf->pool, sizeof (ngx_str_t) );
-
-            if (str == NULL) {
-                return NGX_CONF_ERROR;
-            }
-
-            str->data = value[i].data + 
-                ngx_strlen(NGX_HTTP_SESSION_PS_COOKIE_KEY);
-            str->len = value[i].len -
-                ngx_strlen(NGX_HTTP_SESSION_PS_COOKIE_KEY);
-
-            if (str->len == 0) {
-                return NGX_CONF_ERROR;
-            }
-
-            group->data = str;
+        slen = ngx_strlen(NGX_HTTP_PS_INSERT_COOKIE);
+        if (ngx_strncmp(value[i].data, NGX_HTTP_PS_INSERT_COOKIE, slen) == 0) {
+            group->insert_cookie.data = value[i].data + slen;
+            group->insert_cookie.len = value[i].len - slen;
             continue;
         }
 
-        if (ngx_strncasecmp((u_char *) "timeout=", (u_char *) value[i].data, 8) == 0) {
-            group->timeout = ngx_atoi(value[i].data + 8, value[i].len - 8);
+        slen = ngx_strlen(NGX_HTTP_PS_MONITOR_COOKIE);
+        if (ngx_strncmp(value[i].data, NGX_HTTP_PS_MONITOR_COOKIE, slen) == 0) {
+            group->monitor_cookie.data = value[i].data + slen;
+            group->monitor_cookie.len = value[i].len - slen;
+            continue;
+        }
+
+        if (ngx_strncmp(value[i].data, NGX_HTTP_PS_TIMEOUT,
+                    ngx_strlen(NGX_HTTP_PS_TIMEOUT)) == 0) {
+            timeout = value[i].data + ngx_strlen(NGX_HTTP_PS_TIMEOUT);
+            if (ngx_strcmp(timeout, "session") == 0) {
+                continue;
+            }
+
+            if (ngx_strcmp(timeout, "auto") == 0) {
+                group->timeout = -1;
+                continue;
+            }
+            group->timeout = ngx_atoi(timeout, 
+                    value[i].len - ngx_strlen(NGX_HTTP_PS_TIMEOUT));
+            if (group->timeout <= 0) {
+                return "timeout must bigger then 0";
+            }
             group->timeout *= 60;
             continue;
         }
 
+        fprintf(stderr, "Can't parse %s\n", value[i].data);
         return NGX_CONF_ERROR;
     }
 
-    if (group->data == NULL) {
-        return "cookie_name is NULL";
-    }
-
-    if (group->timeout == 0) {
-        group->timeout = NGX_HTTP_SESSION_DEFAULT_TIMEOUT;
+    if (group->monitor_cookie.len == 0) {
+        if (group->timeout < 0) {
+            return "timeout error";
+        }
+    } else if (group->ps_get != ngx_http_upstream_ps_cookie_get) {
+        return "config monitor_cookie not in http_cookie";
     }
 
     return NGX_CONF_OK;
@@ -514,6 +628,8 @@ ngx_http_upstream_ps_create_session_ctx(ngx_http_session_t *session)
 
 static ngx_int_t ngx_http_upstream_ps_init(ngx_conf_t *cf)
 {
+    ngx_http_next_header_filter = ngx_http_top_header_filter;
+    ngx_http_top_header_filter = ngx_http_upstream_ps_header_filter;
 #if (NGX_HTTP_SESSION)
     ngx_http_session_register_create_ctx_handler(
             ngx_http_upstream_ps_create_session_ctx);

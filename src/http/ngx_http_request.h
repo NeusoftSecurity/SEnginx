@@ -572,6 +572,10 @@ struct ngx_http_request_s {
     void                            **ns_ctx;
     void                            *se_handler;
 #endif
+#if (NGX_HTTP_PERSISTENCE)
+    void                            *group;
+    ngx_int_t                       current;
+#endif
 };
 
 

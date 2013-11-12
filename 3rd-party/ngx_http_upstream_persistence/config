@@ -1,6 +1,6 @@
 ngx_addon_name=ngx_http_upstream_persistence_module
 
-HTTP_MODULES="$HTTP_MODULES ngx_http_upstream_persistence_module"
+HTTP_FILTER_MODULES="$HTTP_FILTER_MODULES ngx_http_upstream_persistence_module"
 CORE_INCS="$CORE_INCS $ngx_addon_dir"
 CORE_DEPS="$CORE_DEPS $ngx_addon_dir/ngx_http_upstream_persistence.h"
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_upstream_persistence.c"

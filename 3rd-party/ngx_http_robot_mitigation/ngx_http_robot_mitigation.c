@@ -2500,7 +2500,7 @@ ngx_http_rm_content_handler(ngx_http_request_t *r)
 
     cc->hash = 1;
     ngx_str_set(&cc->key, "Cache-Control");
-    ngx_str_set(&cc->value, "no-cache");
+    ngx_str_set(&cc->value, "no-cache, no-store");
 
     *ccp = cc;
     

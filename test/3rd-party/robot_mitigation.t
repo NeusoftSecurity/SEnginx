@@ -21,7 +21,7 @@ use Test::Nginx;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy robot_mitigation/)->plan(20);
+my $t = Test::Nginx->new()->has(qw/http proxy robot_mitigation/)->plan(21);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
 
@@ -167,7 +167,9 @@ $t->run();
 
 ###############################################################################
 
-like(http_get('/'), qr/rm-autotest/, 'http get request, ac method js');
+my $r = http_get('/');
+like($r, qr/rm-autotest/, 'http get request, ac method js');
+like($r, qr/Cache-Control: no-cache, no-store/, 'http get request, ac method js');
 
 like(http_get_with_header('/', 'User-Agent: autotest'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent to bypass anti-robot, ac method js');
 like(http_get_with_header('/whitelist_caseless', 'User-Agent: AUTOTEST'), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http get request with special user-agent to bypass anti-robot, ac method js');

@@ -1,4 +1,45 @@
 
+Changes with nginx 1.5.7                                         19 Nov 2013
+
+    *) Security: a character following an unescaped space in a request line
+       was handled incorrectly (CVE-2013-4547); the bug had appeared in
+       0.8.41.
+       Thanks to Ivan Fratric of the Google Security Team.
+
+    *) Change: a logging level of auth_basic errors about no user/password
+       provided has been lowered from "error" to "info".
+
+    *) Feature: the "proxy_cache_revalidate", "fastcgi_cache_revalidate",
+       "scgi_cache_revalidate", and "uwsgi_cache_revalidate" directives.
+
+    *) Feature: the "ssl_session_ticket_key" directive.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: the directive "add_header Cache-Control ''" added a
+       "Cache-Control" response header line with an empty value.
+
+    *) Bugfix: the "satisfy any" directive might return 403 error instead of
+       401 if auth_request and auth_basic directives were used.
+       Thanks to Jan Marc Hoffmann.
+
+    *) Bugfix: the "accept_filter" and "deferred" parameters of the "listen"
+       directive were ignored for listen sockets created during binary
+       upgrade.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: some data received from a backend with unbufferred proxy
+       might not be sent to a client immediately if "gzip" or "gunzip"
+       directives were used.
+       Thanks to Yichun Zhang.
+
+    *) Bugfix: in error handling in ngx_http_gunzip_filter_module.
+
+    *) Bugfix: responses might hang if the ngx_http_spdy_module was used
+       with the "auth_request" directive.
+
+    *) Bugfix: memory leak in nginx/Windows.
+
+
 Changes with nginx 1.5.6                                         01 Oct 2013
 
     *) Feature: the "fastcgi_buffering" directive.

@@ -1,3 +1,14 @@
+Changes with senginx 1.5.8                                      21 Nov  2013
+
+    *) Feature: upgrade to original nginx 1.5.7, which fixes CVE-2013-4547 security problem.
+
+    *) Change: make monitor session persistence to a sub mode of insert cookie persistence.
+
+    *) Bugfix: add Cache-Control: no-cache, no-store to robot challenge reponse, to avoid cache
+
+    *) Bugfix: fix multipart/form-data problem in robot mitigation.
+
+
 Changes with senginx 1.5.7                                      07 Nov  2013
 
     *) Feature: add session base persistence method.

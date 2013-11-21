@@ -1,3 +1,8 @@
+Changes with senginx 1.4.4                                     21 Nov 2013
+
+    *) Feature: upgrade to original nginx 1.4.4, which fixes CVE-2013-4547 security problem.
+
+
 Changes with senginx 1.4.3                                      9 Oct 2013
     
     *) Feature: upgrade to original nginx 1.4.3.
@@ -29,6 +34,5 @@ Changes with senginx 1.4.1                                      9 May 2013
     *) Feature: the "proxy_cache_types" directive.
 
     *) Feature: the "ifall" and "ifany" directives.
-
 
 

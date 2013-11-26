@@ -125,11 +125,6 @@ ngx_http_rm_dns_lookup(ngx_rbtree_t *tree, ngx_str_t *addr, uint32_t hash);
 static void *
 ngx_http_rm_create_main_conf(ngx_conf_t *cf);
 
-#if 0
-static ngx_int_t
-ngx_http_rm_do_action(ngx_http_request_t *r);
-#endif
-
 static ngx_int_t
 ngx_http_rm_request_ctx_init(ngx_http_request_t *r);
 
@@ -152,6 +147,10 @@ ngx_http_rm_ip_whitelist_x_forwarded_for(ngx_conf_t *cf, ngx_command_t *cmd, voi
 
 static char *
 ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+
+static ngx_int_t
+ngx_http_rm_test_content_type(ngx_http_request_t *r, u_char *type);
+
 
 static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
 
@@ -955,7 +954,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_int_t                          ret;
     ngx_http_rm_whitelist_item_t      *item;
     ngx_http_rm_ip_whitelist_item_t   *ip_item;
-    ngx_uint_t                         i, len;
+    ngx_uint_t                         i;
     ngx_int_t                          gen_time;
     in_addr_t                          src_addr;
     ngx_http_rm_dns_t                 *node;
@@ -964,7 +963,6 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_array_t                       *xfwd;
     ngx_table_elt_t                  **h;
 #endif
-    ngx_str_t                         *content_type;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "robot mitigation request handler begin");
@@ -1181,17 +1179,8 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
      * TODO: support it
      */
     if (r->method == NGX_HTTP_POST) {
-        if (r->headers_in.content_type) {
-            content_type = &r->headers_in.content_type->value;
-            len = sizeof(NGX_HTTP_RM_POST_TYPE) - 1;
-
-            if (content_type->len < len) {
+        if (!ngx_http_rm_test_content_type(r, (u_char *)NGX_HTTP_RM_POST_TYPE)) {
                 return NGX_DECLINED;
-            }
-
-            if (ngx_memcmp(content_type->data, NGX_HTTP_RM_POST_TYPE, len)) {
-                return NGX_DECLINED;
-            }
         }
     }
 
@@ -2513,16 +2502,6 @@ ngx_http_rm_content_handler(ngx_http_request_t *r)
             return ngx_http_rm_challenge_get_swf_handler(r);
         }
     } else if (r->method == NGX_HTTP_POST){
-        /* consider upload file as GET */
-        if (ngx_http_rm_test_content_type(r, 
-                    (u_char *)"multipart/form-data")) {
-            if (rlcf->mode == NGX_HTTP_RM_MODE_JS) {
-                return ngx_http_rm_challenge_get_js_handler(r);
-            } else {
-                return ngx_http_rm_challenge_get_swf_handler(r);
-            }
-        }
-
         rc = ngx_http_rm_read_request_body(r, ngx_http_rm_dummy_post_handler);
         
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {

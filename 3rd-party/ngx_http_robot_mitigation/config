@@ -5,5 +5,6 @@ HTTP_MODULES="$HTTP_MODULES ngx_http_robot_mitigation_module"
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_robot_mitigation.c $ngx_addon_dir/ngx_http_robot_mitigation_tpl.c"
 have=NGX_HTTP_ROBOT_MITIGATION_MODULE . auto/have
 
-
-
+gcc -o $ngx_addon_dir/tools/gen-tpl $ngx_addon_dir/tools/gen-random-js-tpl.c
+$ngx_addon_dir/tools/gen-tpl -s -n 100 > $ngx_addon_dir/ngx_http_robot_mitigation_tpl.c
+rm -f $ngx_addon_dir/tools/gen-tpl

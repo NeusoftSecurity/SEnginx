@@ -13,9 +13,9 @@
 
 #include <zlib.h>
 
-extern const char *ngx_http_rm_get_js_tpls[];
+extern const ngx_http_rm_tpl_t ngx_http_rm_get_js_tpls[];
 extern const ngx_uint_t ngx_http_rm_get_js_tpls_nr;
-extern const char *ngx_http_rm_post_js_tpls[];
+extern const ngx_http_rm_tpl_t ngx_http_rm_post_js_tpls[];
 extern const ngx_uint_t ngx_http_rm_post_js_tpls_nr;
 
 static ngx_rbtree_t                 ngx_http_rm_dns_rbtree;
@@ -40,6 +40,8 @@ static ngx_log_t                    ngx_http_rm_timer_log;
 
 #define NGX_HTTP_RM_POST_JS_2 \
     "</form>\n</body>\n</html>\n"
+
+#define NGX_HTTP_RM_POST_JS_2_LEN 24
 
 #define NGX_HTTP_RM_POST_SWF_1 \
     "<html>\n<body>\n" \
@@ -1188,7 +1190,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     if (cookie_f1.data == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-    
+
     cookie_f2.data = ngx_pcalloc(r->pool, NGX_HTTP_RM_DEFAULT_COOKIE_LEN + 1);
     if (cookie_f2.data == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -1419,12 +1421,33 @@ static char *ngx_http_rm_ip_whitelist_x_forwarded_for(ngx_conf_t *cf,
 static char *ngx_http_rm_cookie_name(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf)
 {
-    ngx_http_rm_loc_conf_t *rlcf = conf;
+    ngx_http_rm_loc_conf_t  *rlcf = conf;
     ngx_str_t               *value = NULL;
+    ngx_str_t               *name = NULL;
 
     value = cf->args->elts;
 
-    rlcf->cookie_name = value[1];
+    if (value[1].len > NGX_HTTP_RM_MAX_COOKIE_NAME_LEN) {
+        return "must not be longer than 32 characters";
+    }
+
+    if (value[1].len != NGX_HTTP_RM_MAX_COOKIE_NAME_LEN) {
+        /* append space to cookie name */
+        rlcf->cookie_name = value[1];
+        name = &rlcf->cookie_name_c;
+
+        name->data = ngx_pcalloc(cf->pool, NGX_HTTP_RM_MAX_COOKIE_NAME_LEN + 1);
+        if (!name->data) {
+            return NGX_CONF_ERROR;
+        }
+
+        memset(name->data, ' ', NGX_HTTP_RM_MAX_COOKIE_NAME_LEN);
+        memcpy(name->data, value[1].data, value[1].len);
+        name->len = NGX_HTTP_RM_MAX_COOKIE_NAME_LEN;
+    } else {
+        /* value[1].len == MAX_COOKIE_NAME_LEN */
+        rlcf->cookie_name_c = rlcf->cookie_name = value[1];
+    }
 
     return NGX_CONF_OK;
 }
@@ -1475,10 +1498,10 @@ ngx_http_rm_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_rm_loc_conf_t     *rlcf = conf;
     ngx_str_t                  *value;
+    ngx_str_t                  *tmp;
     ngx_int_t                   timeout;
 
     value = cf->args->elts;
-    rlcf->timeout = ngx_atoi(value[1].data, value[1].len);
 
     timeout = ngx_atoi(value[1].data, value[1].len);
     if (timeout == NGX_ERROR) {
@@ -1487,6 +1510,28 @@ ngx_http_rm_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     if (timeout == 0) {
         rlcf->no_expires = 1;
+    }
+
+    if (timeout > NGX_HTTP_RM_MAX_TIMEOUT) {
+        return "can not be bigger than 3600s";
+    }
+
+    rlcf->timeout = timeout;
+
+    if (value[1].len < NGX_HTTP_RM_MAX_TIMEOUT_STR_LEN) {
+        tmp = &rlcf->timeout_c;
+
+        tmp->data = ngx_pcalloc(cf->pool, NGX_HTTP_RM_MAX_TIMEOUT_STR_LEN + 1);
+        if (!tmp->data) {
+            return NGX_CONF_ERROR;
+        }
+
+        memset(tmp->data, ' ', NGX_HTTP_RM_MAX_TIMEOUT_STR_LEN);
+        memcpy(tmp->data, value[1].data, value[1].len);
+        tmp->len = NGX_HTTP_RM_MAX_TIMEOUT_STR_LEN;
+    } else {
+        /* equal */
+        rlcf->timeout_c = value[1];
     }
 
     return NGX_CONF_OK;
@@ -1771,47 +1816,6 @@ ngx_http_rm_handle_no_expires(u_char *data, ngx_uint_t len)
     }
 }
 
-/* Caution:
- * buf should big enough to include "after" string
- */
-static ngx_int_t
-ngx_http_rm_replace_string(ngx_http_request_t *r, 
-        u_char *buf, size_t len, u_char *before, u_char *after)
-{
-    u_char *p, *q, *buf2;
-    ngx_uint_t buf_len, move_len, after_len;
-
-    buf_len = strlen((const char *)buf);
-
-    /* p points to start character */
-    p = (u_char *)ngx_strstr(buf, before);
-    if (p == NULL)
-        return NGX_ERROR;
-
-    /* q points to end-edge */
-    q = p + strlen((const char *)before);
-
-    move_len = buf_len - (q -buf);
-    buf2 = ngx_pcalloc(r->pool, move_len);
-    if (buf2 == NULL)
-        return NGX_ERROR;
-
-    after_len = strlen((const char *)after);
-
-    memcpy(buf2, q, move_len);
-    memcpy(p, after, after_len);
-    memcpy(p + after_len, buf2, move_len);
-
-#if 0
-    fprintf(stderr,
-            "buf %s \nlen %ld, buf_len: %lu\n", buf, len, buf_len);
-    fprintf(stderr,
-            "replace %s to %s\n", before, after);
-#endif
-
-    return NGX_OK;
-}
-
 /* for a GET request, 
  * respond with a js challenge
  * triggering an automatic reload of the page */
@@ -1819,82 +1823,68 @@ static ngx_int_t
 ngx_http_rm_challenge_get_js_handler(ngx_http_request_t *r)
 {
     ngx_http_complex_value_t      cv;
-    u_char                       *challenge_ct, timeout[32];
+    u_char                       *challenge_ct;
     ngx_http_rm_loc_conf_t       *rlcf;
     ngx_http_rm_req_ctx_t        *ctx;
     ngx_int_t                     random_tpl;
+    const ngx_http_rm_tpl_t      *tpl;
 
 
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
-    
+
     ctx = ngx_http_rm_get_request_ctx(r);
     if (ctx == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
     ngx_memzero(&cv, sizeof(ngx_http_complex_value_t)); 
-    ngx_memzero(timeout, sizeof(timeout)); 
-
-    sprintf((char *)timeout, "%d", (int)rlcf->timeout);
 
     /* get template randomly */
     random_tpl = ngx_random() % ngx_http_rm_get_js_tpls_nr;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "get random js-get template, tpl id: %d", random_tpl);
-    
-    /* -6 means 3 XX in NGX_HTTP_RM_GET_JS */
-    cv.value.len = strlen(ngx_http_rm_get_js_tpls[random_tpl]) 
-            + NGX_HTTP_RM_DEFAULT_COOKIE_LEN * 2
-            + rlcf->cookie_name.len * 2
-            + strlen((char *)timeout) * 2
-            - 6
-            - 6;
-    
-    challenge_ct = ngx_pcalloc(r->pool, cv.value.len + 1);
+
+    tpl = &ngx_http_rm_get_js_tpls[random_tpl];
+
+    challenge_ct = ngx_pcalloc(r->pool, tpl->len + 1);
     if (challenge_ct == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    memcpy(challenge_ct, ngx_http_rm_get_js_tpls[random_tpl], 
-            strlen(ngx_http_rm_get_js_tpls[random_tpl]));
+    memcpy(challenge_ct, tpl->data, tpl->len);
 
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"XX", 
-                (u_char *)rlcf->cookie_name.data) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    memcpy(challenge_ct + tpl->x,
+            (u_char *)rlcf->cookie_name_c.data,
+            rlcf->cookie_name_c.len);
 
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"YY", 
-                ctx->cookie.data) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-   
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"ZZ", 
-                timeout) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-    
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"MM", 
-                (u_char *)rlcf->cookie_name.data) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    memcpy(challenge_ct + tpl->y,
+            ctx->cookie.data,
+            ctx->cookie.len);
 
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"NN", 
-                ctx->cookie_f1.data) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-   
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"OO", 
-                timeout) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-    
+    memcpy(challenge_ct + tpl->z,
+            (u_char *)rlcf->timeout_c.data,
+            rlcf->timeout_c.len);
+
+    memcpy(challenge_ct + tpl->m,
+            (u_char *)rlcf->cookie_name_c.data,
+            rlcf->cookie_name_c.len);
+
+    memcpy(challenge_ct + tpl->n,
+            ctx->cookie_f1.data,
+            ctx->cookie_f1.len);
+
+    memcpy(challenge_ct + tpl->o,
+            (u_char *)rlcf->timeout_c.data,
+            rlcf->timeout_c.len);
+
     if (rlcf->no_expires == 1) {
-        ngx_http_rm_handle_no_expires(challenge_ct, cv.value.len); 
+        ngx_http_rm_handle_no_expires(challenge_ct, tpl->len);
     }
 
     cv.value.data = challenge_ct;
-    
+    cv.value.len = tpl->len;
+
     return ngx_http_send_response(r, NGX_HTTP_OK, &ngx_http_rm_type_html, &cv);
 }
 
@@ -1979,7 +1969,7 @@ static ngx_int_t
 ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
 {
     ngx_http_complex_value_t      cv;
-    u_char                       *challenge_ct, timeout[32];
+    u_char                       *challenge_ct;
     ngx_http_rm_loc_conf_t       *rlcf;
     ngx_http_rm_req_ctx_t        *ctx;
     u_char                       *post_vars = NULL;
@@ -1988,18 +1978,16 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
     ngx_uint_t                    body_len, offset;
     ngx_int_t                     rc;
     ngx_int_t                     random_tpl;
+    const ngx_http_rm_tpl_t      *tpl;
 
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
-    
+
     ctx = ngx_http_rm_get_request_ctx(r);
     if (ctx == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
     ngx_memzero(&cv, sizeof(ngx_http_complex_value_t)); 
-    ngx_memzero(timeout, sizeof(timeout)); 
-
-    sprintf((char *)timeout, "%d", (int)rlcf->timeout);
 
     rb = r->request_body;
 
@@ -2016,62 +2004,50 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
         post_vars_len = 0;
     } else {
         post_vars = ngx_http_rm_post_body_to_form(
-                r, 
-                rb->bufs->buf->pos, 
-                body_len, 
+                r,
+                rb->bufs->buf->pos,
+                body_len,
                 &post_vars_len);
     }
 
     /* get template randomly */
     random_tpl = ngx_random() % ngx_http_rm_post_js_tpls_nr;
+    tpl = &ngx_http_rm_post_js_tpls[random_tpl];
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "get random js-post template, tpl id: %d", random_tpl);
-    
-    /* -6 means 3 %s in NGX_HTTP_RM_POST_JS_1 */
-    cv.value.len = strlen(ngx_http_rm_post_js_tpls[random_tpl]) 
-            + strlen(NGX_HTTP_RM_POST_JS_2)
-            + NGX_HTTP_RM_DEFAULT_COOKIE_LEN * 2
-            + rlcf->cookie_name.len * 2
-            + strlen((char *)timeout) 
-            + post_vars_len
-            - 6
-            - 4;
-    
+
+    cv.value.len = tpl->len
+            + NGX_HTTP_RM_POST_JS_2_LEN
+            + post_vars_len;
+
     challenge_ct = ngx_pcalloc(r->pool, cv.value.len + 1);
     if (challenge_ct == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
   
-    memcpy(challenge_ct, ngx_http_rm_post_js_tpls[random_tpl], 
-            strlen(ngx_http_rm_post_js_tpls[random_tpl]));
+    memcpy(challenge_ct, tpl->data, tpl->len);
 
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"XX", 
-                (u_char *)rlcf->cookie_name.data) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    memcpy(challenge_ct + tpl->x,
+            (u_char *)rlcf->cookie_name_c.data,
+            rlcf->cookie_name_c.len);
 
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"YY", 
-                ctx->cookie.data) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-   
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"ZZ", 
-                timeout) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-    
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"MM", 
-                (u_char *)rlcf->cookie_name.data) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    memcpy(challenge_ct + tpl->y,
+            ctx->cookie.data,
+            ctx->cookie.len);
 
-    if (ngx_http_rm_replace_string(r, challenge_ct, cv.value.len + 1,
-                (u_char *)"NN", 
-                ctx->cookie_f1.data) != NGX_OK)
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-   
- 
+    memcpy(challenge_ct + tpl->z,
+            (u_char *)rlcf->timeout_c.data,
+            rlcf->timeout_c.len);
+
+    memcpy(challenge_ct + tpl->m,
+            (u_char *)rlcf->cookie_name_c.data,
+            rlcf->cookie_name_c.len);
+
+    memcpy(challenge_ct + tpl->n,
+            ctx->cookie_f1.data,
+            ctx->cookie_f1.len);
+
     /* add post vars */
     offset = strlen((const char *)challenge_ct); 
 
@@ -2093,13 +2069,13 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
     }
 
     cv.value.data = challenge_ct;
-    
+
     rc = ngx_http_send_response(r, NGX_HTTP_OK, &ngx_http_rm_type_html, &cv);
 
     /* we have to finalize the request by ourselves, 
      * that is because we use the "read client body" API */
     ngx_http_finalize_request(r, rc);
-    
+
     return NGX_OK;
 }
 
@@ -2569,7 +2545,9 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
 static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
 {
     ngx_http_rm_loc_conf_t  *conf;
-    ngx_str_t               cookie_name = ngx_string(NGX_HTTP_RM_COOKIE_NAME);
+    ngx_str_t           cookie_name = ngx_string(NGX_HTTP_RM_COOKIE_NAME);
+    ngx_str_t           cookie_name_c = ngx_string(NGX_HTTP_RM_COOKIE_NAME_C);
+    ngx_str_t           timeout_c = ngx_string(NGX_HTTP_RM_DEFAULT_TIMEOUT_C);
 
     conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_rm_loc_conf_t));
     if (conf == NULL) {
@@ -2587,6 +2565,9 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
     conf->no_expires = 0;
     conf->whitelist_items = NULL;
     conf->pass_ajax = 1;
+
+    conf->cookie_name_c = cookie_name_c;
+    conf->timeout_c = timeout_c;
 
     return conf;
 }

@@ -31,6 +31,8 @@
 #define NGX_HTTP_RM_DEFAULT_COOKIE_NAME_LEN 40
 
 #define NGX_HTTP_RM_COOKIE_NAME "SENGINX-ROBOT-MITIGATION"
+#define NGX_HTTP_RM_COOKIE_NAME_C "SENGINX-ROBOT-MITIGATION        "
+#define NGX_HTTP_RM_MAX_COOKIE_NAME_LEN 32
 
 #define NGX_HTTP_RM_RET_INVALID_COOKIE 1
 #define NGX_HTTP_RM_RET_NO_COOKIE 2
@@ -39,6 +41,9 @@
 #define NGX_HTTP_RM_MODE_SWF 2
 
 #define NGX_HTTP_RM_DEFAULT_TIMEOUT 600
+#define NGX_HTTP_RM_DEFAULT_TIMEOUT_C "600 "
+#define NGX_HTTP_RM_MAX_TIMEOUT 3600
+#define NGX_HTTP_RM_MAX_TIMEOUT_STR_LEN 4
 
 #define NGX_HTTP_RM_SWF_FILENAME_PREFIX "neteye-adsg-swf-"
 
@@ -84,6 +89,8 @@ typedef struct {
     ngx_uint_t                  no_expires:1;
     ngx_uint_t                  pass_ajax:1;
     ngx_str_t                   cookie_name;
+    ngx_str_t                   cookie_name_c;
+    ngx_str_t                   timeout_c;
     time_t                      timeout;
 
     ngx_array_t                 *whitelist_items;
@@ -121,6 +128,16 @@ typedef struct {
     ngx_event_t                     timeout_ev;
 } ngx_http_rm_dns_t;
 
+typedef struct {
+    char                  *data;
+    uint16_t               m;
+    uint16_t               n;
+    uint16_t               o;
+    uint16_t               x;
+    uint16_t               y;
+    uint16_t               z;
+    uint16_t               len;
+} ngx_http_rm_tpl_t;
 
 #define NGX_HTTP_RM_ATTACK_LOG_ID               1201001
 #define NGX_HTTP_RM_EVENT_VERIFYDO              2030001

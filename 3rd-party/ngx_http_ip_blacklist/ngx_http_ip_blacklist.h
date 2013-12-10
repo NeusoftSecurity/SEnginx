@@ -9,10 +9,15 @@
 #define NGX_HTTP_IP_BLACKLIST_MOD_NUM 8
 #define NGX_HTTP_IP_BLACKLIST_ADDR_LEN 64
 
+#define NGX_HTTP_BLACKLIST_MODE_LOCAL 0
+#define NGX_HTTP_BLACKLIST_MODE_SYS 1
+
 typedef struct {
     ngx_int_t                 enabled;
     ngx_int_t                 timeout;
     ngx_int_t                 size;
+    ngx_str_t                 syscmd;
+    ngx_int_t                 mode;
 } ngx_http_ip_blacklist_main_conf_t;
 
 typedef struct {

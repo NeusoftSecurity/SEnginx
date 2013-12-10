@@ -28,6 +28,10 @@ ngx_http_ip_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_ip_blacklist_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
+ngx_http_ip_blacklist_syscmd(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *
+ngx_http_ip_blacklist_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *
 ngx_http_ip_blacklist_size(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_http_ip_blacklist_t *
 ngx_http_ip_blacklist_lookup(ngx_rbtree_t *tree, ngx_str_t *addr, uint32_t hash);
@@ -97,6 +101,20 @@ static ngx_command_t ngx_http_ip_blacklist_commands[] = {
         NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
         ngx_http_ip_blacklist_flush,
         NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+
+    { ngx_string("ip_blacklist_syscmd"),
+        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+        ngx_http_ip_blacklist_syscmd,
+        NGX_HTTP_MAIN_CONF_OFFSET,
+        0,
+        NULL },
+
+    { ngx_string("ip_blacklist_mode"),
+        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+        ngx_http_ip_blacklist_mode,
+        NGX_HTTP_MAIN_CONF_OFFSET,
         0,
         NULL },
 
@@ -542,6 +560,36 @@ ngx_http_ip_blacklist_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
+static char *
+ngx_http_ip_blacklist_syscmd(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_ip_blacklist_main_conf_t     *imcf = conf;
+    ngx_str_t                             *value;
+
+    value = cf->args->elts;
+    imcf->syscmd = value[1];
+
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_ip_blacklist_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_ip_blacklist_main_conf_t     *imcf = conf;
+    ngx_str_t                             *value;
+
+    value = cf->args->elts;
+    if (!strncmp((char *)(value[1].data), "local", value[1].len)) {
+        imcf->mode = NGX_HTTP_BLACKLIST_MODE_LOCAL;
+    } else if (!strncmp((char *)(value[1].data), "sys", value[1].len)) {
+        imcf->mode = NGX_HTTP_BLACKLIST_MODE_SYS;
+    } else {
+        return "invalid mode";
+    }
+
+    return NGX_CONF_OK;
+}
+
 static ngx_int_t
 ngx_http_ip_blacklist_request_cleanup_init(ngx_http_request_t *r)
 {
@@ -805,9 +853,9 @@ ngx_http_ip_blacklist_flush(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 static void
-ngx_http_ip_blacklist_write_attack_log(ngx_http_request_t *r)
+ngx_http_ip_blacklist_write_attack_log(ngx_http_request_t *r,
+        ngx_str_t *addr, ngx_int_t sys)
 {  
-    char                        *addr = NULL;
     char                        *do_action = "running ";
     ngx_connection_t            *connection;
     ngx_log_t                   *log;
@@ -822,19 +870,12 @@ ngx_http_ip_blacklist_write_attack_log(ngx_http_request_t *r)
         return;
     }
 
-    addr = ngx_pcalloc(r->pool, r->connection->addr_text.len + 1);
-    if (!addr) {
-        return;
-    }
-
-    memcpy(addr, r->connection->addr_text.data, r->connection->addr_text.len);
-
     strcpy(log->action, do_action);
     strcpy(log->action + ngx_strlen(do_action), module_name);
 
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-            "%s: Blocked IP address: \"%s\"", 
-            "ip_blacklist", addr);
+            "%s: Blocked IP address: \"%V\", mode: %s,",
+            "ip_blacklist", addr, sys ? "sys" : "local");
 }
 
 /* 
@@ -848,7 +889,7 @@ ngx_http_ip_blacklist_write_attack_log(ngx_http_request_t *r)
  * @max: threshold of failure number
  * @module: ngx_module_t of the calling module
  *
- * Return values: 
+ * Return values:
  *     0: not blacklisted
  *     1: blacklisted
  *    -1: error occured
@@ -864,8 +905,9 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
     ngx_http_ip_blacklist_t                   *node;
     ngx_http_ip_blacklist_tree_t              *blacklist;
     uint32_t                                   hash;
-    ngx_int_t                                  i;
+    ngx_int_t                                  i, sys = 0, ret = 0;
     ngx_http_ip_blacklist_ctx_t               *ctx;
+    u_char                                     cmd[1024];
     
     imcf = ngx_http_get_module_main_conf(r, ngx_http_ip_blacklist_module);
     ilcf = ngx_http_get_module_loc_conf(r, ngx_http_ip_blacklist_module);
@@ -960,12 +1002,27 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
             if (++(node->counts[i].count) == max) {
                 node->blacklist = 1;
 
-                if (ilcf->log_enabled) {
-                    ngx_http_ip_blacklist_write_attack_log(r);
+                ngx_shmtx_unlock(&blacklist->shpool->mutex);
+
+                if (imcf->mode == NGX_HTTP_BLACKLIST_MODE_SYS
+                        && imcf->syscmd.len != 0) {
+                    /* build up a command and call system */
+                    sys = 1;
+                    memset(cmd, 0, 1024);
+                    ngx_snprintf(cmd, 1023, (char *)imcf->syscmd.data, addr);
+
+                    ret = system((char *)cmd);
                 }
 
-                ngx_shmtx_unlock(&blacklist->shpool->mutex);
-                return 1;
+                if (ilcf->log_enabled) {
+                    ngx_http_ip_blacklist_write_attack_log(r, addr, sys);
+                }
+
+                if (ret == 0) {
+                    return 1;
+                } else {
+                    return -1;
+                }
             }
             break;
         }

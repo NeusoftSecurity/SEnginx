@@ -36,7 +36,7 @@ events {
 http {
     %%TEST_GLOBALS_HTTP%%
 
-    robot_mitigation_resolver 127.0.0.1;
+    robot_mitigation_resolver 127.0.0.1:53530;
     robot_mitigation_resolver_timeout 1s;
 
     server {
@@ -462,7 +462,7 @@ sub reply_handler {
 
 sub dns_server_daemon {
     my $ns = new Net::DNS::Nameserver(
-        LocalPort    => 53,
+        LocalPort    => 53530,
         ReplyHandler => \&reply_handler,
     Verbose      => 1
     ) || die "couldn't create nameserver object\n";

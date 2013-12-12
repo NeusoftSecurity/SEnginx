@@ -66,7 +66,7 @@
 #define NGX_HTTP_RM_AJAX_VALUE_LEN 14
 
 #define NGX_HTTP_RM_ADDR_LEN 64
-#define NGX_HTTP_RM_ADDR_TIMEOUT (30*1000)  //30s
+#define NGX_HTTP_RM_ADDR_TIMEOUT (5*1000)  //5s
 
 typedef struct {
     ngx_http_regex_t  *regex;

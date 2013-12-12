@@ -18,6 +18,8 @@ typedef struct {
     ngx_int_t                 size;
     ngx_str_t                 syscmd;
     ngx_int_t                 mode;
+    u_char                   *buf;
+    ngx_uint_t                buf_len;
 } ngx_http_ip_blacklist_main_conf_t;
 
 typedef struct {

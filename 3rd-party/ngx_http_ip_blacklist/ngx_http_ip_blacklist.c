@@ -569,6 +569,13 @@ ngx_http_ip_blacklist_syscmd(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
     imcf->syscmd = value[1];
 
+    imcf->buf_len = value[1].len + 64;
+
+    imcf->buf = ngx_pcalloc(cf->pool, imcf->buf_len + 1);
+    if (!imcf->buf) {
+        return "sys command too long";
+    }
+
     return NGX_CONF_OK;
 }
 
@@ -907,7 +914,6 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
     uint32_t                                   hash;
     ngx_int_t                                  i, sys = 0, ret = 0;
     ngx_http_ip_blacklist_ctx_t               *ctx;
-    u_char                                     cmd[1024];
     
     imcf = ngx_http_get_module_main_conf(r, ngx_http_ip_blacklist_module);
     ilcf = ngx_http_get_module_loc_conf(r, ngx_http_ip_blacklist_module);
@@ -1000,29 +1006,36 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
     for (i = 0; i < NGX_HTTP_IP_BLACKLIST_MOD_NUM; i++) {
         if (node->counts[i].module == module) {
             if (++(node->counts[i].count) == max) {
-                node->blacklist = 1;
+                if (imcf->mode == NGX_HTTP_BLACKLIST_MODE_LOCAL) {
+                    node->blacklist = 1;
+                } else {
+                    sys = 1;
+                }
 
                 ngx_shmtx_unlock(&blacklist->shpool->mutex);
-
-                if (imcf->mode == NGX_HTTP_BLACKLIST_MODE_SYS
-                        && imcf->syscmd.len != 0) {
-                    /* build up a command and call system */
-                    sys = 1;
-                    memset(cmd, 0, 1024);
-                    ngx_snprintf(cmd, 1023, (char *)imcf->syscmd.data, addr);
-
-                    ret = system((char *)cmd);
-                }
 
                 if (ilcf->log_enabled) {
                     ngx_http_ip_blacklist_write_attack_log(r, addr, sys);
                 }
 
-                if (ret == 0) {
+                if (sys == 0) {
+                    /* in local mode, just return */
                     return 1;
-                } else {
-                    return -1;
                 }
+
+                /* in sys mode */
+                if (imcf->syscmd.len != 0) {
+                    /* build up a command and call system */
+                    memset(imcf->buf, 0, imcf->buf_len);
+                    ngx_snprintf(imcf->buf,
+                            imcf->buf_len, (char *)imcf->syscmd.data, addr);
+
+                    ret = system((char *)imcf->buf);
+                    return (ret == 0) ? 1 : -1;
+                }
+
+                /* no sys comamnd provided */
+                return 0;
             }
             break;
         }

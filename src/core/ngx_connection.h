@@ -80,6 +80,10 @@ struct ngx_listening_s {
     int                 setfib;
 #endif
 
+#if (NGX_HAVE_TCP_FASTOPEN)
+    int                 fastopen;
+#endif
+
 };
 
 
@@ -139,6 +143,7 @@ struct ngx_connection_s {
 #endif
 
     struct sockaddr    *local_sockaddr;
+    socklen_t           local_socklen;
 
     ngx_buf_t          *buffer;
 

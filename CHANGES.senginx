@@ -1,3 +1,16 @@
+
+Changes with senginx 1.5.9                                      19 Dec  2013
+
+    *) Feature: upgrade to original nginx 1.5.8.
+
+    *) Feature: system command in ip blacklist, add two new directives:
+        ip_blacklist_syscmd and ip_blacklist_mod.
+
+    *) Change: optimize the performance of robot mitigation module.
+
+    *) Change: modify the timeout of dns cache in robot mitigation to 5s.
+
+
 Changes with senginx 1.5.8                                      21 Nov  2013
 
     *) Feature: upgrade to original nginx 1.5.7, which fixes CVE-2013-4547 security problem.

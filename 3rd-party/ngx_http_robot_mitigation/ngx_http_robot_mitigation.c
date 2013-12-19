@@ -1075,8 +1075,8 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
                     if (rctx == NULL) {
                         return NGX_ERROR;
                     }
-                    rctx->addr = ngx_inet_addr(r->connection->addr_text.data, 
-                            r->connection->addr_text.len);
+                    rctx->addr.sockaddr = r->connection->sockaddr;
+                    rctx->addr.socklen = r->connection->socklen;
                     rctx->handler = ngx_http_rm_resolve_addr_handler;
                     rctx->data = r;
                     rctx->timeout = rmcf->resolver_timeout;

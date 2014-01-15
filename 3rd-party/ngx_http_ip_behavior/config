@@ -1,0 +1,5 @@
+ngx_addon_name=ngx_http_ip_behavior_module
+NGX_ADDON_DEPS="$CORE_DEPS $ngx_addon_dir/ngx_http_ip_behavior.h"
+HTTP_MODULES="$HTTP_MODULES ngx_http_ip_behavior_module"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_ip_behavior.c"
+have=NGX_HTTP_IP_BEHAVIOR . auto/have

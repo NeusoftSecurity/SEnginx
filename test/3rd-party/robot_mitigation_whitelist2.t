@@ -10,12 +10,12 @@ use warnings;
 use strict;
 
 use Test::More;
-use Net::DNS::Nameserver;
 
 BEGIN { use FindBin; chdir($FindBin::Bin); }
 
 use lib '../lib';
 use Test::Nginx;
+use Net::DNS::Nameserver;
 
 ###############################################################################
 
@@ -197,7 +197,7 @@ sub dns_server_daemon {
     my $ns = new Net::DNS::Nameserver(
         LocalPort    => 53530,
         ReplyHandler => \&reply_handler,
-    Verbose      => 1
+        Verbose      => 0
     ) || die "couldn't create nameserver object\n";
 
     $ns->main_loop;

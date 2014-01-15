@@ -10,12 +10,12 @@ use warnings;
 use strict;
 
 use Test::More;
-use Time::ParseDate;
 
 BEGIN { use FindBin; chdir($FindBin::Bin); }
 
 use lib '../lib';
 use Test::Nginx;
+use Time::ParseDate;
 
 ###############################################################################
 

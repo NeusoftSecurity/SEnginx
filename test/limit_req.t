@@ -23,7 +23,7 @@ select STDOUT; $| = 1;
 
 plan(skip_all => 'win32') if $^O eq 'MSWin32';
 
-my $t = Test::Nginx->new()->has(qw/http limit_req/)->plan(5);
+my $t = Test::Nginx->new()->has(qw/http limit_req/)->plan(7);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
 
@@ -53,6 +53,11 @@ http {
         location /fast {
             limit_req    zone=fast  burst=1;
         }
+        location /deactivated {
+            limit_req    zone=one  burst=1 condition=$dummy;
+
+            set $dummy 0;
+        }
     }
 }
 
@@ -61,6 +66,7 @@ EOF
 $t->write_file('test1.html', 'XtestX');
 $t->write_file('long.html', "1234567890\n" x (1 << 16));
 $t->write_file('fast.html', 'XtestX');
+$t->write_file('deactivated.html', 'XtestX');
 $t->run();
 
 ###############################################################################
@@ -89,5 +95,10 @@ like(http_get('/test1.html'), qr/^HTTP\/1.. 200 /m, 'rejects not counted');
 http_get('/fast.html');
 select undef, undef, undef, 0.1;
 like(http_get('/fast.html'), qr/^HTTP\/1.. 200 /m, 'negative excess');
+
+# check condition parameter works well
+like(http_get('/deactivated.html'), qr/^HTTP\/1.. 200 /m, 'request');
+http_get('/deactivated.html');
+like(http_get('/deactivated.html'), qr/^HTTP\/1.. 200 /m, 'request always succeed');
 
 ###############################################################################

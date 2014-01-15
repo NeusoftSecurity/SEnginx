@@ -31,26 +31,38 @@ typedef struct {
 
 
 typedef struct {
+    ngx_int_t                    index;
+    ngx_str_t                    var;
+} ngx_http_limit_req_variable_t;
+
+
+typedef struct {
     ngx_http_limit_req_shctx_t  *sh;
     ngx_slab_pool_t             *shpool;
     /* integer value, 1 corresponds to 0.001 r/s */
     ngx_uint_t                   rate;
-    ngx_int_t                    index;
-    ngx_str_t                    var;
+    ngx_array_t                 *limit_vars;
     ngx_http_limit_req_node_t   *node;
 } ngx_http_limit_req_ctx_t;
 
 
 typedef struct {
-    ngx_shm_zone_t              *shm_zone;
+    ngx_shm_zone_t               *shm_zone;
     /* integer value, 1 corresponds to 0.001 r/s */
-    ngx_uint_t                   burst;
-    ngx_uint_t                   nodelay; /* unsigned  nodelay:1 */
+    ngx_uint_t                    burst;
+    ngx_uint_t                    nodelay; /* unsigned  nodelay:1 */
+    ngx_str_t                     forbid_action;
+    ngx_http_limit_req_variable_t condition;
 } ngx_http_limit_req_limit_t;
 
 
 typedef struct {
     ngx_array_t                  limits;
+
+    ngx_str_t                    geo_var_name;
+    ngx_int_t                    geo_var_index;
+    ngx_str_t                    geo_var_value;
+
     ngx_uint_t                   limit_log_level;
     ngx_uint_t                   delay_log_level;
     ngx_uint_t                   status_code;
@@ -58,8 +70,9 @@ typedef struct {
 
 
 static void ngx_http_limit_req_delay(ngx_http_request_t *r);
-static ngx_int_t ngx_http_limit_req_lookup(ngx_http_limit_req_limit_t *limit,
-    ngx_uint_t hash, u_char *data, size_t len, ngx_uint_t *ep,
+static ngx_int_t ngx_http_limit_req_lookup(ngx_http_request_t *r,
+    ngx_http_limit_req_limit_t *limit,
+    ngx_uint_t hash, size_t len, ngx_uint_t *ep,
     ngx_uint_t account);
 static ngx_msec_t ngx_http_limit_req_account(ngx_http_limit_req_limit_t *limits,
     ngx_uint_t n, ngx_uint_t *ep, ngx_http_limit_req_limit_t **limit);
@@ -74,6 +87,8 @@ static char *ngx_http_limit_req_zone(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *ngx_http_limit_req(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static ngx_int_t ngx_http_limit_req_init(ngx_conf_t *cf);
+static char *ngx_http_limit_req_whitelist(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
 
 
 static ngx_conf_enum_t  ngx_http_limit_req_log_levels[] = {
@@ -93,14 +108,14 @@ static ngx_conf_num_bounds_t  ngx_http_limit_req_status_bounds = {
 static ngx_command_t  ngx_http_limit_req_commands[] = {
 
     { ngx_string("limit_req_zone"),
-      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE3,
+      NGX_HTTP_MAIN_CONF|NGX_CONF_2MORE,
       ngx_http_limit_req_zone,
       0,
       0,
       NULL },
 
     { ngx_string("limit_req"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1234,
       ngx_http_limit_req,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -119,6 +134,13 @@ static ngx_command_t  ngx_http_limit_req_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_limit_req_conf_t, status_code),
       &ngx_http_limit_req_status_bounds },
+
+    { ngx_string("limit_req_whitelist"),
+        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+      ngx_http_limit_req_whitelist,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
 
       ngx_null_command
 };
@@ -155,6 +177,83 @@ ngx_module_t  ngx_http_limit_req_module = {
 };
 
 
+static inline ngx_int_t
+ngx_http_limit_req_ip_filter(ngx_http_request_t *r,
+    ngx_http_limit_req_conf_t *lrcf)
+{
+    ngx_http_variable_value_t    *vv;
+
+    if (lrcf->geo_var_index != NGX_CONF_UNSET) {
+        vv = ngx_http_get_indexed_variable(r, lrcf->geo_var_index);
+
+        if (vv == NULL || vv->not_found) {
+            return NGX_DECLINED;
+        }
+
+        if ((vv->len == lrcf->geo_var_value.len)
+             && (ngx_memcmp(vv->data, lrcf->geo_var_value.data, vv->len) == 0))
+        {
+            return NGX_OK;
+        }
+    }
+
+    return NGX_DECLINED;
+}
+
+
+static ngx_int_t
+ngx_http_limit_req_copy_variables(ngx_http_request_t *r, uint32_t *hash,
+    ngx_http_limit_req_ctx_t *ctx, ngx_http_limit_req_node_t *node)
+{
+    u_char                        *p;
+    size_t                         len, total_len;
+    ngx_uint_t                     j;
+    ngx_http_variable_value_t     *vv;
+    ngx_http_limit_req_variable_t *lrv;
+
+    total_len = 0;
+    p = NULL;
+
+    if (node != NULL) {
+        p = node->data;
+    }
+
+    lrv = ctx->limit_vars->elts;
+    for (j = 0; j < ctx->limit_vars->nelts; j++) {
+        vv = ngx_http_get_indexed_variable(r, lrv[j].index);
+        if (vv == NULL || vv->not_found) {
+            total_len = 0;
+            break;
+        }
+
+        len = vv->len;
+
+        if (len == 0) {
+            total_len = 0;
+            break;
+        }
+
+        if (len > 65535) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                          "the value of the \"%V\" variable "
+                          "is more than 65535 bytes: \"%v\"",
+                          &lrv[j].var, vv);
+            total_len = 0;
+            break;
+        }
+
+        if (node == NULL) {
+            total_len += len;
+            ngx_crc32_update(hash, vv->data, len);
+        } else {
+            p = ngx_cpymem(p, vv->data, len);
+        }
+    }
+
+    return total_len;
+}
+
+
 static ngx_int_t
 ngx_http_limit_req_handler(ngx_http_request_t *r)
 {
@@ -163,7 +262,6 @@ ngx_http_limit_req_handler(ngx_http_request_t *r)
     ngx_int_t                    rc;
     ngx_uint_t                   n, excess;
     ngx_msec_t                   delay;
-    ngx_http_variable_value_t   *vv;
     ngx_http_limit_req_ctx_t    *ctx;
     ngx_http_limit_req_conf_t   *lrcf;
     ngx_http_limit_req_limit_t  *limit, *limits;
@@ -174,6 +272,11 @@ ngx_http_limit_req_handler(ngx_http_request_t *r)
 
     lrcf = ngx_http_get_module_loc_conf(r, ngx_http_limit_req_module);
     limits = lrcf->limits.elts;
+
+    /* filter whitelist */
+    if (ngx_http_limit_req_ip_filter(r, lrcf) == NGX_OK) {
+        return NGX_DECLINED;
+    }
 
     excess = 0;
 
@@ -189,37 +292,24 @@ ngx_http_limit_req_handler(ngx_http_request_t *r)
 
         ctx = limit->shm_zone->data;
 
-        vv = ngx_http_get_indexed_variable(r, ctx->index);
+        ngx_crc32_init(hash);
 
-        if (vv == NULL || vv->not_found) {
-            continue;
-        }
-
-        len = vv->len;
-
+        len = ngx_http_limit_req_copy_variables(r, &hash, ctx, NULL);
         if (len == 0) {
             continue;
         }
 
-        if (len > 65535) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "the value of the \"%V\" variable "
-                          "is more than 65535 bytes: \"%v\"",
-                          &ctx->var, vv);
-            continue;
-        }
-
-        hash = ngx_crc32_short(vv->data, len);
+        ngx_crc32_final(hash);
 
         ngx_shmtx_lock(&ctx->shpool->mutex);
 
-        rc = ngx_http_limit_req_lookup(limit, hash, vv->data, len, &excess,
+        rc = ngx_http_limit_req_lookup(r, limit, hash, len, &excess,
                                        (n == lrcf->limits.nelts - 1));
 
         ngx_shmtx_unlock(&ctx->shpool->mutex);
 
         ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "limit_req[%ui]: %i %ui.%03ui",
+                       "limits[%ui]: %i %ui.%03ui",
                        n, rc, excess / 1000, excess % 1000);
 
         if (rc != NGX_AGAIN) {
@@ -258,7 +348,28 @@ ngx_http_limit_req_handler(ngx_http_request_t *r)
             ctx->node = NULL;
         }
 
-        return lrcf->status_code;
+        if (rc == NGX_ERROR || limit->forbid_action.len == 0) {
+            return lrcf->status_code;
+        } else if (limit->forbid_action.data[0] == '@') {
+
+            ngx_log_error(lrcf->limit_log_level, r->connection->log, 0,
+                          "limiting requests, forbid_action is %V",
+                          &limit->forbid_action);
+            r->ns_run = 1;
+            (void) ngx_http_named_location(r, &limit->forbid_action);
+
+        } else {
+            ngx_log_error(lrcf->limit_log_level, r->connection->log, 0,
+                          "limiting requests, forbid_action is %V",
+                          &limit->forbid_action);
+            r->ns_run = 1;
+            (void) ngx_http_internal_redirect(r,
+                                             &limit->forbid_action,
+                                             &r->args);
+        }
+
+        ngx_http_finalize_request(r, NGX_DONE);
+        return NGX_DONE;
     }
 
     /* rc == NGX_AGAIN || rc == NGX_OK */
@@ -364,25 +475,37 @@ ngx_http_limit_req_rbtree_insert_value(ngx_rbtree_node_t *temp,
 
 
 static ngx_int_t
-ngx_http_limit_req_lookup(ngx_http_limit_req_limit_t *limit, ngx_uint_t hash,
-    u_char *data, size_t len, ngx_uint_t *ep, ngx_uint_t account)
+ngx_http_limit_req_lookup(ngx_http_request_t *r,
+    ngx_http_limit_req_limit_t *limit, ngx_uint_t hash,
+    size_t len, ngx_uint_t *ep, ngx_uint_t account)
 {
-    size_t                      size;
-    ngx_int_t                   rc, excess;
-    ngx_time_t                 *tp;
-    ngx_msec_t                  now;
-    ngx_msec_int_t              ms;
-    ngx_rbtree_node_t          *node, *sentinel;
-    ngx_http_limit_req_ctx_t   *ctx;
-    ngx_http_limit_req_node_t  *lr;
+    size_t                           size;
+    ngx_int_t                        rc, excess;
+    ngx_time_t                      *tp;
+    ngx_msec_t                       now;
+    ngx_msec_int_t                   ms;
+    ngx_rbtree_node_t               *node, *sentinel;
+    ngx_http_limit_req_ctx_t        *ctx;
+    ngx_http_limit_req_node_t       *lr;
+    u_char                          *lr_data, *lr_last;
+    ngx_http_variable_value_t       *vv;
+    ngx_http_limit_req_variable_t   *lrv;
+    size_t                           lr_vv_len;
+    ngx_uint_t                       i;
+    ngx_http_limit_req_variable_t   *cond;
+    ngx_http_variable_value_t       *cond_vv;
 
     tp = ngx_timeofday();
     now = (ngx_msec_t) (tp->sec * 1000 + tp->msec);
 
     ctx = limit->shm_zone->data;
+    cond = &limit->condition;
 
     node = ctx->sh->rbtree.root;
     sentinel = ctx->sh->rbtree.sentinel;
+    rc = -1;
+
+    lrv = ctx->limit_vars->elts;
 
     while (node != sentinel) {
 
@@ -400,9 +523,56 @@ ngx_http_limit_req_lookup(ngx_http_limit_req_limit_t *limit, ngx_uint_t hash,
 
         lr = (ngx_http_limit_req_node_t *) &node->color;
 
-        rc = ngx_memn2cmp(data, lr->data, len, (size_t) lr->len);
+        lr_data = lr->data;
+        lr_last = lr_data + lr->len;
+
+        for (i = 0; i < ctx->limit_vars->nelts; i++) {
+            vv = ngx_http_get_indexed_variable(r, lrv[i].index);
+
+            ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "limit vv is %i %v node is %s",
+                           lrv[i].index, vv, lr_data);
+
+            lr_vv_len = ngx_min(lr_last - lr_data, vv->len);
+
+            if ((rc = ngx_memcmp(vv->data, lr_data, lr_vv_len)) != 0) {
+                break;
+            }
+
+            if (lr_vv_len != vv->len) {
+                rc = 1;
+                break;
+            }
+
+            /* lr_vv_len == vv->len */
+            lr_data += lr_vv_len;
+        }
+
+        if (rc == 0 && lr_last > lr_data) {
+            rc = -1;
+        }
+
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "limit lookup is : %i, size is %ui",
+                       rc, ctx->limit_vars->nelts);
 
         if (rc == 0) {
+            if (cond->index != -1) {
+                /* need to check condition */
+                cond_vv = ngx_http_get_indexed_variable(r, cond->index);
+                if (cond_vv == NULL || cond_vv->not_found) {
+                    goto out;
+                }
+
+                if (cond_vv->len == 0) {
+                    goto out;
+                }
+
+                if (ngx_memcmp(cond_vv->data, "1", 1) != 0) {
+                    goto out;
+                }
+            }
+
             ngx_queue_remove(&lr->queue);
             ngx_queue_insert_head(&ctx->sh->queue, &lr->queue);
 
@@ -430,6 +600,7 @@ ngx_http_limit_req_lookup(ngx_http_limit_req_limit_t *limit, ngx_uint_t hash,
 
             ctx->node = lr;
 
+out:
             return NGX_AGAIN;
         }
 
@@ -462,7 +633,7 @@ ngx_http_limit_req_lookup(ngx_http_limit_req_limit_t *limit, ngx_uint_t hash,
     lr->len = (u_char) len;
     lr->excess = 0;
 
-    ngx_memcpy(lr->data, data, len);
+    ngx_http_limit_req_copy_variables(r, (uint32_t *)&hash, ctx, lr);
 
     ngx_rbtree_insert(&ctx->sh->rbtree, node);
 
@@ -622,20 +793,37 @@ ngx_http_limit_req_expire(ngx_http_limit_req_ctx_t *ctx, ngx_uint_t n)
 static ngx_int_t
 ngx_http_limit_req_init_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
-    ngx_http_limit_req_ctx_t  *octx = data;
-
-    size_t                     len;
-    ngx_http_limit_req_ctx_t  *ctx;
+    ngx_http_limit_req_ctx_t      *octx = data;
+    size_t                         len;
+    ngx_http_limit_req_ctx_t      *ctx;
+    ngx_http_limit_req_variable_t *v1, *v2;
+    ngx_uint_t                     i, j;
 
     ctx = shm_zone->data;
+    v1 = ctx->limit_vars->elts;
 
     if (octx) {
-        if (ngx_strcmp(ctx->var.data, octx->var.data) != 0) {
+        v2 = octx->limit_vars->elts;
+        if (ctx->limit_vars->nelts != octx->limit_vars->nelts) {
             ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
                           "limit_req \"%V\" uses the \"%V\" variable "
                           "while previously it used the \"%V\" variable",
-                          &shm_zone->shm.name, &ctx->var, &octx->var);
+                          &shm_zone->shm.name, &v1[0].var, &v2[0].var);
             return NGX_ERROR;
+        }
+
+        for (i = 0, j = 0;
+             i < ctx->limit_vars->nelts && j < octx->limit_vars->nelts;
+             i++, j++)
+        {
+            if (ngx_strcmp(v1[i].var.data, v2[j].var.data) != 0) {
+                ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
+                              "limit_req \"%V\" uses the \"%V\" variable "
+                              "while previously it used the \"%V\" variable",
+                              &shm_zone->shm.name, &v1[i].var,
+                              &v2[j].var);
+                return NGX_ERROR;
+            }
         }
 
         ctx->sh = octx->sh;
@@ -696,6 +884,7 @@ ngx_http_limit_req_create_conf(ngx_conf_t *cf)
 
     conf->limit_log_level = NGX_CONF_UNSET_UINT;
     conf->status_code = NGX_CONF_UNSET_UINT;
+    conf->geo_var_index = NGX_CONF_UNSET;
 
     return conf;
 }
@@ -720,6 +909,12 @@ ngx_http_limit_req_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_uint_value(conf->status_code, prev->status_code,
                               NGX_HTTP_SERVICE_UNAVAILABLE);
 
+    ngx_conf_merge_value(conf->geo_var_index, prev->geo_var_index,
+                         NGX_CONF_UNSET);
+
+    ngx_conf_merge_str_value(conf->geo_var_value, prev->geo_var_value,
+                             "");
+
     return NGX_CONF_OK;
 }
 
@@ -727,14 +922,16 @@ ngx_http_limit_req_merge_conf(ngx_conf_t *cf, void *parent, void *child)
 static char *
 ngx_http_limit_req_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    u_char                    *p;
-    size_t                     len;
-    ssize_t                    size;
-    ngx_str_t                 *value, name, s;
-    ngx_int_t                  rate, scale;
-    ngx_uint_t                 i;
-    ngx_shm_zone_t            *shm_zone;
-    ngx_http_limit_req_ctx_t  *ctx;
+    u_char                         *p;
+    size_t                          len;
+    ssize_t                         size;
+    ngx_str_t                      *value, name, s;
+    ngx_int_t                       rate, scale;
+    ngx_uint_t                      i;
+    ngx_shm_zone_t                 *shm_zone;
+    ngx_http_limit_req_ctx_t       *ctx;
+    ngx_array_t                    *variables;
+    ngx_http_limit_req_variable_t  *v;
 
     value = cf->args->elts;
 
@@ -743,6 +940,13 @@ ngx_http_limit_req_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     rate = 1;
     scale = 1;
     name.len = 0;
+    v = NULL;
+
+    variables = ngx_array_create(cf->pool, 5,
+                                 sizeof(ngx_http_limit_req_variable_t));
+    if (variables == NULL) {
+        return NGX_CONF_ERROR;
+    }
 
     for (i = 1; i < cf->args->nelts; i++) {
 
@@ -809,17 +1013,17 @@ ngx_http_limit_req_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             value[i].len--;
             value[i].data++;
 
-            ctx = ngx_pcalloc(cf->pool, sizeof(ngx_http_limit_req_ctx_t));
-            if (ctx == NULL) {
+            v = ngx_array_push(variables);
+            if (v == NULL) {
                 return NGX_CONF_ERROR;
             }
 
-            ctx->index = ngx_http_get_variable_index(cf, &value[i]);
-            if (ctx->index == NGX_ERROR) {
+            v->index = ngx_http_get_variable_index(cf, &value[i]);
+            if (v->index == NGX_ERROR) {
                 return NGX_CONF_ERROR;
             }
 
-            ctx->var = value[i];
+            v->var = value[i];
 
             continue;
         }
@@ -836,14 +1040,21 @@ ngx_http_limit_req_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (ctx == NULL) {
+    if (variables->nelts == 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "no variable is defined for %V \"%V\"",
                            &cmd->name, &name);
         return NGX_CONF_ERROR;
     }
 
+    ctx = ngx_pcalloc(cf->pool, sizeof(ngx_http_limit_req_ctx_t));
+    if (ctx == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
     ctx->rate = rate * 1000 / scale;
+
+    ctx->limit_vars = variables;
 
     shm_zone = ngx_shared_memory_add(cf, &name, size,
                                      &ngx_http_limit_req_module);
@@ -856,7 +1067,7 @@ ngx_http_limit_req_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "%V \"%V\" is already bound to variable \"%V\"",
-                           &cmd->name, &name, &ctx->var);
+                           &cmd->name, &name, &v->var);
         return NGX_CONF_ERROR;
     }
 
@@ -873,16 +1084,20 @@ ngx_http_limit_req(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_limit_req_conf_t  *lrcf = conf;
 
     ngx_int_t                    burst;
-    ngx_str_t                   *value, s;
+    ngx_str_t                   *value, s, forbid_action;
     ngx_uint_t                   i, nodelay;
     ngx_shm_zone_t              *shm_zone;
     ngx_http_limit_req_limit_t  *limit, *limits;
+    ngx_http_limit_req_variable_t  condition;
 
     value = cf->args->elts;
 
     shm_zone = NULL;
     burst = 0;
     nodelay = 0;
+    condition.index = -1;
+    ngx_str_null(&condition.var);
+    ngx_str_null(&forbid_action);
 
     for (i = 1; i < cf->args->nelts; i++) {
 
@@ -914,6 +1129,46 @@ ngx_http_limit_req(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         if (ngx_strcmp(value[i].data, "nodelay") == 0) {
             nodelay = 1;
+            continue;
+        }
+
+        if (ngx_strncmp(value[i].data, "forbid_action=", 14) == 0) {
+
+            s.len = value[i].len - 14;
+            s.data = value[i].data + 14;
+
+            if (s.len < 2 || (s.data[0] != '@' && s.data[0] != '/')) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   "invalid forbid_action \"%V\"", &value[i]);
+                return NGX_CONF_ERROR;
+            }
+
+            forbid_action = s;
+
+            continue;
+        }
+
+        if (ngx_strncmp(value[i].data, "condition=", 10) == 0) {
+
+            s.len = value[i].len - 10;
+            s.data = value[i].data + 10;
+
+            if (s.len < 2 || s.data[0] != '$') {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   "invalid condition \"%V\"", &value[i]);
+                return NGX_CONF_ERROR;
+            }
+
+            s.len--;
+            s.data++;
+
+            condition.index = ngx_http_get_variable_index(cf, &s);
+            if (condition.index == NGX_ERROR) {
+                return NGX_CONF_ERROR;
+            }
+
+            condition.var = s;
+
             continue;
         }
 
@@ -961,6 +1216,56 @@ ngx_http_limit_req(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     limit->shm_zone = shm_zone;
     limit->burst = burst * 1000;
     limit->nodelay = nodelay;
+    limit->forbid_action = forbid_action;
+    limit->condition = condition;
+
+    return NGX_CONF_OK;
+}
+
+    
+static char *
+ngx_http_limit_req_whitelist(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+    ngx_http_limit_req_conf_t  *lrcf = conf;
+
+    ngx_str_t              *value, s;
+    ngx_uint_t              i;
+
+    value = cf->args->elts;
+
+    for (i = 1; i < cf->args->nelts; i++) {
+        if (ngx_strncmp(value[i].data, "geo_var_name=", 13) == 0) {
+
+            s.len = value[i].len - 13;
+            s.data = value[i].data + 13;
+
+            lrcf->geo_var_name = s;
+
+            lrcf->geo_var_index = ngx_http_get_variable_index(cf,
+                &lrcf->geo_var_name);
+
+            if (lrcf->geo_var_index == NGX_ERROR) {
+                return NGX_CONF_ERROR;
+            }
+
+            continue;
+        }
+
+        if (ngx_strncmp(value[i].data, "geo_var_value=", 14) == 0) {
+
+            s.len = value[i].len - 14;
+            s.data = value[i].data + 14;
+
+            lrcf->geo_var_value = s;
+
+            continue;
+        }
+
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid parameter \"%V\"", &value[i]);
+        return NGX_CONF_ERROR;
+    }
 
     return NGX_CONF_OK;
 }

@@ -464,6 +464,7 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
 
     cmcf->phase_engine.server_rewrite_index = (ngx_uint_t) -1;
     cmcf->phase_engine.location_rewrite_index = (ngx_uint_t) -1;
+    cmcf->phase_engine.neteye_security_index = (ngx_uint_t) -1;
     find_config_index = 0;
     use_rewrite = cmcf->phases[NGX_HTTP_REWRITE_PHASE].handlers.nelts ? 1 : 0;
     use_access = cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers.nelts ? 1 : 0;
@@ -548,6 +549,14 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
 
         case NGX_HTTP_CONTENT_PHASE:
             checker = ngx_http_core_content_phase;
+            break;
+
+        case NGX_HTTP_NETEYE_SECURITY_PHASE:
+            if (cmcf->phase_engine.neteye_security_index == (ngx_uint_t) -1) {
+                cmcf->phase_engine.neteye_security_index = n;
+            }
+            checker = ngx_http_core_generic_phase;
+
             break;
 
         default:

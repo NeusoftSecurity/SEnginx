@@ -55,9 +55,6 @@ typedef struct {
     ngx_queue_t                     garbage;
 } ngx_http_ip_blacklist_tree_t;
 
-typedef struct {
-    ngx_http_ip_blacklist_t        *node;
-} ngx_http_ip_blacklist_ctx_t;
 
 ngx_int_t
 ngx_http_ip_blacklist_update(ngx_http_request_t *r,

@@ -183,7 +183,6 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
     ngx_http_ip_blacklist_main_conf_t         *imcf;
     ngx_http_ip_blacklist_t                   *node;
     ngx_http_ip_blacklist_tree_t              *blacklist;
-    ngx_http_ip_blacklist_ctx_t               *ctx;
     uint32_t                                   hash;
     ngx_array_t                               *xfwd;
     ngx_table_elt_t                          **h;
@@ -197,16 +196,6 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
     
     if (!imcf->enabled) {
         return NGX_DECLINED;
-    }
-
-    ctx = ngx_http_get_module_ctx(r, ngx_http_ip_blacklist_module);
-    if (!ctx) {
-        ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_ip_blacklist_ctx_t));
-        if (!ctx) {
-            return NGX_HTTP_INTERNAL_SERVER_ERROR;
-        }
-
-        ngx_http_set_ctx(r, ctx, ngx_http_ip_blacklist_module);
     }
 
 #if (NGX_HTTP_X_FORWARDED_FOR)
@@ -245,7 +234,7 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
         }
 
         /* avoid being destroyed by manager */
-        ctx->node = node;
+        r->ip_blacklist_node = node;
         node->ref++;
 
         ngx_http_ip_blacklist_request_cleanup_init(r);
@@ -617,20 +606,15 @@ static void
 ngx_http_ip_blacklist_cleanup(void *data)
 {
     ngx_http_request_t           *r = data;
-    ngx_http_ip_blacklist_ctx_t  *ctx;
     ngx_http_ip_blacklist_t      *node;
     ngx_http_ip_blacklist_tree_t *blacklist;
 
-    ctx = ngx_http_get_module_ctx(r, ngx_http_ip_blacklist_module);
-    if (!ctx) {
+
+    if (!r->ip_blacklist_node) {
         return;
     }
 
-    if (!ctx->node) {
-        return;
-    }
-
-    node = ctx->node;
+    node = r->ip_blacklist_node;
 
     blacklist = ngx_http_ip_blacklist_shm_zone->data;
     ngx_shmtx_lock(&blacklist->shpool->mutex);
@@ -913,7 +897,6 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
     ngx_http_ip_blacklist_tree_t              *blacklist;
     uint32_t                                   hash;
     ngx_int_t                                  i, sys = 0, ret = 0;
-    ngx_http_ip_blacklist_ctx_t               *ctx;
     
     imcf = ngx_http_get_module_main_conf(r, ngx_http_ip_blacklist_module);
     ilcf = ngx_http_get_module_loc_conf(r, ngx_http_ip_blacklist_module);
@@ -926,17 +909,11 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
         return -1;
     }
 
-    ctx = ngx_http_get_module_ctx(r, ngx_http_ip_blacklist_module);
-    if (!ctx) {
-        /* ctx should always be prepared by blacklist module */
-        return -1;
-    }
-
     blacklist = ngx_http_ip_blacklist_shm_zone->data;
     ngx_shmtx_lock(&blacklist->shpool->mutex);
 
-    if (ctx->node) {
-        node = ctx->node;
+    if (r->ip_blacklist_node) {
+        node = r->ip_blacklist_node;
     } else {
         /* maybe other requests set the node, so let's do a lookup */
         hash = ngx_crc32_short(addr->data, addr->len);
@@ -977,7 +954,7 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
             ngx_rbtree_insert(&blacklist->blacklist, &node->node);
             ngx_queue_insert_head(&blacklist->garbage, &node->queue);
 
-            ctx->node = node;
+            r->ip_blacklist_node = node;
             node->ref++;
 
             ngx_http_ip_blacklist_request_cleanup_init(r);

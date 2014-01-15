@@ -2676,7 +2676,8 @@ ngx_http_named_location(ngx_http_request_t *r, ngx_str_t *name)
 
             cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
 
-            r->phase_handler = cmcf->phase_engine.location_rewrite_index;
+            //r->phase_handler = cmcf->phase_engine.location_rewrite_index;
+            r->phase_handler = cmcf->phase_engine.neteye_security_index;
 
             r->write_event_handler = ngx_http_core_run_phases;
             ngx_http_core_run_phases(r);

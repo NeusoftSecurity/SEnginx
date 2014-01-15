@@ -150,6 +150,7 @@ typedef struct {
     ngx_http_phase_handler_t  *handlers;
     ngx_uint_t                 server_rewrite_index;
     ngx_uint_t                 location_rewrite_index;
+    ngx_uint_t                 neteye_security_index;
 } ngx_http_phase_engine_t;
 
 

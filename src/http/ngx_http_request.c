@@ -603,6 +603,11 @@ ngx_http_create_request(ngx_connection_t *c)
     (void) ngx_atomic_fetch_add(ngx_stat_requests, 1);
 #endif
 
+#if (NGX_HTTP_IP_BEHAVIOR)
+    r->insensitive_percent = -1;
+    r->bad_response_percent = -1;
+#endif
+
     return r;
 }
 

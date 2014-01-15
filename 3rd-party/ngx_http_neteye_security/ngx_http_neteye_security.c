@@ -212,7 +212,7 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    if (r->internal) {
+    if (r->internal && !r->ns_run) {
         return NGX_DECLINED;
     }
 

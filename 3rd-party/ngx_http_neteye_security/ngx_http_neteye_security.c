@@ -20,61 +20,60 @@
 
 /*XXX: do not insert gap among the rank values */
 static ngx_http_neteye_security_module_t ngx_http_neteye_security_modules[] = {
-    {NGX_HTTP_NETEYE_WHITELIST, 
+    {NGX_HTTP_NETEYE_WHITELIST,
         "Permanent IP Whitelist", NULL, NULL, NULL, 1, 0, 0, NULL},
-    {NGX_HTTP_NETEYE_SESSION, 
+    {NGX_HTTP_NETEYE_SESSION,
         "Session Mechanism", NULL, NULL, NULL,      4, 1, 0, NULL},
     {NGX_HTTP_NETEYE_DYNWHITELIST,
-        "Dynamic White list", NULL, NULL,NULL,	    3, 0, 0, NULL},
-    {NGX_HTTP_NETEYE_ROBOT_MITIGATION, 
+        "Dynamic White list", NULL, NULL,NULL,      3, 0, 0, NULL},
+    {NGX_HTTP_NETEYE_ROBOT_MITIGATION,
         "Active/Challenge", NULL, NULL, NULL,       2, 0, 0, NULL},
-    {NGX_HTTP_NETEYE_GOOGLE_RECAPTCHA, 
+    {NGX_HTTP_NETEYE_GOOGLE_RECAPTCHA,
         "Google Recaptcha", NULL, NULL, NULL,       5, 0, 0, NULL},
-    {NGX_HTTP_NETEYE_LOCAL_CAPTCHA, 
+    {NGX_HTTP_NETEYE_LOCAL_CAPTCHA,
         "Local Captcha", NULL, NULL, NULL,          6, 0, 0, NULL},
-    {NGX_HTTP_NETEYE_COOKIE_POISONING, 
+    {NGX_HTTP_NETEYE_COOKIE_POISONING,
         "Cookie Poisoning", NULL, NULL, NULL,          7, 2, 0, NULL},
-    {NGX_HTTP_NETEYE_PAGE_ACL, 
+    {NGX_HTTP_NETEYE_PAGE_ACL,
         "Page Access Control", NULL, NULL, NULL,    8, 0, 0, NULL},
     {NGX_HTTP_NETEYE_NAXSI,
         "NetEye modified NAXSI", NULL, NULL, NULL,    9, 0, 0, NULL},
     {NGX_HTTP_NETEYE_WEB_DEFACEMENT,
         "Web Defacement", NULL, NULL, NULL,         10, 0, 0, NULL},
-    {NGX_HTTP_NETEYE_STATUS_PAGE, 
+    {NGX_HTTP_NETEYE_STATUS_PAGE,
         "Status Page", NULL, NULL, NULL,            0, 3, 0, NULL},
-    {NGX_HTTP_NETEYE_LOG_MODULE, 
+    {NGX_HTTP_NETEYE_LOG_MODULE,
         "NetEye Log", NULL, NULL, NULL,             0, 0, 0, NULL},
 };
 
 /*According to enum ngx_http_neteye_security_attack_log_id*/
-static char *ngx_http_neteye_attack_log_str[NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX] = {
+static char *
+ngx_http_neteye_attack_log_str[NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX] = {
     "Layer 7 DDoS",
     "Cookie Poisoning",
     "Web Defacement",
 };
 
 /* The first slot of this array is not used */
-static ngx_http_neteye_security_module_t 
+static ngx_http_neteye_security_module_t
     *request_chain[NGX_HTTP_NETEYE_SECURITY_MODULE_MAX + 1];
 static ngx_int_t max_request_chain;
 static ngx_int_t nr_request_chain;
 
-static ngx_http_neteye_security_module_t 
+static ngx_http_neteye_security_module_t
     *ns_ctx_chain[NGX_HTTP_NETEYE_SECURITY_MODULE_MAX + 1];
 static ngx_int_t nr_ns_ctx_chain;
-
-static ngx_http_neteye_security_module_t 
+static ngx_http_neteye_security_module_t
     *response_header_chain[NGX_HTTP_NETEYE_SECURITY_MODULE_MAX + 1];
 static ngx_int_t max_response_header_chain;
 static ngx_int_t nr_response_header_chain;
-
-static ngx_http_neteye_security_module_t 
+static ngx_http_neteye_security_module_t
     *response_body_chain[NGX_HTTP_NETEYE_SECURITY_MODULE_MAX + 1];
 static ngx_int_t max_response_body_chain;
 static ngx_int_t nr_response_body_chain;
 
-static ngx_int_t ngx_http_ns_request_ctx_not_inited(ngx_http_request_t *r);
 
+static ngx_int_t ngx_http_ns_request_ctx_not_inited(ngx_http_request_t *r);
 static ngx_int_t
 ngx_http_neteye_security_init(ngx_conf_t *cf);
 static ngx_int_t
@@ -83,16 +82,12 @@ ngx_int_t
 ngx_http_neteye_security_header_filter(ngx_http_request_t *r);
 ngx_int_t
 ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_t *in);
-
 static ngx_int_t
 ngx_http_ns_ctx_init(ngx_http_request_t *r);
-
 static ngx_int_t
 ngx_http_ns_request_ctx_init(ngx_http_request_t *r);
-
 static ngx_int_t
 ngx_http_neteye_security_pre_init(ngx_conf_t *cf);
-
 static ngx_http_ns_ctx_t *
 ngx_http_ns_get_request_ctx(ngx_http_request_t *r);
 static void *
@@ -115,7 +110,7 @@ static ngx_command_t  ngx_http_ns_commands[] = {
     ngx_null_command,
 };
 
-   
+
 static ngx_http_module_t  ngx_http_neteye_security_module_ctx = {
     ngx_http_neteye_security_pre_init,     /* preconfiguration */
     ngx_http_neteye_security_init,         /* postconfiguration */
@@ -155,16 +150,16 @@ ngx_http_neteye_security_pre_init(ngx_conf_t *cf)
 {
     ngx_uint_t         i;
 
-   
-    /* empty all the global vars before other module call the 
-     * register functions. here is enough from time because 
+
+    /* empty all the global vars before other module call the
+     * register functions. here is enough from time because
      * other module call the registers at the post-config phase
      *
      * to use global variable in ns module, not the main_conf var
      * is because thus we don't need to care about the build order
      * of the modules.
      */
-    
+
     for (i = 0; i < NGX_HTTP_NETEYE_SECURITY_MODULE_MAX + 1; i++) {
         request_chain[i] = NULL;
         ns_ctx_chain[i] = NULL;
@@ -220,8 +215,8 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
     ngx_http_neteye_security_module_t *module;
     ngx_http_ns_loc_conf_t *nlcf;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "neteye security phase begins, handler number: %d", 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "neteye security phase begins, handler number: %d",
             nr_request_chain);
 
     if (ngx_http_ns_test_bypass_all(r)) {
@@ -343,7 +338,7 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
 }
 
 ngx_int_t
-ngx_http_neteye_security_request_register(ngx_int_t id, 
+ngx_http_neteye_security_request_register(ngx_int_t id,
         ngx_http_neteye_security_request_pt handler)
 {
     ngx_int_t i, max_modules;
@@ -358,11 +353,11 @@ ngx_http_neteye_security_request_register(ngx_int_t id,
         return NGX_ERROR;
     }
 
-    max_modules = sizeof(ngx_http_neteye_security_modules) 
+    max_modules = sizeof(ngx_http_neteye_security_modules)
         / sizeof(ngx_http_neteye_security_module_t);
-    
+
     for (i = 0; i < max_modules; i++) {
-        if (ngx_http_neteye_security_modules[i].id 
+        if (ngx_http_neteye_security_modules[i].id
                 == id) {
             /* found this module */
             module = &ngx_http_neteye_security_modules[i];
@@ -373,7 +368,7 @@ ngx_http_neteye_security_request_register(ngx_int_t id,
 
             /* When reload, the global variable is not cleaned.
             if (module->request_handler) {
-                fprintf(stderr, "duplicate module: %d - %s\n", 
+                fprintf(stderr, "duplicate module: %d - %s\n",
                         module->id, module->name);
                 return NGX_ERROR;
             }
@@ -388,9 +383,9 @@ ngx_http_neteye_security_request_register(ngx_int_t id,
 
     module->request_handler = handler;
     request_chain[module->request_rank] = module;
-    
+
     nr_request_chain++;
-    
+
     if (module->request_rank > max_request_chain) {
         max_request_chain = module->request_rank;
     }
@@ -399,7 +394,7 @@ ngx_http_neteye_security_request_register(ngx_int_t id,
 }
 
 ngx_int_t
-ngx_http_neteye_security_header_register(ngx_int_t id, 
+ngx_http_neteye_security_header_register(ngx_int_t id,
         ngx_http_neteye_security_response_header_pt handler)
 {
     ngx_int_t i, max_modules;
@@ -413,12 +408,12 @@ ngx_http_neteye_security_header_register(ngx_int_t id,
     if (handler == NULL) {
         return NGX_ERROR;
     }
-    
-    max_modules = sizeof(ngx_http_neteye_security_modules) 
+
+    max_modules = sizeof(ngx_http_neteye_security_modules)
         / sizeof(ngx_http_neteye_security_module_t);
-    
+
     for (i = 0; i < max_modules; i++) {
-        if (ngx_http_neteye_security_modules[i].id 
+        if (ngx_http_neteye_security_modules[i].id
                 == id) {
             /* found this module */
             module = &ngx_http_neteye_security_modules[i];
@@ -426,10 +421,10 @@ ngx_http_neteye_security_header_register(ngx_int_t id,
                 fprintf(stderr, "register a no rank module\n");
                 return NGX_ERROR;
             }
-            
+
             /* When reload, the global variable is not cleaned.
             if (module->response_header_handler) {
-                fprintf(stderr, "duplicate module: %d - %s\n", 
+                fprintf(stderr, "duplicate module: %d - %s\n",
                         module->id, module->name);
                 return NGX_ERROR;
             }
@@ -444,9 +439,9 @@ ngx_http_neteye_security_header_register(ngx_int_t id,
 
     module->response_header_handler = handler;
     response_header_chain[module->response_header_rank] = module;
-    
+
     nr_response_header_chain++;
-    
+
     if (module->response_header_rank > max_response_header_chain) {
         max_response_header_chain = module->response_header_rank;
     }
@@ -455,7 +450,7 @@ ngx_http_neteye_security_header_register(ngx_int_t id,
 }
 
 ngx_int_t
-ngx_http_neteye_security_body_register(ngx_int_t id, 
+ngx_http_neteye_security_body_register(ngx_int_t id,
         ngx_http_neteye_security_response_body_pt handler)
 {
     ngx_int_t i, max_modules;
@@ -469,12 +464,12 @@ ngx_http_neteye_security_body_register(ngx_int_t id,
     if (handler == NULL) {
         return NGX_ERROR;
     }
-    
-    max_modules = sizeof(ngx_http_neteye_security_modules) 
+
+    max_modules = sizeof(ngx_http_neteye_security_modules)
         / sizeof(ngx_http_neteye_security_module_t);
-    
+
     for (i = 0; i < max_modules; i++) {
-        if (ngx_http_neteye_security_modules[i].id 
+        if (ngx_http_neteye_security_modules[i].id
                 == id) {
             /* found this module */
             module = &ngx_http_neteye_security_modules[i];
@@ -482,10 +477,10 @@ ngx_http_neteye_security_body_register(ngx_int_t id,
                 fprintf(stderr, "register a no rank module\n");
                 return NGX_ERROR;
             }
-            
+
             /* When reload, the global variable is not cleaned.
             if (module->response_header_handler) {
-                fprintf(stderr, "duplicate module: %d - %s\n", 
+                fprintf(stderr, "duplicate module: %d - %s\n",
                         module->id, module->name);
                 return NGX_ERROR;
             }
@@ -500,9 +495,9 @@ ngx_http_neteye_security_body_register(ngx_int_t id,
 
     module->response_body_handler = handler;
     response_body_chain[module->response_body_rank] = module;
-    
+
     nr_response_body_chain++;
-    
+
     if (module->response_body_rank > max_response_body_chain) {
         max_response_body_chain = module->response_body_rank;
     }
@@ -585,7 +580,7 @@ ngx_int_t ngx_http_neteye_security_header_filter(ngx_http_request_t *r)
         /* next handler in the list */
         if (ret == NGX_DECLINED) {
             i++;
-            
+
             if (i > max_response_header_chain) {
                 /* all handlers have been called */
                 break;
@@ -615,11 +610,12 @@ ngx_int_t ngx_http_neteye_security_header_filter(ngx_http_request_t *r)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "neteye security response header ends without any deny action");
-    
+
     return ngx_http_next_header_filter(r);
 }
 
-ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
+ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r,
+        ngx_chain_t *in)
 {
     ngx_int_t i = 1, ret;
     ngx_http_neteye_security_response_body_pt handler;
@@ -726,15 +722,15 @@ ngx_int_t ngx_http_neteye_security_body_filter(ngx_http_request_t *r, ngx_chain_
 
     return ngx_http_next_body_filter(r, in);
 }
-    
+
 ngx_int_t
-ngx_http_neteye_security_ctx_register(ngx_int_t id, 
+ngx_http_neteye_security_ctx_register(ngx_int_t id,
         ngx_http_neteye_security_ctx_pt handler)
 {
     ngx_int_t i, max_modules;
     ngx_http_neteye_security_module_t *module = NULL;
 
-    
+
     if (id >= NGX_HTTP_NETEYE_SECURITY_MODULE_MAX
             || id < 0) {
         return NGX_ERROR;
@@ -744,15 +740,15 @@ ngx_http_neteye_security_ctx_register(ngx_int_t id,
         return NGX_ERROR;
     }
 
-    max_modules = sizeof(ngx_http_neteye_security_modules) 
+    max_modules = sizeof(ngx_http_neteye_security_modules)
         / sizeof(ngx_http_neteye_security_module_t);
-    
+
     for (i = 0; i < max_modules; i++) {
-        if (ngx_http_neteye_security_modules[i].id 
+        if (ngx_http_neteye_security_modules[i].id
                 == id) {
             /* found this module */
             module = &ngx_http_neteye_security_modules[i];
-            
+
             break;
         }
     }
@@ -777,7 +773,7 @@ ngx_http_ns_request_ctx_not_inited(ngx_http_request_t *r)
 
     ctx = ngx_http_ns_get_request_ctx(r);
     if (ctx == NULL) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "get ns ctx failed");
     }
 
@@ -791,9 +787,9 @@ ngx_http_ns_request_ctx_init(ngx_http_request_t *r)
     ngx_http_neteye_security_module_t *module = NULL;
     ngx_http_ns_ctx_t                   *ctx;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "neteye security request ctx init number: %d", nr_ns_ctx_chain);
-    
+
     for (i = 0; i < nr_ns_ctx_chain; i++) {
         module = ns_ctx_chain[i];
         if (module) {
@@ -802,14 +798,14 @@ ngx_http_ns_request_ctx_init(ngx_http_request_t *r)
                 return NGX_ERROR;
             }
 
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                     "module %s inited", module->name);
         }
     }
 
     ctx = ngx_http_ns_get_request_ctx(r);
     if (ctx == NULL) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "get ns ctx failed");
     }
 
@@ -846,12 +842,12 @@ ngx_http_ns_ctx_init(ngx_http_request_t *r)
  *  others to stop
  */
 ngx_int_t
-ngx_http_ns_do_action(ngx_http_request_t *r, 
+ngx_http_ns_do_action(ngx_http_request_t *r,
         ngx_http_ns_action_t *action)
 {
     ngx_uint_t                         i;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "neteye security do action: %d", (int)action->action);
 
     switch (action->action) {
@@ -862,7 +858,7 @@ ngx_http_ns_do_action(ngx_http_request_t *r,
         case NGX_HTTP_NS_ACTION_BLOCK:
 #if (NGX_HTTP_STATUS_PAGE)
             if (action->has_redirect) {
-                ngx_http_status_page_send_page(r, action->redirect_page, 
+                ngx_http_status_page_send_page(r, action->redirect_page,
                         action->in_body, NGX_HTTP_FORBIDDEN);
             }
 #endif
@@ -951,7 +947,7 @@ ngx_http_ns_jump_bit_is_set_any(ngx_http_request_t *r)
 void ngx_http_ns_set_bypass_all(ngx_http_request_t *r)
 {
     ngx_http_ns_ctx_t       *ctx;
-   
+
     ctx = ngx_http_ns_get_request_ctx(r);
     if (ctx == NULL)
         return;
@@ -962,7 +958,7 @@ void ngx_http_ns_set_bypass_all(ngx_http_request_t *r)
 void ngx_http_ns_clr_bypass_all(ngx_http_request_t *r)
 {
     ngx_http_ns_ctx_t       *ctx;
-   
+
     ctx = ngx_http_ns_get_request_ctx(r);
     if (ctx == NULL)
         return;
@@ -970,11 +966,11 @@ void ngx_http_ns_clr_bypass_all(ngx_http_request_t *r)
     ctx->all_security_bypass = 0;
 }
 
-ngx_uint_t 
+ngx_uint_t
 ngx_http_ns_test_bypass_all(ngx_http_request_t *r)
 {
     ngx_http_ns_ctx_t       *ctx;
-   
+
     ctx = ngx_http_ns_get_request_ctx(r);
     if (ctx == NULL)
         return 0;
@@ -999,7 +995,7 @@ ngx_http_ns_get_action_str(ngx_int_t action)
     }
 }
 
-void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id, 
+void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
         ngx_str_t action, char *module_name, char *string)
 {
     char                           *agent = NULL;
@@ -1009,26 +1005,26 @@ void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
 
     connection = r->connection;
     if (log_id >= NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, connection->log, 0,
                 "log id is invalid!\n");
         return;
     }
 
     if (r->headers_in.user_agent != NULL) {
-        agent = ngx_pcalloc(r->pool, 
+        agent = ngx_pcalloc(r->pool,
                 r->headers_in.user_agent->value.len + 1);
         if (!agent) {
             return;
         }
 
-        memcpy(agent, r->headers_in.user_agent->value.data, 
+        memcpy(agent, r->headers_in.user_agent->value.data,
                 r->headers_in.user_agent->value.len);
     } else {
         agent = "n/a";
     }
 
     log = connection->log;
-    log->action = ngx_pcalloc(r->pool, ngx_strlen(do_action) + 
+    log->action = ngx_pcalloc(r->pool, ngx_strlen(do_action) +
             ngx_strlen(module_name) + 1);
     if (log->action == NULL) {
         return;
@@ -1039,8 +1035,8 @@ void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
     string = (string == NULL) ? " " : string;
 
     ngx_log_error(NGX_LOG_ERR, connection->log, 0,
-            "%s: \"%s\", action: \"%V\", agent: \"%s\", %s, ", 
-            module_name, ngx_http_neteye_attack_log_str[log_id], 
+            "%s: \"%s\", action: \"%V\", agent: \"%s\", %s, ",
+            module_name, ngx_http_neteye_attack_log_str[log_id],
             &action, agent, string);
 
     return;

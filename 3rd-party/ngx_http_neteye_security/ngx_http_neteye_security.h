@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Neusoft Corperation., Ltd. 
+ * Copyright (c) 2013 Neusoft Corperation., Ltd.
  */
 #ifndef _NGX_HTTP_NETEYE_SECURITY_H_INCLUDED_
 #define _NGX_HTTP_NETEYE_SECURITY_H_INCLUDED_
@@ -9,8 +9,10 @@
 #include <ngx_http.h>
 
 typedef ngx_int_t (*ngx_http_neteye_security_request_pt)(ngx_http_request_t *r);
-typedef ngx_int_t (*ngx_http_neteye_security_response_header_pt)(ngx_http_request_t *r);
-typedef ngx_int_t (*ngx_http_neteye_security_response_body_pt)(ngx_http_request_t *r, 
+typedef ngx_int_t
+(*ngx_http_neteye_security_response_header_pt)(ngx_http_request_t *r);
+typedef ngx_int_t
+(*ngx_http_neteye_security_response_body_pt)(ngx_http_request_t *r,
         ngx_chain_t *in);
 
 typedef ngx_int_t (*ngx_http_neteye_security_ctx_pt)(ngx_http_request_t *r);
@@ -29,7 +31,7 @@ typedef struct ngx_http_neteye_security_module_s {
 } ngx_http_neteye_security_module_t;
 
 enum ngx_http_neteye_security_module_ids {
-    NGX_HTTP_NETEYE_SECURITY_MODULE_START = 0,  
+    NGX_HTTP_NETEYE_SECURITY_MODULE_START = 0,
 
     NGX_HTTP_NETEYE_WHITELIST,
     NGX_HTTP_NETEYE_FRIENDLY_BOTSLIST,
@@ -61,7 +63,7 @@ typedef struct {
 
 typedef struct ngx_http_ns_ctx_s {
     ngx_uint_t       jump_bit;
-    
+
     u_char           all_security_bypass:1;
     u_char           ns_ctx_initialed:1;
 } ngx_http_ns_ctx_t;
@@ -80,7 +82,7 @@ typedef struct ngx_http_ns_ctx_s {
 #define ngx_http_ns_get_module_ctx(r, module)  (r)->ns_ctx[module.ctx_index]
 #define ngx_http_ns_set_ctx(r, c, module)      r->ns_ctx[module.ctx_index] = c;
 
-#if (NGX_HTTP_SESSION) 
+#if (NGX_HTTP_SESSION)
 #include <ngx_http_session.h>
 
 typedef ngx_uint_t *(*ngx_http_ns_get_bl_count_t)(ngx_http_session_ctx_t *ctx);
@@ -90,7 +92,7 @@ typedef struct ngx_http_neteye_security_action_s {
     ngx_int_t                               action;
 
     /* session & blacklist group */
-#if (NGX_HTTP_SESSION) 
+#if (NGX_HTTP_SESSION)
     u_char                                 *session_name;
     ngx_http_ns_get_bl_count_t              get_bl_count;
     ngx_uint_t                              bl_max;
@@ -111,20 +113,20 @@ typedef struct ngx_http_neteye_security_action_s {
 } ngx_http_ns_action_t;
 
 ngx_int_t
-ngx_http_neteye_security_request_register(ngx_int_t id, 
+ngx_http_neteye_security_request_register(ngx_int_t id,
         ngx_http_neteye_security_request_pt handler);
 ngx_int_t
-ngx_http_neteye_security_header_register(ngx_int_t id, 
+ngx_http_neteye_security_header_register(ngx_int_t id,
         ngx_http_neteye_security_response_header_pt handler);
 ngx_int_t
-ngx_http_neteye_security_body_register(ngx_int_t id, 
+ngx_http_neteye_security_body_register(ngx_int_t id,
         ngx_http_neteye_security_response_body_pt handler);
 ngx_int_t
-ngx_http_ns_do_action(ngx_http_request_t *r, 
+ngx_http_ns_do_action(ngx_http_request_t *r,
         ngx_http_ns_action_t *action);
 
 ngx_int_t
-ngx_http_neteye_security_ctx_register(ngx_int_t id, 
+ngx_http_neteye_security_ctx_register(ngx_int_t id,
         ngx_http_neteye_security_ctx_pt handler);
 
 void
@@ -145,6 +147,6 @@ ngx_uint_t ngx_http_ns_test_bypass_all(ngx_http_request_t *r);
 
 char *
 ngx_http_ns_get_action_str(ngx_int_t action);
-void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id, 
+void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
         ngx_str_t action, char *module_name, char *string);
 #endif

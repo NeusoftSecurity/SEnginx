@@ -15,6 +15,11 @@
 #define NGX_HTTP_PS_MONITOR_COOKIE       "monitor_cookie="
 #define NGX_HTTP_PS_TIMEOUT              "timeout="
 
+/* Our session_ctx conflict with the sesion_ctx define in 
+ * openssl/ssl.h, we need to undefine it 
+ */
+#undef session_ctx
+
 #if (NGX_HTTP_SESSION)
 static u_char *ngx_http_upstream_ps_session_name = (u_char *)"persistence";
 #endif

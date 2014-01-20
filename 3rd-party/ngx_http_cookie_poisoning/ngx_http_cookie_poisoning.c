@@ -34,6 +34,12 @@
 #error "must compile with neteye security module"
 #endif
 
+/* Our session_ctx conflict with the sesion_ctx define in 
+ * openssl/ssl.h, we need to undefine it 
+ */
+#undef session_ctx
+
+
 static void
 ngx_http_cp_create_session_ctx(ngx_http_session_t *session);
 static char *

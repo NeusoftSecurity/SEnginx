@@ -95,8 +95,27 @@ ngx_http_neteye_security_pre_init(ngx_conf_t *cf);
 
 static ngx_http_ns_ctx_t *
 ngx_http_ns_get_request_ctx(ngx_http_request_t *r);
+static void *
+ngx_http_ns_create_loc_conf(ngx_conf_t *cf);
+static char *
+ngx_http_ns_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
+static char *
+ngx_http_ns_force(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
-    
+
+static ngx_command_t  ngx_http_ns_commands[] = {
+
+    { ngx_string("ns_layer_force_run"),
+        NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
+        ngx_http_ns_force,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+
+    ngx_null_command,
+};
+
+   
 static ngx_http_module_t  ngx_http_neteye_security_module_ctx = {
     ngx_http_neteye_security_pre_init,     /* preconfiguration */
     ngx_http_neteye_security_init,         /* postconfiguration */
@@ -107,15 +126,15 @@ static ngx_http_module_t  ngx_http_neteye_security_module_ctx = {
     NULL,                                  /* create server configuration */
     NULL,                                  /* merge server configuration */
 
-    NULL,                                  /* create location configuration */
-    NULL,                                  /* merge location configuration */
+    ngx_http_ns_create_loc_conf,           /* create location configuration */
+    ngx_http_ns_merge_loc_conf,            /* merge location configuration */
 };
 
 
 ngx_module_t  ngx_http_neteye_security_module = {
     NGX_MODULE_V1,
     &ngx_http_neteye_security_module_ctx,        /* module context */
-    NULL,                                  /* module directives */
+    ngx_http_ns_commands,                  /* module directives */
     NGX_HTTP_MODULE,                       /* module type */
     NULL,                                  /* init master */
     NULL,                                  /* init module */
@@ -199,6 +218,7 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
     ngx_int_t i = 1, ret;
     ngx_http_neteye_security_request_pt handler;
     ngx_http_neteye_security_module_t *module;
+    ngx_http_ns_loc_conf_t *nlcf;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
             "neteye security phase begins, handler number: %d", 
@@ -212,7 +232,9 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    if (r->internal && !r->ns_run) {
+    nlcf = ngx_http_get_module_loc_conf(r, ngx_http_neteye_security_module);
+
+    if (r->internal && !nlcf->force) {
         return NGX_DECLINED;
     }
 
@@ -1024,3 +1046,31 @@ void ngx_http_neteye_send_attack_log(ngx_http_request_t *r, ngx_uint_t log_id,
     return;
 }
 
+static void *
+ngx_http_ns_create_loc_conf(ngx_conf_t *cf)
+{
+    ngx_http_ns_loc_conf_t  *conf;
+
+    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_ns_loc_conf_t));
+    if (conf == NULL) {
+        return NULL;
+    }
+
+    return conf;
+}
+
+static char *
+ngx_http_ns_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
+{
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_ns_force(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_ns_loc_conf_t *nlcf = conf;
+
+    nlcf->force = 1;
+
+    return NGX_CONF_OK;
+}

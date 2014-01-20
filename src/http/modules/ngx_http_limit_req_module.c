@@ -355,14 +355,12 @@ ngx_http_limit_req_handler(ngx_http_request_t *r)
             ngx_log_error(lrcf->limit_log_level, r->connection->log, 0,
                           "limiting requests, forbid_action is %V",
                           &limit->forbid_action);
-            r->ns_run = 1;
             (void) ngx_http_named_location(r, &limit->forbid_action);
 
         } else {
             ngx_log_error(lrcf->limit_log_level, r->connection->log, 0,
                           "limiting requests, forbid_action is %V",
                           &limit->forbid_action);
-            r->ns_run = 1;
             (void) ngx_http_internal_redirect(r,
                                              &limit->forbid_action,
                                              &r->args);

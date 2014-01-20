@@ -55,6 +55,10 @@ enum ngx_http_neteye_security_attack_log_id {
     NGX_HTTP_NETEYE_ATTACK_LOG_ID_MAX
 };
 
+typedef struct {
+    ngx_int_t                 force;
+} ngx_http_ns_loc_conf_t;
+
 typedef struct ngx_http_ns_ctx_s {
     ngx_uint_t       jump_bit;
     

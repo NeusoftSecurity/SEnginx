@@ -42,43 +42,43 @@ http {
 
     session_max_size 1000;
     upstream pool1 {
-        persistence http_cookie cookie_name=senginxforward;
+        persistence insert_cookie cookie_name=senginxforward;
         server 127.0.0.1:8081;
         server 127.0.0.1:8082;
     }
 
     upstream pool2 {
-        persistence http_cookie cookie_name=senginxforward timeout=2;
+        persistence insert_cookie cookie_name=senginxforward timeout=2;
         server 127.0.0.1:8081;
         server 127.0.0.1:8082;
     }
 
     upstream pool3 {
-        persistence http_cookie cookie_name=senginxforward timeout=session;
+        persistence insert_cookie cookie_name=senginxforward timeout=session;
         server 127.0.0.1:8081;
         server 127.0.0.1:8082;
     }
 
    upstream pool4 {
-        persistence http_cookie cookie_name=senginxforward monitor_cookie=JSESSIONID;
+        persistence insert_cookie cookie_name=senginxforward monitor_cookie=JSESSIONID;
         server 127.0.0.1:8081;
         server 127.0.0.1:8082;
     }
 
     upstream pool5 {
-        persistence http_cookie cookie_name=senginxforward monitor_cookie=JSESSIONID timeout=2;
+        persistence insert_cookie cookie_name=senginxforward monitor_cookie=JSESSIONID timeout=2;
         server 127.0.0.1:8081;
         server 127.0.0.1:8082;
     }
 
     upstream pool6 {
-        persistence http_cookie cookie_name=senginxforward monitor_cookie=JSESSIONID timeout=session;
+        persistence insert_cookie cookie_name=senginxforward monitor_cookie=JSESSIONID timeout=session;
         server 127.0.0.1:8081;
         server 127.0.0.1:8082;
     }
 
     upstream pool7 {
-        persistence http_cookie cookie_name=senginxforward monitor_cookie=JSESSIONID timeout=auto;
+        persistence insert_cookie cookie_name=senginxforward monitor_cookie=JSESSIONID timeout=auto;
         server 127.0.0.1:8081;
         server 127.0.0.1:8082;
     }

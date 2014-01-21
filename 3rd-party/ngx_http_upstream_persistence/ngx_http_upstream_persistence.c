@@ -162,7 +162,7 @@ ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r,
     
     
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "http_cookie_refresh_peer\n");
+            "insert_cookie_refresh_peer\n");
     len = value->len + strlen("=655350") + strlen("; ") + opt->len; 
     if (timeout) {
         len += 38;
@@ -192,7 +192,7 @@ ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r,
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-        "http_cookie_refresh_peer: set cookie %s", cookie);
+        "insert_cookie_refresh_peer: set cookie %s", cookie);
 
     set_cookie = ngx_list_push(&r->headers_out.headers);
     if (set_cookie == NULL) {
@@ -488,7 +488,7 @@ ngx_http_upstream_ps_config(ngx_http_upstream_ps_group_t
     group->timeout = 0;
 
     for (i = 1; i < cf->args->nelts; i++) {
-        if (ngx_strcmp("http_cookie", value[i].data) == 0) {
+        if (ngx_strcmp("insert_cookie", value[i].data) == 0) {
             if (group->ps_get != NULL) {
                 return "duplicate session persister";
             }
@@ -562,7 +562,7 @@ ngx_http_upstream_ps_config(ngx_http_upstream_ps_group_t
             return "timeout error";
         }
     } else if (group->ps_get != ngx_http_upstream_ps_cookie_get) {
-        return "config monitor_cookie not in http_cookie";
+        return "config monitor_cookie not in insert_cookie";
     }
 
     return NGX_CONF_OK;

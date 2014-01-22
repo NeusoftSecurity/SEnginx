@@ -37,6 +37,7 @@ typedef struct {
     struct sockaddr                    *sockaddr;
     socklen_t                           socklen;
     ngx_str_t                           name;
+    ngx_str_t                           host;
 
     ngx_uint_t                          weight;
     ngx_uint_t                          max_fails;
@@ -470,6 +471,7 @@ ngx_http_upstream_init_fair_rr(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us)
                 peers->peer[n].sockaddr = server[i].addrs[j].sockaddr;
                 peers->peer[n].socklen = server[i].addrs[j].socklen;
                 peers->peer[n].name = server[i].addrs[j].name;
+                peers->peer[n].host = server[i].host;
                 peers->peer[n].max_fails = server[i].max_fails;
                 peers->peer[n].fail_timeout = server[i].fail_timeout;
                 peers->peer[n].down = server[i].down;
@@ -520,6 +522,7 @@ ngx_http_upstream_init_fair_rr(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us)
                 backup->peer[n].sockaddr = server[i].addrs[j].sockaddr;
                 backup->peer[n].socklen = server[i].addrs[j].socklen;
                 backup->peer[n].name = server[i].addrs[j].name;
+                backup->peer[n].host = server[i].host;
                 backup->peer[n].weight = server[i].weight;
                 backup->peer[n].max_fails = server[i].max_fails;
                 backup->peer[n].fail_timeout = server[i].fail_timeout;
@@ -577,6 +580,7 @@ ngx_http_upstream_init_fair_rr(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us)
         peers->peer[i].sockaddr = u.addrs[i].sockaddr;
         peers->peer[i].socklen = u.addrs[i].socklen;
         peers->peer[i].name = u.addrs[i].name;
+        peers->peer[i].host = u.host;
         peers->peer[i].weight = 1;
         peers->peer[i].max_fails = 1;
         peers->peer[i].fail_timeout = 10;
@@ -938,6 +942,7 @@ ngx_http_upstream_get_fair_peer(ngx_peer_connection_t *pc, void *data)
     pc->sockaddr = peer->sockaddr;
     pc->socklen = peer->socklen;
     pc->name = &peer->name;
+    pc->host = &peer->host;
 
     peer->shared->last_req_id = fp->peers->shared->total_requests;
     ngx_http_upstream_fair_update_nreq(fp, 1, pc->log);

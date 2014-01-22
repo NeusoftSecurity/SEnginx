@@ -110,6 +110,12 @@ TEST_NGINX_BINARY=$NGINX_DIR prove ./http_variables.t
 echo "############  http core end  #############"
 echo ""
 
+# ip hash
+echo "############  ip hash start  ###########"
+TEST_NGINX_BINARY=$NGINX_DIR prove ./ip_hash.t
+echo "############  ip hash end  #############"
+echo ""
+
 # round robin
 echo "############  round robin start  ###########"
 TEST_NGINX_BINARY=$NGINX_DIR prove ./round_robin.t

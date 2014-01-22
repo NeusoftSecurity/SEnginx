@@ -2,7 +2,7 @@
 
 # (C) Jason Liu
 
-# Tests for nginx fastest module.
+# Tests for nginx fair module.
 
 ###############################################################################
 
@@ -29,11 +29,7 @@ my @domain_name = (
     "test2.senginx-test.com",
     "test3.senginx-test.com");
 
-my %resolve_count;
-
-foreach my $domain (@domain_name) {
-    $resolve_count{$domain} = 0;
-}
+my $resolve_count = 0;
 
 my @addrs = ("3.0.0.1", "3.0.0.2", "3.0.0.3");
 for (my $i = 0; $i < @addrs; $i++) {
@@ -44,11 +40,10 @@ for (my $i = 0; $i < @addrs; $i++) {
 }
 
 
-my @port_array = (8081, 8082, 8083);
-my $unsleep_port = 8084;
+my $port = 8081;
+my $port2 = 8082;
 
-my $test_num = 2*(@port_array + 1) + 2;
-my $t = Test::Nginx->new()->has(qw/upstream_fastest/)->plan($test_num);
+my $t = Test::Nginx->new()->has(qw/upstream_fair/)->plan(4);
 
 $t->write_file_expand('nginx.conf', <<"EOF");
 
@@ -63,23 +58,16 @@ http {
     %%TEST_GLOBALS_HTTP%%
 
     upstream pool {
-        fastest;
-        server 127.0.0.1:$port_array[0];
-        server 127.0.0.1:$port_array[1];
-        server 127.0.0.1:$port_array[2];
+        fair;
+        server $domain_name[0]:$port;
+        server $domain_name[1]:$port;
+        server $domain_name[2]:$port;
     }
 
     upstream pool2 {
-        fastest;
-        server $domain_name[0]:$port_array[0];
-        server $domain_name[1]:$port_array[1]; 
-        server $domain_name[2]:$port_array[2]; 
-    }
-
-    upstream pool3 {
-        fastest;
-        server can-not-resolve.com:$port_array[0];
-        server 127.0.0.1:$unsleep_port;
+        fair;
+        server can-not-resolve.com:$port;
+        server 127.0.0.1:$port2;
     }
 
     resolver 127.0.0.1:53530 valid=1;
@@ -88,57 +76,35 @@ http {
     server {
         listen       127.0.0.1:8080;
         server_name  localhost;
-        location / {
-            proxy_pass http://pool;
-        }
 
         location /dyn_resolve {
-            proxy_pass http://pool2 dynamic_resolve;
+            proxy_pass http://pool dynamic_resolve;
         }
 
         location /dyn_resolve_error {
-            proxy_pass http://pool3 dynamic_resolve;
+            proxy_pass http://pool2 dynamic_resolve;
         }
     }
 }
 
 EOF
 
-my $fastest = int(rand(@port_array));
-
-my $def_sleep_time = 1;
-
-for(my $index = 0; $index < @port_array; $index++) {
-    my $sleep_time;
-
-    if ($index == $fastest) {
-        $sleep_time = 0;
-    } else {
-        $sleep_time = $def_sleep_time;
-    }
-
-    $t->run_daemon(\&http_daemon, "127.0.0.1", $port_array[$index], $sleep_time);
-    $t->run_daemon(\&http_daemon, $addrs[$index], $port_array[$index], $sleep_time);
+foreach my $addr (@addrs) {
+    $t->run_daemon(\&http_daemon, $addr, $port);
 }
-$t->run_daemon(\&http_daemon, "127.0.0.1", $unsleep_port, 0);
+$t->run_daemon(\&http_daemon, "127.0.0.1", $port);
+$t->run_daemon(\&http_daemon, "127.0.0.1", $port2);
 $t->run_daemon(\&dns_server_daemon);
 $t->run();
 
 ##########################################################################################################
-my $each_port;
-foreach $each_port (@port_array) {
-    like(http_get('/test.html'), qr/TEST-OK-IF-YOU-SEE-THIS-FROM-$each_port/m, "request $each_port");
-}
-like(http_get('/test.html'), qr/TEST-OK-IF-YOU-SEE-THIS-FROM-$port_array[$fastest]/m, "request fastest");
-
-foreach $each_port (@port_array) {
-    like(http_get('/dyn_resolve '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$each_port-127/m, "request $each_port");
-}
+sleep 1;
+like(http_get('/dyn_resolve '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-127/m, "request after reslove");
 sleep 2;
-like(http_get('/dyn_resolve '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$port_array[$fastest]-$addrs[$fastest]/m, "request fastest after reslove");
+like(http_get('/dyn_resolve '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-3/m, "request after reslove");
 sleep 2;
-like(http_get('/dyn_resolve '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$port_array[$fastest]-127/m, "request fastest after reslove");
-like(http_get('/dyn_resolve_error '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$unsleep_port-127/m, "get next when reslove failed");
+like(http_get('/dyn_resolve '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-127/m, "request after reslove");
+like(http_get('/dyn_resolve_error '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-127.0.0.1-$port2/m, "get next when reslove failed");
 
 for (my $i = 0; $i < @addrs; $i++) {
     system("ifconfig lo:$i 0.0.0.0 2>/dev/null");
@@ -146,7 +112,7 @@ for (my $i = 0; $i < @addrs; $i++) {
 ##########################################################################################################
 
 sub http_daemon {
-    my ($addr, $port, $sleep_time) = @_;
+    my ($addr, $port) = @_;
 	my $server = IO::Socket::INET->new(
 		Proto => 'tcp',
 		LocalHost => "$addr:$port",
@@ -166,17 +132,15 @@ sub http_daemon {
 			last if (/^\x0d?\x0a?$/);
 		}
 
-        sleep $sleep_time;
-
 		$uri = $1 if $headers =~ /^\S+\s+([^ ]+)\s+HTTP/i;
 
-		if ($uri eq '/test.html') {
+		if ($uri eq '/') {
 
 			print $client <<"EOF";
 HTTP/1.1 200 OK
 Connection: close
 
-TEST-OK-IF-YOU-SEE-THIS-FROM-$port
+TEST-OK-IF-YOU-SEE-THIS-FROM-$addr
 
 EOF
 	} elsif ($uri =~ /dyn_resolve/) {
@@ -185,7 +149,7 @@ EOF
 HTTP/1.1 200 OK
 Connection: close
 
-TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$port-$addr
+TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$addr-$port
 
 EOF
 	
@@ -219,11 +183,11 @@ sub reply_handler {
     for (my $i = 0; $i < @domain_name; $i++) {
         my $domain = $domain_name[$i];
         if ($qname eq $domain) {
-            if ($resolve_count{$domain} == 0) {
-                $resolve_count{$domain} = 1;
+            if ($resolve_count == 0) {
+                $resolve_count = 1;
                 ($ttl, $rdata) = (3600, "127.0.0.1");
             } else {
-                $resolve_count{$domain} = 0;
+                $resolve_count = 0;
                 ($ttl, $rdata) = (3600, $addrs[$i]);
             }
 

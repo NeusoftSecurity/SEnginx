@@ -82,6 +82,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                 peers->peer[n].sockaddr = server[i].addrs[j].sockaddr;
                 peers->peer[n].socklen = server[i].addrs[j].socklen;
                 peers->peer[n].name = server[i].addrs[j].name;
+                peers->peer[n].host = server[i].host;
                 peers->peer[n].weight = server[i].weight;
                 peers->peer[n].effective_weight = server[i].weight;
                 peers->peer[n].current_weight = 0;
@@ -136,6 +137,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                 backup->peer[n].sockaddr = server[i].addrs[j].sockaddr;
                 backup->peer[n].socklen = server[i].addrs[j].socklen;
                 backup->peer[n].name = server[i].addrs[j].name;
+                backup->peer[n].host = server[i].host;
                 backup->peer[n].weight = server[i].weight;
                 backup->peer[n].effective_weight = server[i].weight;
                 backup->peer[n].current_weight = 0;
@@ -194,6 +196,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
         peers->peer[i].sockaddr = u.addrs[i].sockaddr;
         peers->peer[i].socklen = u.addrs[i].socklen;
         peers->peer[i].name = u.addrs[i].name;
+        peers->peer[i].host = u.host;
         peers->peer[i].weight = 1;
         peers->peer[i].effective_weight = 1;
         peers->peer[i].current_weight = 0;
@@ -423,6 +426,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
     pc->sockaddr = peer->sockaddr;
     pc->socklen = peer->socklen;
     pc->name = &peer->name;
+    pc->host = &peer->host;
 
     /* ngx_unlock_mutex(rrp->peers->mutex); */
 
@@ -490,7 +494,6 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
     persist_index = ngx_http_upstream_ps_get(rrp->request,
         rrp->peers->number, rrp->group);
 #endif
- 
     now = ngx_time();
 
     best = NULL;

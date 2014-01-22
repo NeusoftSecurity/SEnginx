@@ -1,10 +1,10 @@
 package Net::DNS::Nameserver;
 
 #
-# $Id: Nameserver.pm 1096 2012-12-28 13:35:15Z willem $
+# $Id: Nameserver.pm 1145 2013-12-17 11:39:45Z willem $
 #
 use vars qw($VERSION);
-$VERSION = (qw$LastChangedRevision: 1096 $)[1]; # Unchanged since 1046
+$VERSION = (qw$LastChangedRevision: 1145 $)[1];
 
 
 =head1 NAME
@@ -195,10 +195,9 @@ sub make_reply {
 	}
 
 	if ( $query->header->qr() ) {
-		print "ERROR: invalid packet (qr was set, dropping)\n" if $self->{Verbose};
+		print "ERROR: invalid packet (qr set), dropping\n" if $self->{Verbose};
 		return;
 	}
-
 
 	my $reply  = $query->reply();
 	my $header = $reply->header;
@@ -351,11 +350,16 @@ sub tcp_connection {
 			my $qbuf = substr( $self->{_tcp}{$sock}{inbuffer}, 0, $self->{_tcp}{$sock}{querylength} );
 			substr( $self->{_tcp}{$sock}{inbuffer}, 0, $self->{_tcp}{$sock}{querylength} ) = "";
 			my $query = new Net::DNS::Packet( \$qbuf );
-			my $conn  = {
-				sockhost => $sock->sockhost(),
-				sockport => $sock->sockport(),
-				peerhost => $sock->peerhost(),
-				peerport => $sock->peerport()};
+			if ( my $err = $@ ) {
+				print "Error decoding query packet: $err\n" if $self->{Verbose};
+				undef $query;			# force FORMERR reply
+			}
+			my $conn = {
+				sockhost => $sock->sockhost,
+				sockport => $sock->sockport,
+				peerhost => $sock->peerhost,
+				peerport => $sock->peerport
+				};
 			my $reply = $self->make_reply( $query, $sock->peerhost, $conn );
 			if ( not defined $reply ) {
 				print "I couldn't create a reply for $peer. Closing socket.\n"
@@ -398,10 +402,9 @@ sub udp_connection {
 	print "UDP connection from $peerhost:$peerport to $sockhost\n" if $self->{Verbose};
 
 	my $query = new Net::DNS::Packet( \$buf, $self->{Verbose} );
-	my $err = $@;
-	if ( !defined($query) ) {
-		print "Error interpreting query: $err\n" if $self->{Verbose};
-		return;
+	if ( my $err = $@ ) {
+		print "Error decoding query packet: $err\n" if $self->{Verbose};
+		undef $query;					# force FORMERR reply
 	}
 	my $conn = {
 		sockhost => $sock->sockhost,
@@ -410,28 +413,17 @@ sub udp_connection {
 		peerport => $sock->peerport
 		};
 	my $reply = $self->make_reply( $query, $peerhost, $conn ) || return;
-	my $max_len = $self->max_udp_len($query);
-	print "Maximum reply length as advertised in EDNS from $peerhost:$peerport: $max_len\n" if $self->{Verbose};
-	$reply->truncate($max_len) if $self->{Truncate};
-	local $| = 1 if $self->{Verbose};
-	print "Writing response - " if $self->{Verbose};
 
-	if ( $sock->send( $reply->data ) ) {			#
-		print "done\n" if $self->{Verbose};
+	my $max_len = $query->edns->size if $query && $self->{Truncate};
+	if ( $self->{Verbose} ) {
+		local $| = 1;
+		print "Maximum UDP size advertised by $peerhost:$peerport: $max_len\n" if $max_len;
+		print "Writing response - ";
+		print $sock->send( $reply->data($max_len) ) ? "done" : "failed: $!", "\n";
+
 	} else {
-		print "failed to send reply: $!\n" if $self->{Verbose};
+		$sock->send( $reply->data($max_len) );
 	}
-}
-
-
-sub max_udp_len {
-	my ( $self, $query ) = @_;
-
-	for my $rr ( $query->additional ) {
-		return $rr->size if $rr->type eq 'OPT';
-	}
-
-	return 512;
 }
 
 
@@ -581,7 +573,11 @@ __END__
 	Truncate	=> 0
 	);
 
-Creates a nameserver object.  Attributes are:
+
+Returns a Net::DNS::Nameserver object, or undef if the object
+could not be created.
+
+Attributes are:
 
     LocalAddr		IP address on which to listen.	Defaults to INADDR_ANY.
     LocalPort		Port on which to listen.	Defaults to 53.
@@ -636,16 +632,12 @@ Unix-like systems, the program will probably have to run as root
 to listen on the default port, 53.	A non-privileged user should
 be able to listen on ports 1024 and higher.
 
-Packet Truncation is new functionality for
-$Net::DNS::Nameserver::VERSION>830 and uses the
-Net::DNS::Packet::truncate method with a size determinde by the
-advertised EDNS0 size in the query, or 512 if EDNS0 is not advertised
-in the query. Only UDP replies are truncated. If you want to do packet
-runcation yourself you should set Truncate to 0 and use the truncate
-method on the reply packet in the code you use for the ReplyHandler.
+Packet Truncation is new functionality available in VERSION > 830.
+Only UDP replies are truncated.  The size limit is determined by
+the advertised EDNS0 size in the query, otherwise 512 is used.
 
-Returns a Net::DNS::Nameserver object, or undef if the object
-couldn't be created.
+If you want to do packet truncation yourself you should set Truncate
+to 0 and truncate the reply packet in the code of the ReplyHandler.
 
 See L</EXAMPLE> for an example.
 

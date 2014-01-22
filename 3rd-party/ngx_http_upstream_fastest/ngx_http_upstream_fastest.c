@@ -273,6 +273,7 @@ ngx_http_upstream_get_fastest_peer(ngx_peer_connection_t *pc, void *data)
     pc->sockaddr = best->sockaddr;
     pc->socklen = best->socklen;
     pc->name = &best->name;
+    pc->host = &best->host;
 
     fp->rrp.current = p;
 

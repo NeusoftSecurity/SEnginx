@@ -329,6 +329,7 @@ ngx_http_upstream_get_least_conn_peer(ngx_peer_connection_t *pc, void *data)
     pc->sockaddr = best->sockaddr;
     pc->socklen = best->socklen;
     pc->name = &best->name;
+    pc->host = &best->host;
 
     lcp->rrp.current = p;
 
@@ -343,7 +344,7 @@ ngx_http_upstream_get_least_conn_peer(ngx_peer_connection_t *pc, void *data)
     }
 
 #if (NGX_HTTP_PERSISTENCE)
-    ngx_http_upstream_ps_set(lcp->rrp.request, lcp->rrp.current, 
+    ngx_http_upstream_ps_set(lcp->rrp.request, lcp->rrp.current,
             lcp->rrp.group);
 #endif
     return NGX_OK;

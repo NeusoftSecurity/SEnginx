@@ -10,6 +10,8 @@
 #include <ngx_http.h>
 
 
+extern ngx_int_t
+ngx_http_proxy_resolver_enable(ngx_http_request_t *r);
 #if (NGX_HTTP_CACHE)
 static ngx_int_t ngx_http_upstream_cache(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
@@ -1192,6 +1194,140 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     }
 }
 
+static void
+ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
+{
+    ngx_http_request_t            *r;
+    ngx_http_upstream_t           *u;
+    ngx_peer_connection_t         *pc;
+    struct sockaddr               *sockaddr;
+    struct sockaddr               *org_addr;
+    ngx_str_t                     *addr;
+
+    r = ctx->data;
+
+    u = r->upstream;
+    pc = &u->peer;
+    if (ctx->state) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "%V could not be resolved (%i: %s)",
+                      &ctx->name, ctx->state,
+                      ngx_resolver_strerror(ctx->state));
+
+failed:
+        pc->resolved = 2;
+    } else {
+        sockaddr = ngx_palloc(r->pool, ctx->addrs[0].socklen);
+        if (sockaddr == NULL) {
+            goto failed;
+        }
+
+        pc->socklen = ctx->addrs[0].socklen;
+        ngx_memcpy(sockaddr, ctx->addrs[0].sockaddr, pc->socklen);
+
+        org_addr = pc->sockaddr;
+        switch (sockaddr->sa_family) {
+#if (NGX_HAVE_INET6)
+            case AF_INET6:
+                ((struct sockaddr_in6 *)sockaddr)->sin6_port =
+                    ((struct sockaddr_in6 *)org_addr)->sin6_port;
+                break;
+#endif
+            default: /* AF_INET */
+                ((struct sockaddr_in *)sockaddr)->sin_port =
+                    ((struct sockaddr_in *)org_addr)->sin_port;
+        }
+
+        pc->sockaddr = sockaddr;
+
+        addr = ngx_palloc(r->pool, sizeof(*addr) + NGX_SOCKADDR_STRLEN);
+        if (addr == NULL) {
+            goto failed;
+        }
+
+        addr->data = (u_char *)(addr + 1);
+        addr->len = ngx_sock_ntop(pc->sockaddr, pc->socklen,
+                                 addr->data, NGX_SOCKADDR_STRLEN, 0);
+
+        pc->name = addr;
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "name was resolved to %V", pc->name);
+        pc->resolved = 1;
+    }
+
+    ngx_resolve_name_done(ctx);
+
+    ngx_http_upstream_connect(r, u);
+}
+
+
+static ngx_int_t
+ngx_http_upstream_connect_and_resolve_peer(ngx_peer_connection_t *pc,
+        void *data)
+{
+    ngx_http_core_loc_conf_t       *clcf;
+    ngx_resolver_ctx_t             *ctx, temp;
+    ngx_http_request_t              *r = data;
+    int                             rc;
+
+    if (pc->resolved == 1) {
+        return _ngx_event_connect_peer(pc);
+    }  
+    
+    if (pc->resolved == 2) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "resolve failed!");
+        return NGX_DECLINED;
+    }
+
+    pc->host = NULL;
+    rc = pc->get(pc, pc->data);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    if (pc->host == NULL) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "load balance not support dyn resolve!");
+        return _ngx_event_connect_peer(pc);
+    }
+
+    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
+    if (clcf->resolver == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                "resolver have no configured!");
+        return _ngx_event_connect_peer(pc);
+    }
+
+    temp.name = *pc->host;
+
+    ctx = ngx_resolve_start(clcf->resolver, &temp);
+    if (ctx == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                "resolver start failed!");
+        return _ngx_event_connect_peer(pc);
+    }
+
+    if (ctx == NGX_NO_RESOLVER) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                "resolver started but no resolver!");
+        return _ngx_event_connect_peer(pc);
+    }
+
+    ctx->name = *pc->host;
+    ctx->handler = ngx_http_upstream_dyn_resolve_handler;
+    ctx->data = r;
+    ctx->timeout = clcf->resolver_timeout;
+
+    if (ngx_resolve_name(ctx) != NGX_OK) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                "resolver name failed!\n");
+        return NGX_DECLINED;
+    }
+
+    return NGX_STOP;
+}
+
 
 static void
 ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
@@ -1221,11 +1357,17 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     u->state->response_sec = tp->sec;
     u->state->response_msec = tp->msec;
 
-    rc = ngx_event_connect_peer(&u->peer);
+    if (ngx_http_proxy_resolver_enable(r)) {
+        rc = ngx_http_upstream_connect_and_resolve_peer(&u->peer, r);
+        if (rc == NGX_STOP) {
+            return;
+        }
+    } else {
+        rc = ngx_event_connect_peer(&u->peer);
+    }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http upstream connect: %i", rc);
-
     if (rc == NGX_ERROR) {
         ngx_http_upstream_finalize_request(r, u,
                                            NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -3405,6 +3547,7 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
         u->peer.connection = NULL;
     }
 
+    u->peer.resolved = 0;
     ngx_http_upstream_connect(r, u);
 }
 
@@ -4335,12 +4478,12 @@ ngx_http_upstream_name_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_upstream_srv_conf_t  *uscf;
-    
+
     uscf = r->upstream->conf->upstream;
     if (uscf == NULL) {
         return NGX_ERROR;
     }
-    
+
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
@@ -4904,6 +5047,7 @@ ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     us->addrs = u.addrs;
     us->naddrs = u.naddrs;
+    us->host = u.host;
     us->weight = weight;
     us->max_fails = max_fails;
     us->max_busy = max_busy;

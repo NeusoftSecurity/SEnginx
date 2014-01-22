@@ -51,6 +51,7 @@ tags
 3rd-party/ModSecurity/tests/run-regression-tests.pl
 3rd-party/ModSecurity/tests/run-unit-tests.pl
 3rd-party/ModSecurity/tools/rules-updater.pl
+3rd-party/ngx_http_robot_mitigation/ngx_http_robot_mitigation_tpl.c
 
 # Others
 *.Plo

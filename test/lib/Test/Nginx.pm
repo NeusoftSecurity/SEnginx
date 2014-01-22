@@ -120,6 +120,8 @@ sub has_module($) {
         upstream_least_conn
             => '(?s)^(?!.*--without-ngx_http_upstream_least_conn_module)',
         upstream_fastest => 'ngx_http_upstream_fastest',
+        ip_hash
+            => '(?s)^(?!.*--without-ngx_http_upstream_ip_hash_module)',
 	);
 
 	my $re = $regex{$feature};
@@ -194,7 +196,7 @@ sub waitforfile($) {
 
 	# wait for file to appear
 
-	for (1 .. 30) {
+	for (1 .. 80) {
 		return 1 if -e $file;
 		select undef, undef, undef, 0.1;
 	}
@@ -464,7 +466,7 @@ sub http($;%) {
 	eval {
 		local $SIG{ALRM} = sub { die "timeout\n" };
 		local $SIG{PIPE} = sub { die "sigpipe\n" };
-		alarm(2);
+		alarm(6);
 		my $s = IO::Socket::INET->new(
 			Proto => 'tcp',
 			PeerAddr => '127.0.0.1:8080'

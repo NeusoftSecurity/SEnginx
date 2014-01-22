@@ -13,7 +13,7 @@ use Test::More;
 
 BEGIN { use FindBin; chdir($FindBin::Bin); }
 
-use lib '../lib';
+use lib 'lib';
 use Test::Nginx;
 use Net::DNS::Nameserver;
 
@@ -45,10 +45,8 @@ for (my $i = 0; $i < @addrs; $i++) {
 
 
 my @port_array = (8081, 8082, 8083);
-my $unsleep_port = 8084;
 
-my $test_num = 2*(@port_array + 1) + 2;
-my $t = Test::Nginx->new()->has(qw/upstream_fastest/)->plan($test_num);
+my $t = Test::Nginx->new()->has(qw/ip_hash/)->plan(5);
 
 $t->write_file_expand('nginx.conf', <<"EOF");
 
@@ -63,23 +61,22 @@ http {
     %%TEST_GLOBALS_HTTP%%
 
     upstream pool {
-        fastest;
+        ip_hash;
         server 127.0.0.1:$port_array[0];
         server 127.0.0.1:$port_array[1];
         server 127.0.0.1:$port_array[2];
     }
 
     upstream pool2 {
-        fastest;
+        ip_hash;
         server $domain_name[0]:$port_array[0];
         server $domain_name[1]:$port_array[1]; 
         server $domain_name[2]:$port_array[2]; 
     }
 
     upstream pool3 {
-        fastest;
+        ip_hash;
         server can-not-resolve.com:$port_array[0];
-        server 127.0.0.1:$unsleep_port;
     }
 
     resolver 127.0.0.1:53530 valid=1;
@@ -104,41 +101,37 @@ http {
 
 EOF
 
-my $fastest = int(rand(@port_array));
-
-my $def_sleep_time = 1;
-
 for(my $index = 0; $index < @port_array; $index++) {
-    my $sleep_time;
-
-    if ($index == $fastest) {
-        $sleep_time = 0;
-    } else {
-        $sleep_time = $def_sleep_time;
-    }
-
-    $t->run_daemon(\&http_daemon, "127.0.0.1", $port_array[$index], $sleep_time);
-    $t->run_daemon(\&http_daemon, $addrs[$index], $port_array[$index], $sleep_time);
+    $t->run_daemon(\&http_daemon, "127.0.0.1", $port_array[$index]);
+    $t->run_daemon(\&http_daemon, $addrs[$index], $port_array[$index]);
 }
-$t->run_daemon(\&http_daemon, "127.0.0.1", $unsleep_port, 0);
 $t->run_daemon(\&dns_server_daemon);
 $t->run();
 
 ##########################################################################################################
-my $each_port;
-foreach $each_port (@port_array) {
-    like(http_get('/test.html'), qr/TEST-OK-IF-YOU-SEE-THIS-FROM-$each_port/m, "request $each_port");
+sub get_key_msg {
+    my ($massage ) = @_;
+    my @msg = split /\r\n/, $massage;
+    foreach my $m (@msg) {
+        if ($m =~ /TEST-/) {
+           return $m;
+        }
+    }
 }
-like(http_get('/test.html'), qr/TEST-OK-IF-YOU-SEE-THIS-FROM-$port_array[$fastest]/m, "request fastest");
-
-foreach $each_port (@port_array) {
-    like(http_get('/dyn_resolve '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$each_port-127/m, "request $each_port");
-}
+my $r = http_get('/test.html');
+my $resp = get_key_msg($r);
+like(http_get('/test.html'), qr/$resp/m, "get response from the same server");
+$r = http_get('/dyn_resolve');
+like($r, qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-127/m, "get response from resolved server");
+$resp = get_key_msg($r);
+my @msg = split /-/, $resp;
+my $msg_num = @msg;
+my $port = $msg[$msg_num - 1];
 sleep 2;
-like(http_get('/dyn_resolve '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$port_array[$fastest]-$addrs[$fastest]/m, "request fastest after reslove");
-sleep 2;
-like(http_get('/dyn_resolve '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$port_array[$fastest]-127/m, "request fastest after reslove");
-like(http_get('/dyn_resolve_error '), qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$unsleep_port-127/m, "get next when reslove failed");
+$r = http_get('/dyn_resolve');
+like($r, qr/TEST-DR-OK-IF-YOU-SEE-THIS-FROM-3/m, "get response after reslove changed");
+like($r, qr/$port/m, "get response after reslove changed");
+like(http_get('/dyn_resolve_error '), qr/502 Bad Gateway/, 'get 502 when resolve failed');
 
 for (my $i = 0; $i < @addrs; $i++) {
     system("ifconfig lo:$i 0.0.0.0 2>/dev/null");
@@ -146,7 +139,7 @@ for (my $i = 0; $i < @addrs; $i++) {
 ##########################################################################################################
 
 sub http_daemon {
-    my ($addr, $port, $sleep_time) = @_;
+    my ($addr, $port) = @_;
 	my $server = IO::Socket::INET->new(
 		Proto => 'tcp',
 		LocalHost => "$addr:$port",
@@ -166,8 +159,6 @@ sub http_daemon {
 			last if (/^\x0d?\x0a?$/);
 		}
 
-        sleep $sleep_time;
-
 		$uri = $1 if $headers =~ /^\S+\s+([^ ]+)\s+HTTP/i;
 
 		if ($uri eq '/test.html') {
@@ -179,17 +170,17 @@ Connection: close
 TEST-OK-IF-YOU-SEE-THIS-FROM-$port
 
 EOF
-	} elsif ($uri =~ /dyn_resolve/) {
+        } elsif ($uri =~ /dyn_resolve/) {
 
 			print $client <<"EOF";
 HTTP/1.1 200 OK
 Connection: close
 
-TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$port-$addr
+TEST-DR-OK-IF-YOU-SEE-THIS-FROM-$addr-$port
 
 EOF
 	
-	} else {
+		} else {
 
 			print $client <<"EOF";
 HTTP/1.1 404 Not Found

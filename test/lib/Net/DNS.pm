@@ -1,12 +1,12 @@
 package Net::DNS;
 
 #
-# $Id: DNS.pm 1095 2012-12-28 13:28:31Z willem $
+# $Id: DNS.pm 1164 2014-01-16 09:48:32Z willem $
 #
 use vars qw($SVNVERSION $VERSION);
 BEGIN {
-	$SVNVERSION = (qw$LastChangedRevision: 1095 $)[1];
-	$VERSION = '0.72';
+	$SVNVERSION = (qw$LastChangedRevision: 1164 $)[1];
+	$VERSION = '0.74';
 }
 
 
@@ -32,6 +32,10 @@ I<DNS and BIND> (Albitz & Liu) for details.
 =cut
 
 
+use 5.004_05;
+use strict;
+use integer;
+use Carp;
 
 
 
@@ -111,8 +115,6 @@ BEGIN {
 }
 
 
-use strict;
-use Carp;
 use Net::DNS::RR;
 use Net::DNS::Packet;
 use Net::DNS::Update;
@@ -418,7 +420,7 @@ sub rr_add {
 
 sub rr_del {
 	my ( $head, @tail ) = split /\s+/, shift;
-	my $rr = new Net::DNS::RR( scalar @tail > 1 ? "$head @tail": "$head ANY @tail" );
+	my $rr = new Net::DNS::RR( scalar @tail ? "$head @tail": "$head ANY" );
 	$rr->ttl(0);
 	$rr->class( $rr->rdata ? 'NONE' : 'ANY' );
 	return $rr;

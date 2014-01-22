@@ -1994,7 +1994,7 @@ ngx_http_upstream_test_connect(ngx_connection_t *c)
 static ngx_int_t
 ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
-    ngx_str_t                      *uri, args;
+    ngx_str_t                       uri, args;
     ngx_uint_t                      i, flags;
     ngx_list_part_t                *part;
     ngx_table_elt_t                *h;
@@ -2035,11 +2035,11 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
             }
         }
 
-        uri = &u->headers_in.x_accel_redirect->value;
+        uri = u->headers_in.x_accel_redirect->value;
         ngx_str_null(&args);
         flags = NGX_HTTP_LOG_UNSAFE;
 
-        if (ngx_http_parse_unsafe_uri(r, uri, &args, &flags) != NGX_OK) {
+        if (ngx_http_parse_unsafe_uri(r, &uri, &args, &flags) != NGX_OK) {
             ngx_http_finalize_request(r, NGX_HTTP_NOT_FOUND);
             return NGX_DONE;
         }
@@ -2048,7 +2048,7 @@ ngx_http_upstream_process_headers(ngx_http_request_t *r, ngx_http_upstream_t *u)
             r->method = NGX_HTTP_GET;
         }
 
-        ngx_http_internal_redirect(r, uri, &args);
+        ngx_http_internal_redirect(r, &uri, &args);
         ngx_http_finalize_request(r, NGX_DONE);
         return NGX_DONE;
     }
@@ -2560,11 +2560,7 @@ ngx_http_upstream_upgrade(ngx_http_request_t *r, ngx_http_upstream_t *u)
         ngx_http_upstream_process_upgraded(r, 1, 1);
     }
 
-    if (c->read->ready
-        || r->header_in->pos != r->header_in->last)
-    {
-        ngx_http_upstream_process_upgraded(r, 0, 1);
-    }
+    ngx_http_upstream_process_upgraded(r, 0, 1);
 }
 
 
@@ -3656,7 +3652,7 @@ ngx_http_upstream_process_cache_control(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (r->cache->valid_sec != 0) {
+    if (r->cache->valid_sec != 0 && u->headers_in.x_accel_expires != NULL) {
         return NGX_OK;
     }
 

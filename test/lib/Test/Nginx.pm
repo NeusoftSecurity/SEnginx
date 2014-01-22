@@ -122,6 +122,8 @@ sub has_module($) {
         upstream_fastest => 'ngx_http_upstream_fastest',
         ip_hash
             => '(?s)^(?!.*--without-ngx_http_upstream_ip_hash_module)',
+        upstream_fair
+            => '(?s)^(?!.*--without-ngx_http_upstream_fair_module)',
 	);
 
 	my $re = $regex{$feature};

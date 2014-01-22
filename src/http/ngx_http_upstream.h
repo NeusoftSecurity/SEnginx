@@ -96,6 +96,7 @@ typedef struct {
     time_t                           fail_timeout;
     ngx_uint_t                       max_busy;
     ngx_str_t                        srun_id;
+    ngx_str_t                        host;
     unsigned                         retire:1;
 
     unsigned                         down:1;

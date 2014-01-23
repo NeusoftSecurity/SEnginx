@@ -99,6 +99,7 @@ HTTP_MP4=NO
 HTTP_GUNZIP=NO
 HTTP_GZIP_STATIC=NO
 HTTP_UPSTREAM_IP_HASH=YES
+HTTP_UPSTREAM_CHECK=YES
 HTTP_UPSTREAM_LEAST_CONN=YES
 HTTP_UPSTREAM_KEEPALIVE=YES
 
@@ -253,6 +254,7 @@ use the \"--without-http_limit_conn_module\" option instead"
         --without-http_upstream_least_conn_module)
                                          HTTP_UPSTREAM_LEAST_CONN=NO ;;
         --without-http_upstream_keepalive_module) HTTP_UPSTREAM_KEEPALIVE=NO ;;
+        --without-http_upstream_check_module) HTTP_UPSTREAM_CHECK=NO  ;;
 
         --with-http_perl_module)         HTTP_PERL=YES              ;;
         --with-perl_modules_path=*)      NGX_PERL_MODULES="$value"  ;;
@@ -398,6 +400,8 @@ cat << END
                                      disable ngx_http_upstream_least_conn_module
   --without-http_upstream_keepalive_module
                                      disable ngx_http_upstream_keepalive_module
+  --without-http_upstream_check_module
+                                     disable ngx_http_upstream_check_module
 
   --with-http_perl_module            enable ngx_http_perl_module
   --with-perl_modules_path=PATH      set Perl modules path

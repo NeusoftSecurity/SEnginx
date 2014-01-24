@@ -111,6 +111,13 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
       offsetof(ngx_http_ssl_srv_conf_t, ciphers),
       NULL },
 
+    { ngx_string("ssl_buffer_size"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_size_slot,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      offsetof(ngx_http_ssl_srv_conf_t, buffer_size),
+      NULL },
+
     { ngx_string("ssl_verify_client"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
@@ -119,7 +126,7 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
       &ngx_http_ssl_verify },
 
     { ngx_string("ssl_verify_depth"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_1MORE,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_num_slot,
       NGX_HTTP_SRV_CONF_OFFSET,
       offsetof(ngx_http_ssl_srv_conf_t, verify_depth),
@@ -151,6 +158,13 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
       ngx_http_ssl_session_cache,
       NGX_HTTP_SRV_CONF_OFFSET,
       0,
+      NULL },
+
+    { ngx_string("ssl_session_tickets"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_SRV_CONF_OFFSET,
+      offsetof(ngx_http_ssl_srv_conf_t, session_tickets),
       NULL },
 
     { ngx_string("ssl_session_ticket_key"),
@@ -424,10 +438,12 @@ ngx_http_ssl_create_srv_conf(ngx_conf_t *cf)
 
     sscf->enable = NGX_CONF_UNSET;
     sscf->prefer_server_ciphers = NGX_CONF_UNSET;
+    sscf->buffer_size = NGX_CONF_UNSET_SIZE;
     sscf->verify = NGX_CONF_UNSET_UINT;
     sscf->verify_depth = NGX_CONF_UNSET_UINT;
     sscf->builtin_session_cache = NGX_CONF_UNSET;
     sscf->session_timeout = NGX_CONF_UNSET;
+    sscf->session_tickets = NGX_CONF_UNSET;
     sscf->session_ticket_keys = NGX_CONF_UNSET_PTR;
     sscf->stapling = NGX_CONF_UNSET;
     sscf->stapling_verify = NGX_CONF_UNSET;
@@ -464,6 +480,9 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_bitmask_value(conf->protocols, prev->protocols,
                          (NGX_CONF_BITMASK_SET|NGX_SSL_SSLv3|NGX_SSL_TLSv1
                           |NGX_SSL_TLSv1_1|NGX_SSL_TLSv1_2));
+
+    ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size,
+                         NGX_SSL_BUFSIZE);
 
     ngx_conf_merge_uint_value(conf->verify, prev->verify, 0);
     ngx_conf_merge_uint_value(conf->verify_depth, prev->verify_depth, 1);
@@ -572,6 +591,8 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
         return NGX_CONF_ERROR;
     }
 
+    conf->ssl.buffer_size = conf->buffer_size;
+
     if (conf->verify) {
 
         if (conf->client_certificate.len == 0 && conf->verify != 3) {
@@ -630,6 +651,14 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     {
         return NGX_CONF_ERROR;
     }
+
+    ngx_conf_merge_value(conf->session_tickets, prev->session_tickets, 1);
+
+#ifdef SSL_OP_NO_TICKET
+    if (!conf->session_tickets) {
+        SSL_CTX_set_options(conf->ssl.ctx, SSL_OP_NO_TICKET);
+    }
+#endif
 
     ngx_conf_merge_ptr_value(conf->session_ticket_keys,
                          prev->session_ticket_keys, NULL);

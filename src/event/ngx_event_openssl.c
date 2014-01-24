@@ -189,6 +189,8 @@ ngx_ssl_create(ngx_ssl_t *ssl, ngx_uint_t protocols, void *data)
         return NGX_ERROR;
     }
 
+    ssl->buffer_size = NGX_SSL_BUFSIZE;
+
     /* client side options */
 
     SSL_CTX_set_options(ssl->ctx, SSL_OP_MICROSOFT_SESS_ID_BUG);
@@ -725,6 +727,7 @@ ngx_ssl_create_connection(ngx_ssl_t *ssl, ngx_connection_t *c, ngx_uint_t flags)
     }
 
     sc->buffer = ((flags & NGX_SSL_BUFFER) != 0);
+    sc->buffer_size = ssl->buffer_size;
 
     sc->connection = SSL_new(ssl->ctx);
 
@@ -1221,7 +1224,7 @@ ngx_ssl_send_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
     buf = c->ssl->buf;
 
     if (buf == NULL) {
-        buf = ngx_create_temp_buf(c->pool, NGX_SSL_BUFSIZE);
+        buf = ngx_create_temp_buf(c->pool, c->ssl->buffer_size);
         if (buf == NULL) {
             return NGX_CHAIN_ERROR;
         }
@@ -1230,14 +1233,14 @@ ngx_ssl_send_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
     }
 
     if (buf->start == NULL) {
-        buf->start = ngx_palloc(c->pool, NGX_SSL_BUFSIZE);
+        buf->start = ngx_palloc(c->pool, c->ssl->buffer_size);
         if (buf->start == NULL) {
             return NGX_CHAIN_ERROR;
         }
 
         buf->pos = buf->start;
         buf->last = buf->start;
-        buf->end = buf->start + NGX_SSL_BUFSIZE;
+        buf->end = buf->start + c->ssl->buffer_size;
     }
 
     send = buf->last - buf->pos;
@@ -2500,31 +2503,21 @@ ngx_int_t
 ngx_ssl_get_session_id(ngx_connection_t *c, ngx_pool_t *pool, ngx_str_t *s)
 {
     int           len;
-    u_char       *p, *buf;
+    u_char       *buf;
     SSL_SESSION  *sess;
 
     sess = SSL_get0_session(c->ssl->connection);
 
-    len = i2d_SSL_SESSION(sess, NULL);
-
-    buf = ngx_alloc(len, c->log);
-    if (buf == NULL) {
-        return NGX_ERROR;
-    }
+    buf = sess->session_id;
+    len = sess->session_id_length;
 
     s->len = 2 * len;
     s->data = ngx_pnalloc(pool, 2 * len);
     if (s->data == NULL) {
-        ngx_free(buf);
         return NGX_ERROR;
     }
 
-    p = buf;
-    i2d_SSL_SESSION(sess, &p);
-
     ngx_hex_dump(s->data, buf, len);
-
-    ngx_free(buf);
 
     return NGX_OK;
 }

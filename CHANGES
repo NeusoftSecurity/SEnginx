@@ -1,4 +1,44 @@
 
+Changes with nginx 1.5.9                                         22 Jan 2014
+
+    *) Change: now nginx expects escaped URIs in "X-Accel-Redirect" headers.
+
+    *) Feature: the "ssl_buffer_size" directive.
+
+    *) Feature: the "limit_rate" directive can now be used to rate limit
+       responses sent in SPDY connections.
+
+    *) Feature: the "spdy_chunk_size" directive.
+
+    *) Feature: the "ssl_session_tickets" directive.
+       Thanks to Dirkjan Bussink.
+
+    *) Bugfix: the $ssl_session_id variable contained full session
+       serialized instead of just a session id.
+       Thanks to Ivan Ristić.
+
+    *) Bugfix: nginx incorrectly handled escaped "?" character in the
+       "include" SSI command.
+
+    *) Bugfix: the ngx_http_dav_module did not unescape destination URI of
+       the COPY and MOVE methods.
+
+    *) Bugfix: resolver did not understand domain names with a trailing dot.
+       Thanks to Yichun Zhang.
+
+    *) Bugfix: alerts "zero size buf in output" might appear in logs while
+       proxying; the bug had appeared in 1.3.9.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       ngx_http_spdy_module was used.
+
+    *) Bugfix: proxied WebSocket connections might hang right after
+       handshake if the select, poll, or /dev/poll methods were used.
+
+    *) Bugfix: the "xclient" directive of the mail proxy module incorrectly
+       handled IPv6 client addresses.
+
+
 Changes with nginx 1.5.8                                         17 Dec 2013
 
     *) Feature: IPv6 support in resolver.
@@ -6218,7 +6258,7 @@ Changes with nginx 0.1.16                                        25 Jan 2005
     *) Bugfix: the compressed response encrypted by SSL may not transferred
        complete.
 
-    *) Bugfix: the TCP-specific TCP_NODELAY, TCP_NOPSUH, and TCP_CORK
+    *) Bugfix: the TCP-specific TCP_NODELAY, TCP_NOPUSH, and TCP_CORK
        options, are not used for the unix domain sockets.
 
     *) Feature: the rewrite directive supports the arguments rewriting.

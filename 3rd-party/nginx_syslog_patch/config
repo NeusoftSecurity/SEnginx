@@ -1,0 +1,5 @@
+
+ngx_feature="nginx_syslog_patch"
+ngx_feature_name="nginx_syslog_patch"
+ngx_feature_run=no
+have=NGX_ENABLE_SYSLOG . auto/have

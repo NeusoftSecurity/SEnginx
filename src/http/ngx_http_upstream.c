@@ -1321,13 +1321,15 @@ ngx_http_upstream_connect_and_resolve_peer(ngx_peer_connection_t *pc,
     ctx->data = r;
     ctx->timeout = clcf->resolver_timeout;
 
+    u->dyn_resolve_ctx = ctx;
+
     if (ngx_resolve_name(ctx) != NGX_OK) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                 "resolver name failed!\n");
+        u->dyn_resolve_ctx = NULL;
         return NGX_DECLINED;
     }
 
-    u->dyn_resolve_ctx = ctx;
 
     return NGX_STOP;
 }

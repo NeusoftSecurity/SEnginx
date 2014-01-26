@@ -308,6 +308,7 @@ struct ngx_http_upstream_s {
     ngx_http_upstream_headers_in_t   headers_in;
 
     ngx_http_upstream_resolved_t    *resolved;
+    ngx_resolver_ctx_t              *dyn_resolve_ctx;
 
     ngx_buf_t                        from_client;
 

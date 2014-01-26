@@ -933,13 +933,26 @@ ngx_http_rm_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
     }
 
     ngx_resolve_addr_done(ctx);
+    r->wl_resolve_ctx = NULL;
     ngx_http_core_run_phases(r);
 
     return;
 
 no_memory:
     ngx_resolve_addr_done(ctx);
+    r->wl_resolve_ctx = NULL;
     ngx_http_finalize_request(r, NGX_ERROR);
+}
+
+static void
+ngx_http_rm_cleanup(void *data)
+{
+    ngx_http_request_t *r = data;
+
+    if (r->wl_resolve_ctx) {
+        ngx_resolve_addr_done(r->wl_resolve_ctx);
+        r->wl_resolve_ctx = NULL;
+    }
 }
 
 static ngx_int_t
@@ -961,6 +974,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     in_addr_t                          src_addr;
     ngx_http_rm_dns_t                 *node;
     uint32_t                           hash;
+    ngx_http_cleanup_t                 *cln;
 #if (NGX_HTTP_X_FORWARDED_FOR)
     ngx_array_t                       *xfwd;
     ngx_table_elt_t                  **h;
@@ -980,6 +994,14 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
             return NGX_DECLINED;
         }
     }
+
+    cln = ngx_http_cleanup_add(r, 0);
+    if (cln == NULL) {
+        return NGX_ERROR;
+    }
+
+    cln->handler = ngx_http_rm_cleanup;
+    cln->data = r;
 
     if (rlcf->ip_whitelist_items) {
 #if (NGX_HTTP_X_FORWARDED_FOR)
@@ -1087,6 +1109,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
                         return NGX_ERROR;
                     }
 
+                    r->wl_resolve_ctx = rctx;
                     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
                             "wait for query\n");
                     /* Stop request and waiting for the DNS respoonse */

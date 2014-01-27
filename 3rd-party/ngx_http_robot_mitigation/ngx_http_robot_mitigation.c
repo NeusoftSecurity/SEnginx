@@ -1103,9 +1103,9 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
                     rctx->data = r;
                     rctx->timeout = rmcf->resolver_timeout;
 
-                    ret = ngx_resolve_addr(rctx);
                     r->wl_resolve_ctx = rctx;
 
+                    ret = ngx_resolve_addr(rctx);
                     if (ret == NGX_ERROR) {
                         r->wl_resolve_ctx = NULL;
                         return NGX_ERROR;

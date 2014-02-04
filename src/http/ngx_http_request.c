@@ -423,20 +423,6 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
 
     if (n == NGX_AGAIN) {
 
-#if (NGX_HAVE_DEFERRED_ACCEPT && defined TCP_DEFER_ACCEPT)
-        if (c->listening->deferred_accept
-#if (NGX_HTTP_SSL)
-            && c->ssl == NULL
-#endif
-            )
-        {
-            ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT,
-                          "client timed out in deferred accept");
-            ngx_http_close_connection(c);
-            return;
-        }
-#endif
-
         if (!rev->timer_set) {
             ngx_add_timer(rev, c->listening->post_accept_timeout);
             ngx_reusable_connection(c, 1);
@@ -636,15 +622,6 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
     if (n == -1) {
         if (err == NGX_EAGAIN) {
 
-#if (NGX_HAVE_DEFERRED_ACCEPT && defined TCP_DEFER_ACCEPT)
-            if (c->listening->deferred_accept) {
-                ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT,
-                              "client timed out in deferred accept");
-                ngx_http_close_connection(c);
-                return;
-            }
-#endif
-
             if (!rev->timer_set) {
                 ngx_add_timer(rev, c->listening->post_accept_timeout);
                 ngx_reusable_connection(c, 1);
@@ -728,13 +705,26 @@ ngx_http_ssl_handshake_handler(ngx_connection_t *c)
 
         c->ssl->no_wait_shutdown = 1;
 
-#if (NGX_HTTP_SPDY && defined TLSEXT_TYPE_next_proto_neg)
+#if (NGX_HTTP_SPDY                                                            \
+     && (defined TLSEXT_TYPE_application_layer_protocol_negotiation           \
+         || defined TLSEXT_TYPE_next_proto_neg))
         {
         unsigned int             len;
         const unsigned char     *data;
         static const ngx_str_t   spdy = ngx_string(NGX_SPDY_NPN_NEGOTIATED);
 
+#ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
+        SSL_get0_alpn_selected(c->ssl->connection, &data, &len);
+
+#ifdef TLSEXT_TYPE_next_proto_neg
+        if (len == 0) {
+            SSL_get0_next_proto_negotiated(c->ssl->connection, &data, &len);
+        }
+#endif
+
+#else /* TLSEXT_TYPE_next_proto_neg */
         SSL_get0_next_proto_negotiated(c->ssl->connection, &data, &len);
+#endif
 
         if (len == spdy.len && ngx_strncmp(data, spdy.data, spdy.len) == 0) {
             ngx_http_spdy_init(c->read);
@@ -1953,6 +1943,10 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
     ngx_http_connection_t     *hc;
     ngx_http_core_loc_conf_t  *clcf;
     ngx_http_core_srv_conf_t  *cscf;
+
+#if (NGX_SUPPRESS_WARN)
+    cscf = NULL;
+#endif
 
     hc = r->http_connection;
 

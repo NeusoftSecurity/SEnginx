@@ -244,7 +244,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     if (!ngx_use_stderr
         || level > NGX_LOG_WARN
 #if (NGX_ENABLE_SYSLOG)
-        || (log->file != NULL && wrote_stderr))
+        || (log && log->file != NULL && wrote_stderr))
 #else
         || wrote_stderr)
 #endif

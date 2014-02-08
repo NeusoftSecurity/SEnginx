@@ -1,4 +1,28 @@
 
+Changes with senginx 1.5.10                                     08 Feb  2014
+
+    *) Feature: upgrade to original nginx 1.5.10, which supports SPDY 3.1 protocol.
+
+    *) Feature: IP behavior module. This module is used to detect users' access behavior to a
+                web site, it's usually used with other security modules to block robots.
+
+    *) Feature: Conditional limit_req module. Based on tengine's limit_req module, and add a
+                new "condition" parameter.
+
+    *) Feature: upstream check module, which supports 2 more load balancing algorithms:
+                the fair algorithm and the fastest algorithm.
+
+    *) Feature: support dynamic resolving host names when proxy passing to an url or an upstream
+                server pool.
+
+    *) Feature: support sending access and error logs to local syslog daemon.
+
+    *) Change: modify directive name in session persistence module:
+               http_cookie is now changed to insert_cookie.
+
+    *) Bugfix: solve the compile failure when macro OPENSSL_NO_TLSEXT is defined.
+
+
 Changes with senginx 1.5.9                                      19 Dec  2013
 
     *) Feature: upgrade to original nginx 1.5.8.

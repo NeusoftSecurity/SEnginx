@@ -29,8 +29,8 @@ my @port_array = (8081, 8082, 8083);
 my $test_num = @port_array;
 my $resolve_count1 = 0;
 my $resolve_count2 = 0;
-my $domain_name1 = "www.senginx-test.com";
-my $domain_name2 = "test.senginx-test.com";
+my $domain_name1 = "www.senginx.org";
+my $domain_name2 = "bbs.senginx.org";
 
 my @addrs = ("3.0.0.1", "3.0.0.2", "3.0.0.3");
 for (my $i = 0; $i < @addrs; $i++) {
@@ -76,7 +76,7 @@ http {
         server $domain_name1:$port_array[0];
     }
 
-    resolver 127.0.0.1:53530 valid=1;
+    resolver 127.0.0.1:53530 valid=1 ipv6=off;
     resolver_timeout 1s;
 
     server {

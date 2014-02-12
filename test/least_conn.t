@@ -25,9 +25,9 @@ select STDOUT; $| = 1;
 plan(skip_all => 'win32') if $^O eq 'MSWin32';
 
 my @domain_name = (
-    "test1.senginx-test.com",
-    "test2.senginx-test.com",
-    "test3.senginx-test.com");
+    "www.senginx.org",
+    "bbs.senginx.org",
+    "mail.senginx.org");
 
 my %resolve_count;
 
@@ -78,11 +78,11 @@ http {
 
     upstream pool3 {
         least_conn;
-        server can-not-resolve.com:$port_array[0];
+        server www.baidu.com:$port_array[0];
         server 127.0.0.1:$unsleep_port;
     }
 
-    resolver 127.0.0.1:53530 valid=1;
+    resolver 127.0.0.1:53530 valid=1 ipv6=off;
     resolver_timeout 1s;
 
     server {

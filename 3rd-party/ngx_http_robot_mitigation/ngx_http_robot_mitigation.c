@@ -1717,7 +1717,7 @@ ngx_http_rm_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (rlcf->whitelist_items == NULL) {
         rlcf->whitelist_items = 
             ngx_array_create(cf->pool, 64, sizeof(ngx_http_rm_whitelist_item_t));
-        
+
         if (rlcf->whitelist_items == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -1739,7 +1739,7 @@ ngx_http_rm_ip_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 {
     ngx_http_rm_loc_conf_t  			*rlcf = conf;
     ngx_str_t               			*value;	
-	in_addr_t							start, end;
+    in_addr_t							start, end;
     ngx_http_rm_ip_whitelist_item_t  	*item;
 
     value = cf->args->elts;
@@ -1747,8 +1747,8 @@ ngx_http_rm_ip_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
     if (ngx_strcmp(value[0].data, "include") == 0) {
         if (cf->args->nelts != 2) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid number of arguments"
-                               " in \"include\" directive");
+                    "invalid number of arguments"
+                    " in \"include\" directive");
             return NGX_CONF_ERROR;
         }
 
@@ -1759,32 +1759,32 @@ ngx_http_rm_ip_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                 "invalid number of arguments"
                 " in a name-pattern pair");
-        
+
         return NGX_CONF_ERROR;
     }
 
     start = ngx_inet_addr(value[0].data, value[0].len);
-	if (start == INADDR_NONE) {
+    if (start == INADDR_NONE) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                 "invalid ip address");
         return NGX_CONF_ERROR;
-	}
+    }
 
-	if (cf->args->nelts == 2) {
-    	end = ngx_inet_addr(value[1].data, value[1].len);
-		if (end == INADDR_NONE) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-					"invalid ip address");
-			return NGX_CONF_ERROR;
-		}
-		if (ntohl(start) >= ntohl(end)) {
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-					"start ip less or eq end ip");
-			return NGX_CONF_ERROR;
-		}
-	} else {
-		end = start;
-	}
+    if (cf->args->nelts == 2) {
+        end = ngx_inet_addr(value[1].data, value[1].len);
+        if (end == INADDR_NONE) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                    "invalid ip address");
+            return NGX_CONF_ERROR;
+        }
+        if (ntohl(start) >= ntohl(end)) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                    "start ip less or eq end ip");
+            return NGX_CONF_ERROR;
+        }
+    } else {
+        end = start;
+    }
 
     item = ngx_array_push(rlcf->ip_whitelist_items);
     if (item == NULL) {

@@ -44,6 +44,8 @@ static void *
 ngx_http_wd_create_loc_conf(ngx_conf_t *cf);
 static char *
 ngx_http_wd_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
+static char *
+ngx_http_wd_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static ngx_command_t ngx_http_wd_commands[] = {
@@ -79,6 +81,13 @@ static ngx_command_t ngx_http_wd_commands[] = {
     { ngx_string("web_defacement_index"),
         NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_wd_index,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+
+    { ngx_string("web_defacement_whitelist"),
+        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
+        ngx_http_wd_whitelist,
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
@@ -592,6 +601,8 @@ ngx_http_wd_create_loc_conf(ngx_conf_t *cf)
     conf->log_enabled = NGX_CONF_UNSET;
     memset(&conf->file_name_hash, 0 , sizeof(conf->file_name_hash));
 
+    ngx_http_wl_init_vars(&conf->whitelist);
+
     return conf;
 }
 
@@ -610,6 +621,8 @@ ngx_http_wd_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
             prev->file_name_hash.buckets != NULL) {
         conf->file_name_hash = prev->file_name_hash;
     }
+
+    ngx_http_wl_merge_vars(&prev->whitelist, &conf->whitelist);
 
     return NGX_CONF_OK;
 }
@@ -695,6 +708,10 @@ ngx_http_wd_handler(ngx_http_request_t *r)
     wdlcf = ngx_http_get_module_loc_conf(r, ngx_http_web_defacement_module);
     
     if (!wdlcf->enabled || wdlcf->file_name_hash.buckets == NULL) {
+        return NGX_DECLINED;
+    }
+
+    if (ngx_http_wl_check_whitelist(r, &wdlcf->whitelist) == NGX_OK) {
         return NGX_DECLINED;
     }
 
@@ -871,4 +888,12 @@ ngx_http_wd_add_variables(ngx_conf_t *cf)
     }
 
     return NGX_OK;
+}
+
+static char *
+ngx_http_wd_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_wd_loc_conf_t *wlcf = conf;
+
+    return ngx_http_wl_parse_vars(cf, cmd, conf, &wlcf->whitelist);
 }

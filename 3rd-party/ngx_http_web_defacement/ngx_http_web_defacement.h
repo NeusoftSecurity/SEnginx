@@ -14,6 +14,8 @@
 #include <ngx_http_neteye_security.h>
 #endif
 
+#include <ngx_http_whitelist.h>
+
 #define NGX_HTTP_WD_MD5_LEN 32
 
 typedef struct {
@@ -22,6 +24,9 @@ typedef struct {
     ngx_str_t                 orig_path;
     ngx_str_t                 index_file;
     ngx_hash_t                file_name_hash;
+
+    /* whitelist */
+    ngx_http_wl_variables_t   whitelist;
 } ngx_http_wd_loc_conf_t;
 
 #if (NGX_HTTP_NETEYE_SECURITY)

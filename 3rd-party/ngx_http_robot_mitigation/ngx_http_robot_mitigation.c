@@ -933,14 +933,14 @@ ngx_http_rm_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
     }
 
     ngx_resolve_addr_done(ctx);
-    r->wl_resolve_ctx = NULL;
+    r->rm_resolve_ctx = NULL;
     ngx_http_core_run_phases(r);
 
     return;
 
 no_memory:
     ngx_resolve_addr_done(ctx);
-    r->wl_resolve_ctx = NULL;
+    r->rm_resolve_ctx = NULL;
     ngx_http_finalize_request(r, NGX_ERROR);
 }
 
@@ -949,9 +949,9 @@ ngx_http_rm_cleanup(void *data)
 {
     ngx_http_request_t *r = data;
 
-    if (r->wl_resolve_ctx) {
-        ngx_resolve_addr_done(r->wl_resolve_ctx);
-        r->wl_resolve_ctx = NULL;
+    if (r->rm_resolve_ctx) {
+        ngx_resolve_addr_done(r->rm_resolve_ctx);
+        r->rm_resolve_ctx = NULL;
     }
 }
 
@@ -1103,11 +1103,11 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
                     rctx->data = r;
                     rctx->timeout = rmcf->resolver_timeout;
 
-                    r->wl_resolve_ctx = rctx;
+                    r->rm_resolve_ctx = rctx;
 
                     ret = ngx_resolve_addr(rctx);
                     if (ret == NGX_ERROR) {
-                        r->wl_resolve_ctx = NULL;
+                        r->rm_resolve_ctx = NULL;
                         return NGX_ERROR;
                     }
 

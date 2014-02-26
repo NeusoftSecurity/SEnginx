@@ -21,7 +21,7 @@
 /*XXX: do not insert gap among the rank values */
 static ngx_http_neteye_security_module_t ngx_http_neteye_security_modules[] = {
     {NGX_HTTP_NETEYE_WHITELIST,
-        "Permanent IP Whitelist", NULL, NULL, NULL, 1, 0, 0, NULL},
+        "HTTP Whitelist", NULL, NULL, NULL, 1, 0, 0, NULL},
     {NGX_HTTP_NETEYE_SESSION,
         "Session Mechanism", NULL, NULL, NULL,      4, 1, 0, NULL},
     {NGX_HTTP_NETEYE_DYNWHITELIST,

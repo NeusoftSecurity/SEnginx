@@ -365,7 +365,6 @@ struct ngx_http_request_s {
     void                            **srv_conf;
     void                            **loc_conf;
 
-    ngx_resolver_ctx_t               *wl_resolve_ctx;
     ngx_http_event_handler_pt         read_event_handler;
     ngx_http_event_handler_pt         write_event_handler;
 
@@ -584,6 +583,8 @@ struct ngx_http_request_s {
 #if (NGX_HTTP_IP_BEHAVIOR)
     void                             *ip_blacklist_node;
 #endif
+    ngx_resolver_ctx_t               *rm_resolve_ctx;
+    ngx_resolver_ctx_t               *wl_resolve_ctx;
 };
 
 

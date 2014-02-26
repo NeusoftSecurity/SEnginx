@@ -22,6 +22,8 @@
 #include <ngx_http_status_page.h>
 #endif
 
+#include <ngx_http_whitelist.h>
+
 #define NGX_HTTP_RM_DEFAULT_URI NGX_HTTP_STATUS_PAGE_PATH"/403.html"
 
 #define NGX_HTTP_RM_GET_SWF_URI "NetEye-ADSG-AC-GET-"
@@ -95,6 +97,9 @@ typedef struct {
 
     ngx_array_t                 *whitelist_items;
     ngx_array_t                 *ip_whitelist_items;
+
+    /* global whitelists */
+    ngx_http_wl_variables_t     global_wl;
 } ngx_http_rm_loc_conf_t;
 
 typedef struct {

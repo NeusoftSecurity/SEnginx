@@ -677,3 +677,120 @@ ngx_http_wl_handler(ngx_http_request_t *r)
 
     return NGX_DECLINED;
 }
+
+ngx_int_t
+ngx_http_wl_check_whitelist(ngx_http_request_t *r,
+    ngx_http_wl_variables_t *wl_vars)
+{
+    ngx_http_variable_value_t    *vv;
+
+    /* check ua whitelist */
+    if (wl_vars->ua_var_index != NGX_CONF_UNSET) {
+        vv = ngx_http_get_indexed_variable(r, wl_vars->ua_var_index);
+        if (vv && vv->valid) {
+            return NGX_OK;
+        }
+    }
+
+    /* check ip whitelist */
+    if (wl_vars->ip_var_index != NGX_CONF_UNSET) {
+        vv = ngx_http_get_indexed_variable(r, wl_vars->ip_var_index);
+
+        if (vv == NULL || vv->not_found) {
+            return NGX_DECLINED;
+        }
+
+        if ((vv->len == wl_vars->ip_var_value.len)
+             && (ngx_memcmp(vv->data, wl_vars->ip_var_value.data, vv->len)
+                 == 0))
+        {
+            return NGX_OK;
+        }
+    }
+
+    return NGX_DECLINED;
+}
+
+char *
+ngx_http_wl_parse_vars(ngx_conf_t *cf, ngx_command_t *cmd,
+        void *conf, ngx_http_wl_variables_t *wl_vars)
+{
+    ngx_str_t              *value, s;
+    ngx_uint_t              i;
+
+    value = cf->args->elts;
+
+    for (i = 1; i < cf->args->nelts; i++) {
+        if (ngx_strncmp(value[i].data, "ip_var_name=", 12) == 0) {
+
+            s.len = value[i].len - 12;
+            s.data = value[i].data + 12;
+
+            wl_vars->ip_var_name = s;
+
+            wl_vars->ip_var_index = ngx_http_get_variable_index(cf,
+                &wl_vars->ip_var_name);
+
+            if (wl_vars->ip_var_index == NGX_ERROR) {
+                return NGX_CONF_ERROR;
+            }
+
+            continue;
+        }
+
+        if (ngx_strncmp(value[i].data, "ip_var_value=", 13) == 0) {
+
+            s.len = value[i].len - 13;
+            s.data = value[i].data + 13;
+
+            wl_vars->ip_var_value = s;
+
+            continue;
+        }
+
+        if (ngx_strncmp(value[i].data, "ua_var_name=", 12) == 0) {
+
+            s.len = value[i].len - 12;
+            s.data = value[i].data + 12;
+
+            wl_vars->ua_var_name = s;
+
+            wl_vars->ua_var_index = ngx_http_get_variable_index(cf,
+                &wl_vars->ua_var_name);
+
+            if (wl_vars->ua_var_index == NGX_ERROR) {
+                return NGX_CONF_ERROR;
+            }
+
+            continue;
+        }
+
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid parameter \"%V\"", &value[i]);
+        return NGX_CONF_ERROR;
+    }
+
+    return NGX_CONF_OK;
+}
+
+void ngx_http_wl_init_vars(ngx_http_wl_variables_t *wl_vars)
+{
+    wl_vars->ip_var_index = NGX_CONF_UNSET;
+    wl_vars->ua_var_index = NGX_CONF_UNSET;
+}
+
+char *
+ngx_http_wl_merge_vars(ngx_http_wl_variables_t *prev,
+        ngx_http_wl_variables_t *conf)
+{
+    ngx_conf_merge_value(conf->ua_var_index, prev->ua_var_index,
+                         NGX_CONF_UNSET);
+
+    ngx_conf_merge_value(conf->ip_var_index, prev->ip_var_index,
+                         NGX_CONF_UNSET);
+
+    ngx_conf_merge_str_value(conf->ip_var_value, prev->ip_var_value,
+                             "");
+
+    return NGX_CONF_OK;
+}

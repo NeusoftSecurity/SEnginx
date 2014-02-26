@@ -21,7 +21,18 @@ extern const ngx_uint_t ngx_http_rm_post_js_tpls_nr;
 static ngx_rbtree_t                 ngx_http_rm_dns_rbtree;
 static ngx_rbtree_node_t            ngx_http_rm_dns_sentinel;
 static ngx_log_t                    ngx_http_rm_timer_log;
-          
+
+static ngx_conf_deprecated_t  ngx_conf_deprecated_rm_whitelist = {
+    ngx_conf_deprecated, "robot_mitigation_whitelist",
+    "robot_mitigation_global_whitelist"
+};
+
+static ngx_conf_deprecated_t  ngx_conf_deprecated_rm_ip_whitelist = {
+    ngx_conf_deprecated, "robot_mitigation_ip_whitelist",
+    "robot_mitigation_global_whitelist"
+};
+
+
 #define NGX_HTTP_RM_GET_SWF \
     "<html>\n<body>\n" \
     "<OBJECT classid=\"clsid:D27CDB6E-AE6D-11cf-96B8-444553540000\"" \
@@ -153,6 +164,9 @@ ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t
 ngx_http_rm_test_content_type(ngx_http_request_t *r, u_char *type);
 
+static char *
+ngx_http_rm_global_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+
 
 static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
 
@@ -242,6 +256,13 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
         0,
         NULL },
 
+    { ngx_string("robot_mitigation_global_whitelist"),
+        NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE123,
+        ngx_http_rm_global_whitelist,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+ 
     ngx_null_command
 };
 
@@ -989,6 +1010,10 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
+    if (ngx_http_wl_check_whitelist(r, &rlcf->global_wl) == NGX_OK) {
+        return NGX_DECLINED;
+    }
+
     if (rlcf->pass_ajax) {
         if (ngx_http_rm_check_ajax_request(r)) {
             return NGX_DECLINED;
@@ -1583,7 +1608,7 @@ ngx_http_rm_whitelist_caseless(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t                  *value;
 
     value = cf->args->elts;
-
+ 
     if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
         rlcf->wl_caseless = 1;
     }
@@ -1707,12 +1732,22 @@ ngx_http_rm_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 }
 
 static char *
+ngx_http_rm_global_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_rm_loc_conf_t *rlcf = conf;
+
+    return ngx_http_wl_parse_vars(cf, cmd, conf, &rlcf->global_wl);
+}
+
+static char *
 ngx_http_rm_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_rm_loc_conf_t *rlcf = conf;
 
     char        *rv;
     ngx_conf_t   save;
+
+    ngx_conf_deprecated(cf, &ngx_conf_deprecated_rm_whitelist, NULL);
 
     if (rlcf->whitelist_items == NULL) {
         rlcf->whitelist_items = 
@@ -1805,9 +1840,12 @@ ngx_http_rm_ip_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     char        *rv;
     ngx_conf_t   save;
 
+    ngx_conf_deprecated(cf, &ngx_conf_deprecated_rm_ip_whitelist, NULL);
+
     if (rlcf->ip_whitelist_items == NULL) {
         rlcf->ip_whitelist_items = 
-            ngx_array_create(cf->pool, 64, sizeof(ngx_http_rm_ip_whitelist_item_t));
+            ngx_array_create(cf->pool, 64,
+                    sizeof(ngx_http_rm_ip_whitelist_item_t));
         
         if (rlcf->ip_whitelist_items == NULL) {
             return NGX_CONF_ERROR;
@@ -2592,6 +2630,8 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
 
     conf->cookie_name_c = cookie_name_c;
     conf->timeout_c = timeout_c;
+
+    ngx_http_wl_init_vars(&conf->global_wl);
 
     return conf;
 }

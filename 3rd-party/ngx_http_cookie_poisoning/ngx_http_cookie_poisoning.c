@@ -59,6 +59,8 @@ static ngx_int_t
 ngx_http_cp_handler(ngx_http_request_t *r);
 static void
 ngx_http_cp_hash_destory(ngx_http_cp_hash_t *hash);
+static char *
+ngx_http_cp_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 static ngx_command_t  ngx_http_cp_commands[] = {
 
@@ -79,6 +81,13 @@ static ngx_command_t  ngx_http_cp_commands[] = {
     { ngx_string("cookie_poisoning_log"),
         NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
         ngx_http_cp_log,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
+
+    { ngx_string("cookie_poisoning_whitelist"),
+        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
+        ngx_http_cp_whitelist,
         NGX_HTTP_LOC_CONF_OFFSET,
         0,
         NULL },
@@ -235,6 +244,8 @@ ngx_http_cp_create_loc_conf(ngx_conf_t *cf)
     if (conf == NULL) {
         return NULL;
     }
+
+    ngx_http_wl_init_vars(&conf->whitelist);
 
     return conf;
 }
@@ -734,6 +745,10 @@ ngx_http_cp_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
     
+    if (ngx_http_wl_check_whitelist(r, &cplcf->whitelist) == NGX_OK) {
+        return NGX_DECLINED;
+    }
+
     memset(&cookie, 0, sizeof(ngx_str_t));
     memset(&cookie_name, 0, sizeof(ngx_str_t));
     memset(&neteye_cookie, 0, sizeof(ngx_str_t));
@@ -866,6 +881,10 @@ ngx_int_t ngx_http_cp_header_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
+    if (ngx_http_wl_check_whitelist(r, &cplcf->whitelist) == NGX_OK) {
+        return NGX_DECLINED;
+    }
+
     u = r->upstream;
     if (u) {
         part = &u->headers_in.headers.part;
@@ -988,4 +1007,12 @@ ngx_http_cp_create_session_ctx(ngx_http_session_t *session)
     cp_ctx->bl_times = 0;
     ngx_http_cp_hash_init(&cp_ctx->monitored_cookies,
             NGX_HTTP_CP_DEFAULT_BUCKETS_NUM);
+}
+
+static char *
+ngx_http_cp_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_cp_loc_conf_t *cplcf = conf;
+
+    return ngx_http_wl_parse_vars(cf, cmd, conf, &cplcf->whitelist);
 }

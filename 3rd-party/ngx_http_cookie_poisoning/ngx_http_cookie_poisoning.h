@@ -7,6 +7,7 @@
 #include <ngx_hash.h>
 
 #include <ngx_http_status_page.h>
+#include <ngx_http_whitelist.h>
 
 #define NGX_HTTP_CP_MD5_LEN 32
 
@@ -16,6 +17,9 @@ typedef struct {
     ngx_int_t                 action;
     ngx_str_t                 error_page;
     ngx_int_t                 bl_times;
+
+    /* whitelist */
+    ngx_http_wl_variables_t   whitelist;
 } ngx_http_cp_loc_conf_t;
 
 struct ngx_http_cp_monitored_cookie_s {

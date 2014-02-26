@@ -36,8 +36,42 @@ events {
 http {
     %%TEST_GLOBALS_HTTP%%
 
-    robot_mitigation_resolver 127.0.0.1:53530;
-    robot_mitigation_resolver_timeout 1s;
+    resolver 127.0.0.1:53530;
+    resolver_timeout 1s;
+
+    whitelist_ua $u_a {
+        "autotest" ".*\.test\.com";
+    }
+
+    whitelist_ua $u_b {
+        caseless;
+        "autotest" ".*\.test\.com";
+    }
+
+    whitelist_ua $u_c {
+        "autotest";
+    }
+
+    whitelist_ua $u_d {
+        "autotest" "senginx.test.com";
+    }
+
+    whitelist_ua $u_e {
+        "autotest" "www.test.com";
+    }
+
+    geo $i_a {
+        ranges;
+        default 0;
+        127.0.0.1-127.0.0.1 1;
+        3.0.0.1-3.2.1.254 1;
+    }
+
+    geo $i_b {
+        ranges;
+        default 0;
+        30.0.0.1-30.2.1.254 1;
+    }
 
     server {
         listen       127.0.0.1:8080;
@@ -49,9 +83,7 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_whitelist {
-                "autotest" ".*.test.com";
-            }
+            robot_mitigation_global_whitelist ua_var_name=u_a;
 
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -63,10 +95,7 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_whitelist_caseless on;
-            robot_mitigation_whitelist {
-                "autotest" ".*.test.com";
-            }
+            robot_mitigation_global_whitelist ua_var_name=u_b;
 
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -78,15 +107,8 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_ip_whitelist {
-                "127.0.0.1";
-                "3.0.0.1" "3.2.1.254";
-            }
+            robot_mitigation_global_whitelist ua_var_name=u_c ip_var_name=i_a ip_var_value=1;
 
-            robot_mitigation_whitelist {
-                "autotest";
-            }
-            
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
         }
@@ -97,10 +119,7 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_ip_whitelist {
-                "1.0.0.1" "2.2.1.254";
-                "127.0.0.1";
-            }
+            robot_mitigation_global_whitelist ip_var_name=i_a ip_var_value=1;
 
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -111,16 +130,8 @@ http {
             robot_mitigation_cookie_name rm-autotest;
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
-
-            robot_mitigation_whitelist {
-                "autotest";
-            }
-            
-            robot_mitigation_ip_whitelist {
-                "1.0.0.1" "3.2.1.254";
-                "127.0.0.1";
-                "3.0.0.1" "5.2.1.254";
-            }
+ 
+            robot_mitigation_global_whitelist ua_var_name=u_c ip_var_name=i_a ip_var_value=1;
 
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -132,16 +143,8 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_whitelist {
-                "autotest";
-            }
+            robot_mitigation_global_whitelist ua_var_name=u_c ip_var_name=i_b ip_var_value=1;
             
-            robot_mitigation_ip_whitelist {
-                "1.0.0.1" "3.2.1.254";
-                "12.0.0.1";
-                "3.0.0.1" "7.2.1.254";
-            }
-
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
         }
@@ -152,9 +155,7 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_whitelist {
-                "autotest" "senginx.test.com";
-            }
+            robot_mitigation_global_whitelist ua_var_name=u_d;
             
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -166,9 +167,7 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_whitelist {
-                "autotest" "www.test.com";
-            }
+            robot_mitigation_global_whitelist ua_var_name=u_e;
             
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -180,9 +179,7 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_whitelist {
-                "autotest" ".*.test.com";
-            }
+            robot_mitigation_global_whitelist ua_var_name=u_a;
             
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -194,14 +191,7 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_whitelist {
-                "autotest" ".*.test.com";
-            }
-            
-            robot_mitigation_ip_whitelist {
-                "127.0.0.1" "127.0.0.189";
-            }
-
+            robot_mitigation_global_whitelist ua_var_name=u_a ip_var_name=i_a ip_var_value=1;
             
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -213,14 +203,7 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_whitelist {
-                "autotest" ".*.test.com";
-            }
-            
-            robot_mitigation_ip_whitelist {
-                "12.0.0.1";
-            }
-
+            robot_mitigation_global_whitelist ua_var_name=u_a ip_var_name=i_b ip_var_value=1;
             
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;
@@ -232,14 +215,7 @@ http {
             robot_mitigation_mode js;
             robot_mitigation_timeout 600;
 
-            robot_mitigation_whitelist {
-                "autotest" "www.test.com";
-            }
-            
-            robot_mitigation_ip_whitelist {
-                "1.0.1.1" "127.0.0.12";
-            }
-
+            robot_mitigation_global_whitelist ua_var_name=u_e ip_var_name=i_a ip_var_value=1;
             
             proxy_pass http://127.0.0.1:8081;
             proxy_read_timeout 1s;

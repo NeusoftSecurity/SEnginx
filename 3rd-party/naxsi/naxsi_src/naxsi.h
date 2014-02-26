@@ -44,6 +44,7 @@
 #include <pcre.h>
 #include <ctype.h>
 
+#include <ngx_http_whitelist.h>
 
 extern ngx_module_t ngx_http_naxsi_module;
 
@@ -328,7 +329,9 @@ typedef struct
   ngx_uint_t	flag_learning_h;
   ngx_uint_t	flag_post_action_h;
   ngx_uint_t	flag_extensive_log_h;
-  
+
+  /* whitelist */
+  ngx_http_wl_variables_t whitelist; 
 } ngx_http_dummy_loc_conf_t;
 
 

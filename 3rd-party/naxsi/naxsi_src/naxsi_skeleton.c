@@ -79,6 +79,8 @@ static char		*ngx_http_dummy_merge_loc_conf(ngx_conf_t *cf,
 void			*ngx_http_dummy_create_main_conf(ngx_conf_t *cf);
 void			ngx_http_dummy_payload_handler(ngx_http_request_t *r);
 
+static char *
+ngx_http_naxsi_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 /* command handled by the module */
 static ngx_command_t  ngx_http_dummy_commands[] =  {
@@ -207,6 +209,12 @@ static ngx_command_t  ngx_http_dummy_commands[] =  {
     0,
     NULL },
 
+    { ngx_string("naxsi_whitelist"),
+        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
+        ngx_http_naxsi_whitelist,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL },
 
   ngx_null_command
 };
@@ -269,6 +277,9 @@ ngx_http_dummy_create_loc_conf(ngx_conf_t *cf)
   conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_dummy_loc_conf_t));
   if (conf == NULL)
     return NULL;
+
+  ngx_http_wl_init_vars(&conf->whitelist);
+
   return (conf);
 }
 
@@ -956,6 +967,12 @@ static ngx_int_t ngx_http_dummy_access_handler(ngx_http_request_t *r)
 #endif
     return (NGX_DECLINED);
   }
+
+  if (ngx_http_wl_check_whitelist(r, &cf->whitelist) == NGX_OK) {
+        return NGX_DECLINED;
+  }
+
+
 #ifdef mechanics_debug
   ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
   		"XX-processing (%V)|CTX:%p|ARGS:%V|METHOD=%s|INTERNAL:%d", &(r->uri), ctx, &(r->args),
@@ -1125,3 +1142,10 @@ static ngx_int_t ngx_http_dummy_access_handler(ngx_http_request_t *r)
   return (NGX_DECLINED);
 }
 
+static char *
+ngx_http_naxsi_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_dummy_loc_conf_t *lcf = conf;
+
+    return ngx_http_wl_parse_vars(cf, cmd, conf, &lcf->whitelist);
+}

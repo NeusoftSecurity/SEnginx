@@ -2,12 +2,13 @@
 
 usage()
 {
-    echo "usage: bash $0 -s [test_case_dir] -n [nginx_bin_path]"
+    echo "usage: bash $0 -s [test_case_dir] -n [nginx_bin_path] -r [naxsi_core_rule_path]"
 }
 
 unset TEST_SRC
 unset NGINX_DIR
-while getopts ":s:n:" Option
+unset NAXSI_RULE
+while getopts ":s:n:r:" Option
 do
     case $Option in
         s)
@@ -15,6 +16,9 @@ do
         ;;
         n)
         NGINX_DIR=$OPTARG
+        ;;
+        r)
+        NAXSI_RULE=$OPTARG
         ;;
     esac
 done
@@ -139,6 +143,6 @@ for test_cases in $NETEYE_TEST_CASES
 do
     case_name=`echo $test_cases | sed 's/\.t//'`
     echo "############  $case_name start  ###########"
-    TEST_NGINX_BINARY=$NGINX_DIR prove ./$test_cases 
+    TEST_NGINX_BINARY=$NGINX_DIR TEST_NAXSI_RULE=$NAXSI_RULE prove ./$test_cases 
     echo "############  $case_name end  ###########"
 done

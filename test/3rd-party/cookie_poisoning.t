@@ -22,7 +22,7 @@ use Test::Nginx;
 #select STDERR; $| = 1;
 #select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy session cookie_poisoning/)->plan(12);
+my $t = Test::Nginx->new()->has(qw/http proxy session cookie_poisoning/)->plan(14);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
 
@@ -36,11 +36,15 @@ events {
 http {
     %%TEST_GLOBALS_HTTP%%
 
+    whitelist_ua $u_a {
+        "something";
+    }
+
     session_max_size 1000;
     server {
         listen       127.0.0.1:8080;
         server_name  localhost;
-            
+
         session on;
 
         location / {
@@ -51,6 +55,15 @@ http {
             cookie_poisoning on;
             cookie_poisoning_action block;
             cookie_poisoning_log on;
+ 
+            proxy_pass http://127.0.0.1:8081;
+        }
+
+        location /cp-whitelist {
+            cookie_poisoning on;
+            cookie_poisoning_action block;
+            cookie_poisoning_log on;
+            cookie_poisoning_whitelist ua_var_name=u_a;
  
             proxy_pass http://127.0.0.1:8081;
         }
@@ -116,6 +129,16 @@ $cookie =~ s/abcdefg/1234567/;
 $cookie = $cookie_session."\r\n".$cookie;
 
 unlike(http_get_with_header('/cp-block', $cookie), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http cp-block 2nd get with poisoned cookie');
+
+$r = http_get_with_header('/cp-whitelist', $cookie_session);
+like($r, qr/cp-test-cookie/, 'http cp-whitelist 1st get');
+
+$cookie = &cp_get_cookie($r);
+$cookie =~ s/abcdefg/1234567/;
+$cookie = $cookie_session."\r\n".$cookie;
+$cookie = $cookie."\r\nUser-Agent: something";
+
+like(http_get_with_header('/cp-whitelist', $cookie), qr/TEST-OK-IF-YOU-SEE-THIS/, 'http cp-whitelist 2nd get with poisoned cookie');
 
 $r = http_get_with_header('/cp-pass', $cookie_session);
 like($r, qr/cp-test-cookie/, 'http cp-pass 1st get');
@@ -227,6 +250,15 @@ EOF
 			print $client "TEST-OK-IF-YOU-SEE-THIS"
 				unless $headers =~ /^HEAD/i;
 		} elsif ($uri eq '/cp-block') {
+			print $client <<'EOF';
+HTTP/1.1 200 OK
+Connection: close
+Set-Cookie: cp-test-cookie=abcdefg; PATH=/; HttpOnly
+
+EOF
+			print $client "TEST-OK-IF-YOU-SEE-THIS";
+
+                } elsif ($uri eq '/cp-whitelist') {
 			print $client <<'EOF';
 HTTP/1.1 200 OK
 Connection: close

@@ -21,7 +21,7 @@ use Test::Nginx;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy ngx_http_web_defacement/)->plan(7);
+my $t = Test::Nginx->new()->has(qw/http proxy ngx_http_web_defacement/)->plan(9);
 my $test_dir = $t->testdir();
 
 $t->write_file_expand('nginx.conf', <<"EOF");
@@ -36,6 +36,10 @@ events {
 http {
     %%TEST_GLOBALS_HTTP%%
 
+    whitelist_ua \$u_a {
+        "something";
+    }
+
     server {
         listen       127.0.0.1:8080;
         server_name  localhost;
@@ -43,6 +47,7 @@ http {
         web_defacement on;
         web_defacement_original $test_dir/;
         web_defacement_hash_data $test_dir/hash_data;
+        web_defacement_whitelist ua_var_name=u_a;
 
         location /recover/ {
             web_defacement off;
@@ -85,6 +90,14 @@ http {
                 return 403;
             }
         }
+
+        location /original/f {
+            web_defacement_log on;
+
+            if (\$web_defacement) {
+                return 403;
+            }
+        }
     }
 }
 
@@ -96,11 +109,13 @@ $t->write_file('original/index.html', 'This-is-test-index');
 $t->write_file('original/a', 'This-is-test-a');
 $t->write_file('original/b', 'This-is-test-b');
 $t->write_file('original/e', 'This-is-test-e');
+$t->write_file('original/f', 'This-is-test-f');
 $t->write_file('original/notify', 'This-is-block-notify-page');
 $t->write_file('recover/index.html', 'This-is-test-index');
 $t->write_file('recover/a', 'This-is-test-a');
 $t->write_file('recover/b', 'This-is-test-b');
 $t->write_file('recover/e', 'This-is-test-e');
+$t->write_file('recover/f', 'This-is-test-f');
 $t->write_file('recover/notify', 'This-is-block-notify-page');
 system("../../web-defacement.pl -d $test_dir/original -o $test_dir/hash_data");
 
@@ -136,5 +151,10 @@ foreach (<LOG>) {
 }
 
 like($log_line, qr/abcdefg/, 'check log output');
+
+like(http_get('/original/f'), qr/This-is-test-f/, 'f, no defacement');
+$t->write_file('original/f', 'Test-f-is-hacked');
+like(http_get_with_header('/original/f', 'User-Agent: something'), qr/Test-f-is-hacked/,
+    'f, defacement due to whitelist');
 
 ################################################################################

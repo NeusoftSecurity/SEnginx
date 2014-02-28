@@ -437,6 +437,7 @@ ngx_http_wl_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
         if (ctx->name.len > 0) {
             node->name.data = calloc(1, ctx->name.len);
             if (node->name.data == NULL) {
+                free(node);
                 goto no_memory;
             }
 

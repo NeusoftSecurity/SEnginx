@@ -46,7 +46,8 @@ fi
     --add-module=${TRD_DIR}/ngx_http_web_defacement \
     --add-module=${TRD_DIR}/ngx_http_ip_blacklist \
     --add-module=${TRD_DIR}/ngx_http_ip_behavior \
-    --add-module=${TRD_DIR}/ngx_http_whitelist
+    --add-module=${TRD_DIR}/ngx_http_whitelist \
+    --add-module=${TRD_DIR}/ngx_cache_purge-1.3
 
 get_line_num()
 {

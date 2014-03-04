@@ -1,4 +1,39 @@
 
+Changes with nginx 1.5.11                                        04 Mar 2014
+
+    *) Security: memory corruption might occur in a worker process on 32-bit
+       platforms while handling a specially crafted request by
+       ngx_http_spdy_module, potentially resulting in arbitrary code
+       execution (CVE-2014-0088); the bug had appeared in 1.5.10.
+       Thanks to Lucas Molas, researcher at Programa STIC, Fundación Dr.
+       Manuel Sadosky, Buenos Aires, Argentina.
+
+    *) Feature: the $ssl_session_reused variable.
+
+    *) Bugfix: the "client_max_body_size" directive might not work when
+       reading a request body using chunked transfer encoding; the bug had
+       appeared in 1.3.9.
+       Thanks to Lucas Molas.
+
+    *) Bugfix: a segmentation fault might occur in a worker process when
+       proxying WebSocket connections.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       ngx_http_spdy_module was used on 32-bit platforms; the bug had
+       appeared in 1.5.10.
+
+    *) Bugfix: the $upstream_status variable might contain wrong data if the
+       "proxy_cache_use_stale" or "proxy_cache_revalidate" directives were
+       used.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if
+       errors with code 400 were redirected to a named location using the
+       "error_page" directive.
+
+    *) Bugfix: nginx/Windows could not be built with Visual Studio 2013.
+
+
 Changes with nginx 1.5.10                                        04 Feb 2014
 
     *) Feature: the ngx_http_spdy_module now uses SPDY 3.1 protocol.

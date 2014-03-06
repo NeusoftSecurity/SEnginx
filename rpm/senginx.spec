@@ -107,11 +107,12 @@ fi
 %dir %{senginx_confdir}/conf.d
 
 %changelog
-* Tue Aug 13 2013 Changes with senginx 1.5.3
-  Feature: upgrade to original nginx 1.5.3.
-  Feature: add IP whitelist in robot mitigation module.
-  Feature: cookie poisoning protection module.
-  Feature: update ModSecurity to 2.7.5.
-  Change: session API changed to a modern style.
-  Bugfix: fix NULL pointer issue in NS Layer while sending log.
-  Bugfix: in automated test cases.
+* Tue Mar 05 2014 Changes with senginx 1.5.11
+  Feature: upgrade to original nginx 1.5.11, which fixes CVE-2014-0088 security problem.
+  Feature: global user-agent whitelist, with DNS reverse lookup mechanism.
+  Feature: naxsi module supports global user-agent whitelist and ip whitelist.
+  Feature: cookie poisoning module supports global user-agent whitelist and ip whitelist.
+  Feature: web defacement module supports global user-agent whitelist and ip whitelist.
+  Feature: robot mitigation module supports global user-agent whitelist and ip whitelist.
+  Feature: ngx_cache_purge module is integrated.
+  Bugfix: solve memory leaks in robot mitigation module.

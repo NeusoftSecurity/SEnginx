@@ -1,4 +1,23 @@
 
+Changes with senginx 1.5.11                                     05 Mar  2014
+
+    *) Feature: upgrade to original nginx 1.5.11, which fixes CVE-2014-0088 security problem.
+
+    *) Feature: global user-agent whitelist, with DNS reverse lookup mechanism.
+
+    *) Feature: naxsi module supports global user-agent whitelist and ip whitelist.
+
+    *) Feature: cookie poisoning module supports global user-agent whitelist and ip whitelist.
+
+    *) Feature: web defacement module supports global user-agent whitelist and ip whitelist.
+
+    *) Feature: robot mitigation module supports global user-agent whitelist and ip whitelist.
+
+    *) Feature: ngx_cache_purge module is integrated.
+
+    *) Bugfix: solve memory leaks in robot mitigation module.
+
+
 Changes with senginx 1.5.10                                     08 Feb  2014
 
     *) Feature: upgrade to original nginx 1.5.10, which supports SPDY 3.1 protocol.

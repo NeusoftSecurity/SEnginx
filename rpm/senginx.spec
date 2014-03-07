@@ -7,7 +7,7 @@
 %global  senginx_webroot       %{senginx_datadir}/html
 
 Name:              senginx
-Version:           1.5.3
+Version:           1.5.11
 Release:           0%{?dist}
 
 Summary:           SEnginx puts multiple third-party load-balancing/security modules into nginx.

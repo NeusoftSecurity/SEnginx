@@ -2780,47 +2780,50 @@ ngx_resolver_timeout_handler(ngx_event_t *ev)
     ctx = ev->data;
     r = ctx->resolver;
 
-    switch (ctx->addr.sockaddr->sa_family) {
+    if (ctx->addr.sockaddr) {
+        switch (ctx->addr.sockaddr->sa_family) {
 
 #if (NGX_HAVE_INET6)
-    case AF_INET6:
-        tree = &r->addr6_rbtree;
-        sin6 = (struct sockaddr_in6 *) ctx->addr.sockaddr;
-        hash = ngx_crc32_short(sin6->sin6_addr.s6_addr, 16);
-        rn = ngx_resolver_lookup_addr6(r, &sin6->sin6_addr, hash);
+            case AF_INET6:
+                tree = &r->addr6_rbtree;
+                sin6 = (struct sockaddr_in6 *) ctx->addr.sockaddr;
+                hash = ngx_crc32_short(sin6->sin6_addr.s6_addr, 16);
+                rn = ngx_resolver_lookup_addr6(r, &sin6->sin6_addr, hash);
 
-        break;
+                break;
 #endif
 
-    default: /* AF_INET */
-        tree = &r->addr_rbtree;
-        sin = (struct sockaddr_in *) ctx->addr.sockaddr;
-        addr = ntohl(sin->sin_addr.s_addr);
-        rn = ngx_resolver_lookup_addr(r, addr);
-    }
-
-
-    if (rn) {
-        next = rn->waiting;
-
-        while (next) {
-            ctx = next;
-            ctx->state = NGX_RESOLVE_TIMEDOUT;
-            next = ctx->next;
-
-            ctx->handler(ctx);
+            default: /* AF_INET */
+                tree = &r->addr_rbtree;
+                sin = (struct sockaddr_in *) ctx->addr.sockaddr;
+                addr = ntohl(sin->sin_addr.s_addr);
+                rn = ngx_resolver_lookup_addr(r, addr);
         }
 
-        ngx_queue_remove(&rn->queue);
+        if (rn) {
+            next = rn->waiting;
 
-        ngx_rbtree_delete(tree, &rn->node);
+            while (next) {
+                ctx = next;
+                ctx->state = NGX_RESOLVE_TIMEDOUT;
+                next = ctx->next;
 
-        ngx_resolver_free_node(r, rn);
-    } else {
-        ctx->state = NGX_RESOLVE_TIMEDOUT;
+                ctx->handler(ctx);
+            }
 
-        ctx->handler(ctx);
+            ngx_queue_remove(&rn->queue);
+
+            ngx_rbtree_delete(tree, &rn->node);
+
+            ngx_resolver_free_node(r, rn);
+
+            return;
+        }
     }
+
+    ctx->state = NGX_RESOLVE_TIMEDOUT;
+
+    ctx->handler(ctx);
 }
 
 

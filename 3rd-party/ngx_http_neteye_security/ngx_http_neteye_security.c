@@ -267,14 +267,14 @@ ngx_http_neteye_security_request_handler(ngx_http_request_t *r)
             continue;
         }
 
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                "neteye security handler: %d - %s(ret: %d)",
-                module->id, module->name, ret);
-
         /* terminate current process in nginx */
         if (ret == NGX_DONE) {
             return NGX_DONE;
         }
+
+        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "neteye security handler: %d - %s(ret: %d)",
+                module->id, module->name, ret);
 
         /* skip other handlers */
         if (ret == NGX_OK) {

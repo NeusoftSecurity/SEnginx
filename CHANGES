@@ -1,4 +1,20 @@
 
+Changes with nginx 1.5.12                                        18 Mar 2014
+
+    *) Security: a heap memory buffer overflow might occur in a worker
+       process while handling a specially crafted request by
+       ngx_http_spdy_module, potentially resulting in arbitrary code
+       execution (CVE-2014-0133).
+       Thanks to Lucas Molas, researcher at Programa STIC, Fundación Dr.
+       Manuel Sadosky, Buenos Aires, Argentina.
+
+    *) Feature: the "proxy_protocol" parameters of the "listen" and
+       "real_ip_header" directives, the $proxy_protocol_addr variable.
+
+    *) Bugfix: in the "fastcgi_next_upstream" directive.
+       Thanks to Lucas Molas.
+
+
 Changes with nginx 1.5.11                                        04 Mar 2014
 
     *) Security: memory corruption might occur in a worker process on 32-bit

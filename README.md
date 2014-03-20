@@ -26,7 +26,7 @@ Features
     * User-Agent Whitelist with DNS Reverse Resolve
     * Cookie Poisoning
     * Web Defacement
-        * Protection of Web Vulnerabilities (Integrated Naxsi and ModSecurity):
+    * Protection of Web Vulnerabilities (Integrated Naxsi and ModSecurity):
         * SQL Injection
         * Cross Site Scripting
         * Directory Traversal

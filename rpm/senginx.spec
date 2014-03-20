@@ -7,7 +7,7 @@
 %global  senginx_webroot       %{senginx_datadir}/html
 
 Name:              senginx
-Version:           1.5.11
+Version:           1.5.12
 Release:           0%{?dist}
 
 Summary:           SEnginx puts multiple third-party load-balancing/security modules into nginx.
@@ -107,12 +107,9 @@ fi
 %dir %{senginx_confdir}/conf.d
 
 %changelog
-* Tue Mar 05 2014 Changes with senginx 1.5.11
-  Feature: upgrade to original nginx 1.5.11, which fixes CVE-2014-0088 security problem.
-  Feature: global user-agent whitelist, with DNS reverse lookup mechanism.
-  Feature: naxsi module supports global user-agent whitelist and ip whitelist.
-  Feature: cookie poisoning module supports global user-agent whitelist and ip whitelist.
-  Feature: web defacement module supports global user-agent whitelist and ip whitelist.
-  Feature: robot mitigation module supports global user-agent whitelist and ip whitelist.
-  Feature: ngx_cache_purge module is integrated.
-  Bugfix: solve memory leaks in robot mitigation module.
+* Tue Mar 20 2014 Changes with senginx 1.5.12
+  Feature: upgrade to original nginx 1.5.12, which fixes CVE-2014-0133 security problem.
+  Feature: SEnginx supports OpenStack LBaaS now.
+  Bugfix: In ngx_http_whitelist module.
+  Bugfix: Fix upstream checking issues when using tcp method.
+  Bugfix: Segmentation fault may occur in ngx_http_neteye_security module.

@@ -1,4 +1,19 @@
 
+Changes with senginx 1.5.12                                     20 Mar  2014
+
+    *) Feature: upgrade to original nginx 1.5.12, which fixes CVE-2014-0133 security problem.
+
+    *) Feature: SEnginx supports OpenStack LBaaS now. Find more at:
+                https://github.com/NeusoftSecurity/SEnginx-LBaaS-Driver
+
+    *) Bugfix: In ngx_http_whitelist module, if resovler is not response/not reachable, nginx
+               workers will hang up while reloading or shutting down due to socket leaks.
+
+    *) Bugfix: Fix upstream checking issues when using tcp method.
+
+    *) Bugfix: Segmentation fault may occur in ngx_http_neteye_security module.
+
+
 Changes with senginx 1.5.11                                     05 Mar  2014
 
     *) Feature: upgrade to original nginx 1.5.11, which fixes CVE-2014-0088 security problem.

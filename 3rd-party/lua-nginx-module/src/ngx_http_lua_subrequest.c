@@ -1522,6 +1522,10 @@ ngx_http_lua_subrequest(ngx_http_request_t *r,
     sr->read_event_handler = ngx_http_request_empty_handler;
     sr->write_event_handler = ngx_http_handler;
 
+#if (NGX_HTTP_NETEYE_SECURITY)
+    sr->ns_ctx = r->ns_ctx;
+#endif
+
     sr->variables = r->variables;
 
     sr->log_handler = r->log_handler;

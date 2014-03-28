@@ -216,6 +216,7 @@ typedef struct {
 #if (NGX_HTTP_SSL)
     ngx_ssl_t                       *ssl;
     ngx_flag_t                       ssl_session_reuse;
+    ngx_uint_t                       ssl_verify;
 #endif
 
     ngx_str_t                        module;

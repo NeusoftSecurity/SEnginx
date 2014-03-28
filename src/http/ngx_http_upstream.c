@@ -1535,15 +1535,58 @@ ngx_http_upstream_ssl_init_connection(ngx_http_request_t *r,
 static void
 ngx_http_upstream_ssl_handshake(ngx_connection_t *c)
 {
-    ngx_http_request_t   *r;
-    ngx_http_upstream_t  *u;
+    ngx_http_request_t         *r;
+    ngx_http_upstream_t        *u;
+    long                        rc;
+    X509                       *cert;
+    ngx_http_upstream_conf_t   *uc;
 
     r = c->data;
     u = r->upstream;
 
     if (c->ssl->handshaked) {
 
-        if (u->conf->ssl_session_reuse) {
+        uc = u->conf;
+
+        /* check server's certificate */
+        if (uc->ssl_verify) {
+            rc = SSL_get_verify_result(c->ssl->connection);
+
+            if (rc != X509_V_OK
+                    && (uc->ssl_verify != 3
+                        || !ngx_ssl_verify_error_optional(rc)))
+            {
+                ngx_log_error(NGX_LOG_INFO, c->log, 0,
+                        "server SSL certificate verify error: (%l:%s)",
+                        rc, X509_verify_cert_error_string(rc));
+
+                ngx_ssl_remove_cached_session(uc->ssl->ctx,
+                        (SSL_get0_session(c->ssl->connection)));
+
+                ngx_http_upstream_finalize_request(r, u, NGX_HTTPS_CERT_ERROR);
+                return;
+            }
+
+            if (uc->ssl_verify == 1) {
+                cert = SSL_get_peer_certificate(c->ssl->connection);
+
+                if (cert == NULL) {
+                    ngx_log_error(NGX_LOG_INFO, c->log, 0,
+                            "server sent no required SSL certificate");
+
+                    ngx_ssl_remove_cached_session(uc->ssl->ctx,
+                            (SSL_get0_session(c->ssl->connection)));
+
+                    ngx_http_upstream_finalize_request(r, u,
+                            NGX_HTTPS_NO_CERT);
+                    return;
+                }
+
+                X509_free(cert);
+            }
+        }
+
+        if (uc->ssl_session_reuse) {
             u->peer.save_session(&u->peer, u->peer.data);
         }
 

@@ -5,17 +5,23 @@ set -e
 TRD_DIR=$PWD/3rd-party
 MOD_SECURITY_DIR=${TRD_DIR}/ModSecurity
 MOD_SECURITY_CONFIG='--with-modsecurity'
+NGX_LUA_CONFIG='--with-lua'
 unset HAVE_MOD_SECURITY
+unset HAVE_NGX_LUA
 for arg in $*
 do
     if [ $arg = $MOD_SECURITY_CONFIG ]; then
         HAVE_MOD_SECURITY='y'
-        break;
+    fi
+
+    if [ $arg = $NGX_LUA_CONFIG ]; then
+        HAVE_NGX_LUA='y'
     fi
 done
 
 if [ $# -ne 0 ]; then
     NGX_ARGS=`echo $* | sed "s/$MOD_SECURITY_CONFIG//"`
+    NGX_ARGS=`echo $* | sed "s/$NGX_LUA_CONFIG//"`
 else
     unset NGX_ARGS
 fi
@@ -26,6 +32,10 @@ if [ ! -z $HAVE_MOD_SECURITY ]; then
     make
     cd -
     NGX_ARGS="$NGX_ARGS --add-module=${MOD_SECURITY_DIR}/nginx/modsecurity"
+fi
+
+if [ ! -z $HAVE_NGX_LUA ]; then
+    NGX_ARGS="$NGX_ARGS --add-module=${TRD_DIR}/ngx_devel_kit --add-module=${TRD_DIR}/lua-nginx-module"
 fi
 
 ./configure $NGX_ARGS \

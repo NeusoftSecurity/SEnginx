@@ -2769,10 +2769,9 @@ ngx_resolver_timeout_handler(ngx_event_t *ev)
     ngx_resolver_node_t  *rn;
     ngx_resolver_t       *r;
     in_addr_t             addr;
-    ngx_rbtree_t         *tree;
     struct sockaddr_in   *sin;
-#if (NGX_HAVE_INET6)
     uint32_t              hash;
+#if (NGX_HAVE_INET6)
     struct sockaddr_in6  *sin6;
 #endif
 
@@ -2785,7 +2784,6 @@ ngx_resolver_timeout_handler(ngx_event_t *ev)
 
 #if (NGX_HAVE_INET6)
             case AF_INET6:
-                tree = &r->addr6_rbtree;
                 sin6 = (struct sockaddr_in6 *) ctx->addr.sockaddr;
                 hash = ngx_crc32_short(sin6->sin6_addr.s6_addr, 16);
                 rn = ngx_resolver_lookup_addr6(r, &sin6->sin6_addr, hash);
@@ -2794,7 +2792,6 @@ ngx_resolver_timeout_handler(ngx_event_t *ev)
 #endif
 
             default: /* AF_INET */
-                tree = &r->addr_rbtree;
                 sin = (struct sockaddr_in *) ctx->addr.sockaddr;
                 addr = ntohl(sin->sin_addr.s_addr);
                 rn = ngx_resolver_lookup_addr(r, addr);
@@ -2811,11 +2808,25 @@ ngx_resolver_timeout_handler(ngx_event_t *ev)
                 ctx->handler(ctx);
             }
 
-            ngx_queue_remove(&rn->queue);
+            return;
+        }
+    }
 
-            ngx_rbtree_delete(tree, &rn->node);
+    if (ctx->name.data) {
+        hash = ngx_crc32_short(ctx->name.data, ctx->name.len);
 
-            ngx_resolver_free_node(r, rn);
+        rn = ngx_resolver_lookup_name(r, &ctx->name, hash);
+
+        if (rn) {
+            next = rn->waiting;
+
+            while (next) {
+                ctx = next;
+                ctx->state = NGX_RESOLVE_TIMEDOUT;
+                next = ctx->next;
+
+                ctx->handler(ctx);
+            }
 
             return;
         }

@@ -7,7 +7,7 @@
 %global  senginx_webroot       %{senginx_datadir}/html
 
 Name:              senginx
-Version:           1.5.12
+Version:           1.5.13
 Release:           0%{?dist}
 
 Summary:           SEnginx puts multiple third-party load-balancing/security modules into nginx.
@@ -107,9 +107,7 @@ fi
 %dir %{senginx_confdir}/conf.d
 
 %changelog
-* Tue Mar 20 2014 Changes with senginx 1.5.12
-  Feature: upgrade to original nginx 1.5.12, which fixes CVE-2014-0133 security problem.
-  Feature: SEnginx supports OpenStack LBaaS now.
-  Bugfix: In ngx_http_whitelist module.
-  Bugfix: Fix upstream checking issues when using tcp method.
-  Bugfix: Segmentation fault may occur in ngx_http_neteye_security module.
+* Tue Apr 03 2014 Changes with senginx 1.5.13
+  Feature: support proxying to a client-verification enabled https server, and can also support server verification in proxy module.
+  Feature: Lua language is integrated into SEnginx.
+  Change: change the behavior when a DNS server is not responsible when doing upstream dynamic DNS query.

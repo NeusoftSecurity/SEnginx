@@ -1,4 +1,14 @@
 
+Changes with senginx 1.5.13                                     03 Apr  2014
+
+    *) Feature: support proxying to a client-verification enabled https server,
+                and can also support server verification in proxy module.
+
+    *) Feature: Lua language is integrated into SEnginx.
+
+    *) Change: change the behavior when a DNS server is not responsible when doing upstream
+               dynamic DNS query.
+
 Changes with senginx 1.5.12                                     20 Mar  2014
 
     *) Feature: upgrade to original nginx 1.5.12, which fixes CVE-2014-0133 security problem.

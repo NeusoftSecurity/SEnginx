@@ -219,6 +219,8 @@ typedef struct {
     ngx_uint_t                       ssl_verify;
 #endif
 
+    ngx_uint_t                       dyn_resolve;
+
     ngx_str_t                        module;
 } ngx_http_upstream_conf_t;
 

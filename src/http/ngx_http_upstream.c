@@ -1273,8 +1273,8 @@ ngx_http_upstream_connect_and_resolve_peer(ngx_peer_connection_t *pc,
 
     if (pc->resolved == 1) {
         return _ngx_event_connect_peer(pc);
-    }  
-    
+    }
+
     if (pc->resolved == 2) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "resolve failed!");
@@ -1363,7 +1363,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     u->state->response_sec = tp->sec;
     u->state->response_msec = tp->msec;
 
-    if (ngx_http_proxy_resolver_enable(r)) {
+    if (u->conf->dyn_resolve) {
         rc = ngx_http_upstream_connect_and_resolve_peer(&u->peer, r);
         if (rc == NGX_STOP) {
             return;

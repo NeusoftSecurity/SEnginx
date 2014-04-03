@@ -78,7 +78,6 @@ typedef struct {
     ngx_flag_t                     redirect;
 
     ngx_uint_t                     http_version;
-    ngx_uint_t                     dyn_resolve;
 
     ngx_uint_t                     headers_hash_max_size;
     ngx_uint_t                     headers_hash_bucket_size;
@@ -252,7 +251,7 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
 
     { ngx_string("proxy_redirect"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12
-	  |NGX_HTTP_LIF_CONF,
+          |NGX_HTTP_LIF_CONF,
       ngx_http_proxy_redirect,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
@@ -2531,7 +2530,6 @@ ngx_http_proxy_create_loc_conf(ngx_conf_t *cf)
 
     conf->headers_hash_max_size = NGX_CONF_UNSET_UINT;
     conf->headers_hash_bucket_size = NGX_CONF_UNSET_UINT;
-    conf->dyn_resolve = 0;
 
     ngx_str_set(&conf->upstream.module, "proxy");
 
@@ -2807,7 +2805,8 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                              "");
 
     ngx_conf_merge_uint_value(conf->ssl_verify, prev->ssl_verify, 0);
-    ngx_conf_merge_uint_value(conf->ssl_verify_depth, prev->ssl_verify_depth, 1);
+    ngx_conf_merge_uint_value(conf->ssl_verify_depth,
+            prev->ssl_verify_depth, 1);
 
     ngx_conf_merge_str_value(conf->ssl_server_certificate,
                              prev->ssl_server_certificate,
@@ -3258,10 +3257,10 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     url = &value[1];
 
     if (cf->args->nelts == 3) {
-        if (!strncmp((char *)(value[2].data), "dynamic_resolve",value[2].len)){
-            plcf->dyn_resolve = 1;
+        if (!strncmp((char *)(value[2].data), "dynamic_resolve",value[2].len)) {
+            plcf->upstream.dyn_resolve = 1;
         } else {
-            return "unknow paramter in proxy_pass";
+            return "unknown parameter in proxy_pass";
         }
     }
 
@@ -3288,7 +3287,7 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 #endif
 
         if (plcf->proxy_lengths) {  /* variable */
-            plcf->dyn_resolve = 0;
+            plcf->upstream.dyn_resolve = 0;
         }
 
         return NGX_CONF_OK;
@@ -3329,7 +3328,7 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    if (plcf->dyn_resolve == 1) {
+    if (plcf->upstream.dyn_resolve == 1) {
         uscf = plcf->upstream.upstream;
         if (uscf->servers) {
             server = uscf->servers->elts;
@@ -3339,8 +3338,9 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                     break;
                 }
             }
+
             if (i == uscf->servers->nelts) {
-                plcf->dyn_resolve = 0;
+                plcf->upstream.dyn_resolve = 0;
             }
         }
     }
@@ -3791,15 +3791,6 @@ ngx_http_proxy_store(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-ngx_int_t
-ngx_http_proxy_resolver_enable(ngx_http_request_t *r)
-{
-    ngx_http_proxy_loc_conf_t  *plcf;
-
-    plcf = ngx_http_get_module_loc_conf(r, ngx_http_proxy_module);
-
-    return (plcf->dyn_resolve == 1);
-}
 
 #if (NGX_HTTP_CACHE)
 
@@ -4015,18 +4006,17 @@ ngx_http_proxy_test_content_type(ngx_http_request_t *r)
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_proxy_module);
 
-    if (ngx_http_test_content_type(r, &conf->types) 
-            == NULL) {
+    if (ngx_http_test_content_type(r, &conf->types) == NULL) {
 
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "proxy cache extend: not match content types, skip caching");
-        
+
         return NGX_ERROR;
     }
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "proxy cache extend: match content types, caching");
-    
+
     return NGX_OK;
 }
 #endif

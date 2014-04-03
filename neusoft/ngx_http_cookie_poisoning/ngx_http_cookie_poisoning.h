@@ -10,6 +10,7 @@
 #include <ngx_http_whitelist.h>
 
 #define NGX_HTTP_CP_MD5_LEN 32
+#define NGX_HTTP_CP_DEFAULT_BUCKETS_NUM 8
 
 typedef struct {
     ngx_int_t                 enabled;
@@ -31,8 +32,6 @@ struct ngx_http_cp_monitored_cookie_s {
 };
 
 typedef struct ngx_http_cp_monitored_cookie_s ngx_http_cp_monitored_cookie_t;
-
-#define NGX_HTTP_CP_DEFAULT_BUCKETS_NUM 8
 
 typedef struct {
     ngx_http_cp_monitored_cookie_t    **buckets;

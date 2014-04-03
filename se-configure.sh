@@ -3,6 +3,7 @@
 set -e
 
 TRD_DIR=$PWD/3rd-party
+NEU_DIR=$PWD/neusoft
 MOD_SECURITY_DIR=${TRD_DIR}/ModSecurity
 MOD_SECURITY_CONFIG='--with-modsecurity'
 NGX_LUA_CONFIG='--with-lua'
@@ -39,24 +40,24 @@ if [ ! -z $HAVE_NGX_LUA ]; then
 fi
 
 ./configure $NGX_ARGS \
-    --add-module=${TRD_DIR}/ngx_http_neteye_security \
+    --add-module=${NEU_DIR}/ngx_http_neteye_security \
     --add-module=${TRD_DIR}/naxsi/naxsi_src \
     --add-module=${TRD_DIR}/nginx-upstream-fair \
     --add-module=${TRD_DIR}/headers-more-nginx-module \
     --add-module=${TRD_DIR}/ngx_http_substitutions_filter_module \
     --add-module=${TRD_DIR}/nginx_tcp_proxy_module \
-    --add-module=${TRD_DIR}/ngx_http_upstream_fastest \
-    --add-module=${TRD_DIR}/ngx_http_upstream_persistence \
-    --add-module=${TRD_DIR}/ngx_http_session \
-    --add-module=${TRD_DIR}/ngx_http_robot_mitigation \
-    --add-module=${TRD_DIR}/ngx_http_status_page \
-    --add-module=${TRD_DIR}/ngx_http_if_extend \
-    --add-module=${TRD_DIR}/ngx_http_cache_extend \
-    --add-module=${TRD_DIR}/ngx_http_cookie_poisoning \
-    --add-module=${TRD_DIR}/ngx_http_web_defacement \
-    --add-module=${TRD_DIR}/ngx_http_ip_blacklist \
-    --add-module=${TRD_DIR}/ngx_http_ip_behavior \
-    --add-module=${TRD_DIR}/ngx_http_whitelist \
+    --add-module=${NEU_DIR}/ngx_http_upstream_fastest \
+    --add-module=${NEU_DIR}/ngx_http_upstream_persistence \
+    --add-module=${NEU_DIR}/ngx_http_session \
+    --add-module=${NEU_DIR}/ngx_http_robot_mitigation \
+    --add-module=${NEU_DIR}/ngx_http_status_page \
+    --add-module=${NEU_DIR}/ngx_http_if_extend \
+    --add-module=${NEU_DIR}/ngx_http_cache_extend \
+    --add-module=${NEU_DIR}/ngx_http_cookie_poisoning \
+    --add-module=${NEU_DIR}/ngx_http_web_defacement \
+    --add-module=${NEU_DIR}/ngx_http_ip_blacklist \
+    --add-module=${NEU_DIR}/ngx_http_ip_behavior \
+    --add-module=${NEU_DIR}/ngx_http_whitelist \
     --add-module=${TRD_DIR}/ngx_cache_purge-1.3
 
 get_line_num()

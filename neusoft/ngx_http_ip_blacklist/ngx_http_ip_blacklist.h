@@ -41,7 +41,7 @@ typedef struct {
 
     u_char                          blacklist:1;
     u_char                          timed:1;
- 
+
     ngx_int_t                       timeout;
     ngx_int_t                       ref;
 

@@ -11,6 +11,7 @@
 
 #include <ngx_http_ip_blacklist.h>
 
+
 static ngx_int_t
 ngx_http_ip_blacklist_manager(void);
 static ngx_int_t
@@ -22,19 +23,10 @@ ngx_http_ip_blacklist_create_main_conf(ngx_conf_t *cf);
 static char *
 ngx_http_ip_blacklist_init_main_conf(ngx_conf_t *cf, void *conf);
 static char *
-ngx_http_ip_blacklist_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_ip_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_ip_blacklist_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
 ngx_http_ip_blacklist_syscmd(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_ip_blacklist_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_ip_blacklist_size(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_http_ip_blacklist_t *
-ngx_http_ip_blacklist_lookup(ngx_rbtree_t *tree, ngx_str_t *addr, uint32_t hash);
+ngx_http_ip_blacklist_lookup(ngx_rbtree_t *tree,
+        ngx_str_t *addr, uint32_t hash);
 static ngx_int_t
 ngx_http_ip_blacklist_request_cleanup_init(ngx_http_request_t *r);
 static void
@@ -51,8 +43,6 @@ static char *
 ngx_http_ip_blacklist_merge_loc_conf(ngx_conf_t *cf,
         void *parent, void *child);
 static char *
-ngx_http_ip_blacklist_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
 ngx_http_ip_blacklist_flush(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
@@ -60,63 +50,70 @@ static ngx_shm_zone_t *ngx_http_ip_blacklist_shm_zone;
 static ngx_module_t *
 ngx_http_ip_blacklist_modules[NGX_HTTP_IP_BLACKLIST_MOD_NUM];
 
+static ngx_conf_enum_t  ngx_http_ip_blacklist_mode[] = {
+    { ngx_string("local"), NGX_HTTP_BLACKLIST_MODE_LOCAL },
+    { ngx_string("sys"), NGX_HTTP_BLACKLIST_MODE_SYS },
+    { ngx_null_string, 0 }
+};
+
+
 static ngx_command_t ngx_http_ip_blacklist_commands[] = {
 
     { ngx_string("ip_blacklist"),
-        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
-        ngx_http_ip_blacklist,
-        NGX_HTTP_MAIN_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      offsetof(ngx_http_ip_blacklist_main_conf_t, enabled),
+      NULL },
 
     { ngx_string("ip_blacklist_size"),
-        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
-        ngx_http_ip_blacklist_size,
-        NGX_HTTP_MAIN_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      offsetof(ngx_http_ip_blacklist_main_conf_t, size),
+      NULL },
 
     { ngx_string("ip_blacklist_timeout"),
-        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
-        ngx_http_ip_blacklist_timeout,
-        NGX_HTTP_MAIN_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      offsetof(ngx_http_ip_blacklist_main_conf_t, timeout),
+      NULL },
 
     { ngx_string("ip_blacklist_show"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
-        ngx_http_ip_blacklist_show,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
+      ngx_http_ip_blacklist_show,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
 
     { ngx_string("ip_blacklist_log"),
-        NGX_HTTP_LOC_CONF|NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_TAKE1,
-        ngx_http_ip_blacklist_log,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_LOC_CONF|NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_ip_blacklist_loc_conf_t, log_enabled),
+      NULL },
 
     { ngx_string("ip_blacklist_flush"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
-        ngx_http_ip_blacklist_flush,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
+      ngx_http_ip_blacklist_flush,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
 
     { ngx_string("ip_blacklist_syscmd"),
-        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
-        ngx_http_ip_blacklist_syscmd,
-        NGX_HTTP_MAIN_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_http_ip_blacklist_syscmd,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      0,
+      NULL },
 
     { ngx_string("ip_blacklist_mode"),
-        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
-        ngx_http_ip_blacklist_mode,
-        NGX_HTTP_MAIN_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_enum_slot,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      offsetof(ngx_http_ip_blacklist_main_conf_t, mode),
+      &ngx_http_ip_blacklist_mode },
 
     ngx_null_command,
 };
@@ -151,14 +148,16 @@ ngx_module_t ngx_http_ip_blacklist_module = {
     NGX_MODULE_V1_PADDING
 };
 
+
 static ngx_int_t
 ngx_http_ip_blacklist_pre_init(ngx_conf_t *cf)
 {
     memset(ngx_http_ip_blacklist_modules, 0,
             sizeof(ngx_module_t *) * NGX_HTTP_IP_BLACKLIST_MOD_NUM);
-    
+
     return NGX_OK;
 }
+
 
 static ngx_int_t
 ngx_http_ip_blacklist_init(ngx_conf_t *cf)
@@ -177,6 +176,7 @@ ngx_http_ip_blacklist_init(ngx_conf_t *cf)
     return NGX_OK;
 }
 
+
 static ngx_int_t
 ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
 {
@@ -188,12 +188,12 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
     ngx_table_elt_t                          **h;
     ngx_str_t                                  src_addr_text;
     ngx_int_t                                  i;
-    
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "ip blacklist handler begin");
-    
+
     imcf = ngx_http_get_module_main_conf(r, ngx_http_ip_blacklist_module);
-    
+
     if (!imcf->enabled) {
         return NGX_DECLINED;
     }
@@ -250,6 +250,7 @@ ngx_http_ip_blacklist_handler(ngx_http_request_t *r)
     return NGX_ERROR;
 }
 
+
 static void *
 ngx_http_ip_blacklist_create_main_conf(ngx_conf_t *cf)
 {
@@ -260,11 +261,14 @@ ngx_http_ip_blacklist_create_main_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    imcf->timeout = 60;
-    imcf->size = 1024;
+    imcf->enabled = NGX_CONF_UNSET;
+    imcf->timeout = NGX_CONF_UNSET;
+    imcf->size = NGX_CONF_UNSET;
+    imcf->mode = NGX_CONF_UNSET;
 
     return imcf;
 }
+
 
 static char *
 ngx_http_ip_blacklist_init_main_conf(ngx_conf_t *cf, void *conf)
@@ -273,11 +277,25 @@ ngx_http_ip_blacklist_init_main_conf(ngx_conf_t *cf, void *conf)
     ngx_str_t                             *shm_name;
     ngx_int_t                              shm_size;
 
-    if (imcf->enabled == 0) {
+    if (imcf->enabled == 0 || imcf->enabled == NGX_CONF_UNSET) {
         cf->cycle->ip_blacklist_callback = ngx_http_ip_blacklist_manager;
         cf->cycle->ip_blacklist_enabled = 0;
 
+        imcf->enabled = 0;
+
         return NGX_CONF_OK;
+    }
+
+    if (imcf->timeout == NGX_CONF_UNSET) {
+        imcf->timeout = 60;
+    }
+
+    if (imcf->size == NGX_CONF_UNSET) {
+        imcf->size = 1024;
+    }
+
+    if (imcf->mode == NGX_CONF_UNSET) {
+        imcf->mode = NGX_HTTP_BLACKLIST_MODE_LOCAL;
     }
 
     /* set up shared memory for ip blacklist */
@@ -305,6 +323,7 @@ ngx_http_ip_blacklist_init_main_conf(ngx_conf_t *cf, void *conf)
 
     return NGX_CONF_OK;
 }
+
 
 static ngx_int_t
 ngx_http_ip_blacklist_manager(void)
@@ -364,6 +383,7 @@ out:
     return NGX_OK;
 }
 
+
 static ngx_http_ip_blacklist_t *
 ngx_http_ip_blacklist_lookup(ngx_rbtree_t *tree, ngx_str_t *addr, uint32_t hash)
 {
@@ -403,6 +423,7 @@ ngx_http_ip_blacklist_lookup(ngx_rbtree_t *tree, ngx_str_t *addr, uint32_t hash)
 
     return NULL;
 }
+
 
 static void
 ngx_http_ip_blacklist_rbtree_insert_value(ngx_rbtree_node_t *temp,
@@ -444,6 +465,7 @@ ngx_http_ip_blacklist_rbtree_insert_value(ngx_rbtree_node_t *temp,
     ngx_rbt_red(node);
 }
 
+
 static ngx_int_t
 ngx_http_ip_blacklist_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
@@ -481,73 +503,6 @@ ngx_http_ip_blacklist_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
     return NGX_OK;
 }
 
-static char *
-ngx_http_ip_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_ip_blacklist_main_conf_t *imcf = conf;
-    ngx_str_t                         *value;
-
-    value = cf->args->elts;
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-        imcf->enabled = 1;
-    }
-
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_ip_blacklist_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_ip_blacklist_main_conf_t     *imcf = conf;
-    ngx_str_t                             *value;
-
-    value = cf->args->elts;
-    imcf->timeout = ngx_atoi(value[1].data, value[1].len);
-
-    if (imcf->timeout == NGX_ERROR) {
-        return "Invalid timeout value";
-    }
-
-    if (imcf->timeout < 30) {
-        return "Invalid timeout value";
-    }
-
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_ip_blacklist_size(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_ip_blacklist_main_conf_t     *imcf = conf;
-    ngx_str_t                             *value;
-
-    value = cf->args->elts;
-    imcf->size = ngx_atoi(value[1].data, value[1].len);
-
-    if (imcf->size == NGX_ERROR) {
-        return "Invalid size value";
-    }
-
-    if (imcf->size <= 0) {
-        return "ip blacklist size must be larger than 0";
-    }
-
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_ip_blacklist_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_ip_blacklist_loc_conf_t      *ilcf = conf;
-    ngx_str_t                   *value;
-
-    value = cf->args->elts;
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-        ilcf->log_enabled = 1;
-    }
- 
-    return NGX_CONF_OK;
-}
 
 static char *
 ngx_http_ip_blacklist_syscmd(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
@@ -568,23 +523,6 @@ ngx_http_ip_blacklist_syscmd(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-static char *
-ngx_http_ip_blacklist_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_ip_blacklist_main_conf_t     *imcf = conf;
-    ngx_str_t                             *value;
-
-    value = cf->args->elts;
-    if (!strncmp((char *)(value[1].data), "local", value[1].len)) {
-        imcf->mode = NGX_HTTP_BLACKLIST_MODE_LOCAL;
-    } else if (!strncmp((char *)(value[1].data), "sys", value[1].len)) {
-        imcf->mode = NGX_HTTP_BLACKLIST_MODE_SYS;
-    } else {
-        return "invalid mode";
-    }
-
-    return NGX_CONF_OK;
-}
 
 static ngx_int_t
 ngx_http_ip_blacklist_request_cleanup_init(ngx_http_request_t *r)
@@ -601,6 +539,7 @@ ngx_http_ip_blacklist_request_cleanup_init(ngx_http_request_t *r)
 
     return NGX_OK;
 }
+
 
 static void
 ngx_http_ip_blacklist_cleanup(void *data)
@@ -632,6 +571,7 @@ ngx_http_ip_blacklist_cleanup(void *data)
     return;
 }
 
+
 static void *
 ngx_http_ip_blacklist_create_loc_conf(ngx_conf_t *cf)
 {
@@ -647,6 +587,7 @@ ngx_http_ip_blacklist_create_loc_conf(ngx_conf_t *cf)
     return conf;
 }
 
+
 static char *
 ngx_http_ip_blacklist_merge_loc_conf(ngx_conf_t *cf,
         void *parent, void *child)
@@ -659,6 +600,7 @@ ngx_http_ip_blacklist_merge_loc_conf(ngx_conf_t *cf,
     return NGX_CONF_OK;
 }
 
+
 static ngx_int_t
 ngx_http_ip_blacklist_show_handler(ngx_http_request_t *r)
 {
@@ -667,9 +609,9 @@ ngx_http_ip_blacklist_show_handler(ngx_http_request_t *r)
     ngx_chain_t                        out;
     ngx_str_t                         *test;
     ngx_http_ip_blacklist_main_conf_t *imcf;
-    const char                        *banner = 
+    const char                        *banner =
         "IP blacklist is not enabled<br>";
-    const char                        *empty = 
+    const char                        *empty =
         "IP blacklist is empty<br>";
     ngx_http_ip_blacklist_tree_t      *blacklist;
     ngx_http_ip_blacklist_t           *bn;
@@ -679,7 +621,7 @@ ngx_http_ip_blacklist_show_handler(ngx_http_request_t *r)
 
 
     imcf = ngx_http_get_module_main_conf(r, ngx_http_ip_blacklist_module);
-    
+
     test = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
     if (!test) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -690,11 +632,11 @@ ngx_http_ip_blacklist_show_handler(ngx_http_request_t *r)
     if (!test->data) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-    
+
     if (!imcf->enabled) {
         memcpy(test->data, banner, strlen(banner));
         test->len = strlen(banner);
-        
+
         goto not_enabled;
     } else {
         memcpy(test->data, "Total:                 <br>IP Address(es): <br>",
@@ -727,7 +669,7 @@ ngx_http_ip_blacklist_show_handler(ngx_http_request_t *r)
                     bn->len < NGX_HTTP_IP_BLACKLIST_ADDR_LEN ? bn->len :
                     NGX_HTTP_IP_BLACKLIST_ADDR_LEN - 1);
 
-            j = sprintf((char *)(test->data + test->len), 
+            j = sprintf((char *)(test->data + test->len),
                     "addr: %s, timeout: %d, "
                     "timed out: %d, blacklist: %d, ref: %d <br>",
                     tmp, (int)(bn->timeout - ngx_time()),
@@ -746,7 +688,7 @@ empty:
 not_enabled:
     b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
     if (b == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                 "Failed to allocate response buffer.");
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -770,9 +712,10 @@ not_enabled:
     if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
         return rc;
     }
-    
+
     return ngx_http_output_filter(r, &out);
 }
+
 
 static char *
 ngx_http_ip_blacklist_show(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
@@ -784,6 +727,7 @@ ngx_http_ip_blacklist_show(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     return NGX_CONF_OK;
 }
+
 
 static ngx_int_t
 ngx_http_ip_blacklist_flush_handler(ngx_http_request_t *r)
@@ -832,6 +776,7 @@ ngx_http_ip_blacklist_flush_handler(ngx_http_request_t *r)
     return NGX_HTTP_CLOSE;
 }
 
+
 static char *
 ngx_http_ip_blacklist_flush(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -843,10 +788,11 @@ ngx_http_ip_blacklist_flush(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
+
 static void
 ngx_http_ip_blacklist_write_attack_log(ngx_http_request_t *r,
         ngx_str_t *addr, ngx_int_t sys)
-{  
+{
     char                        *do_action = "running ";
     ngx_connection_t            *connection;
     ngx_log_t                   *log;
@@ -855,7 +801,7 @@ ngx_http_ip_blacklist_write_attack_log(ngx_http_request_t *r,
     connection = r->connection;
 
     log = connection->log;
-    log->action = ngx_pcalloc(r->pool, ngx_strlen(do_action) + 
+    log->action = ngx_pcalloc(r->pool, ngx_strlen(do_action) +
             ngx_strlen(module_name) + 1);
     if (log->action == NULL) {
         return;
@@ -869,7 +815,8 @@ ngx_http_ip_blacklist_write_attack_log(ngx_http_request_t *r,
             "ip_blacklist", addr, sys ? "sys" : "local");
 }
 
-/* 
+
+/*
  * ngx_http_ip_blacklist_update
  *
  * This function updates the blacklisting count according to @addr.
@@ -897,10 +844,10 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
     ngx_http_ip_blacklist_tree_t              *blacklist;
     uint32_t                                   hash;
     ngx_int_t                                  i, sys = 0, ret = 0;
-    
+
     imcf = ngx_http_get_module_main_conf(r, ngx_http_ip_blacklist_module);
     ilcf = ngx_http_get_module_loc_conf(r, ngx_http_ip_blacklist_module);
-    
+
     if (!imcf->enabled) {
         return 0;
     }
@@ -1007,6 +954,7 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
                     ngx_snprintf(imcf->buf,
                             imcf->buf_len, (char *)imcf->syscmd.data, addr);
 
+                    /* TODO: fix this */
                     ret = system((char *)imcf->buf);
                     return (ret == 0) ? 1 : -1;
                 }
@@ -1023,13 +971,14 @@ ngx_http_ip_blacklist_update(ngx_http_request_t *r,
     return 0;
 }
 
-/* 
+
+/*
  * ngx_http_ip_blacklist_register_mod
  *
  *
  * @module: ngx_module_t of the calling module
  *
- * Return values: 
+ * Return values:
  *     NGX_OK: registered
  *     NGX_ERROR: error occured
  */

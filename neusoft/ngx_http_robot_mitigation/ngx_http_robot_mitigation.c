@@ -79,24 +79,16 @@ static const char ngx_http_rm_get_swf[] = "\x0a\xf3\x05\x00\x00\x60\x00\x3e\x80\
 
 char ngx_http_rm_post_swf[]="\x0a\x4c\x06\x00\x00\x30\x0a\x00\xa0\x00\x01\x01\x00\x44\x11\x18\x00\x00\x00\x7f\x13\xcb\x01\x00\x00\x3c\x72\x64\x66\x3a\x52\x44\x46\x20\x78\x6d\x6c\x6e\x73\x3a\x72\x64\x66\x3d\x27\x68\x74\x74\x70\x3a\x2f\x2f\x77\x77\x77\x2e\x77\x33\x2e\x6f\x72\x67\x2f\x31\x39\x39\x39\x2f\x30\x32\x2f\x32\x32\x2d\x72\x64\x66\x2d\x73\x79\x6e\x74\x61\x78\x2d\x6e\x73\x23\x27\x3e\x3c\x72\x64\x66\x3a\x44\x65\x73\x63\x72\x69\x70\x74\x69\x6f\x6e\x20\x72\x64\x66\x3a\x61\x62\x6f\x75\x74\x3d\x27\x27\x20\x78\x6d\x6c\x6e\x73\x3a\x64\x63\x3d\x27\x68\x74\x74\x70\x3a\x2f\x2f\x70\x75\x72\x6c\x2e\x6f\x72\x67\x2f\x64\x63\x2f\x65\x6c\x65\x6d\x65\x6e\x74\x73\x2f\x31\x2e\x31\x27\x3e\x3c\x64\x63\x3a\x66\x6f\x72\x6d\x61\x74\x3e\x61\x70\x70\x6c\x69\x63\x61\x74\x69\x6f\x6e\x2f\x78\x2d\x73\x68\x6f\x63\x6b\x77\x61\x76\x65\x2d\x66\x6c\x61\x73\x68\x3c\x2f\x64\x63\x3a\x66\x6f\x72\x6d\x61\x74\x3e\x3c\x64\x63\x3a\x74\x69\x74\x6c\x65\x3e\x41\x64\x6f\x62\x65\x20\x46\x6c\x65\x78\x20\x34\x20\x41\x70\x70\x6c\x69\x63\x61\x74\x69\x6f\x6e\x3c\x2f\x64\x63\x3a\x74\x69\x74\x6c\x65\x3e\x3c\x64\x63\x3a\x64\x65\x73\x63\x72\x69\x70\x74\x69\x6f\x6e\x3e\x68\x74\x74\x70\x3a\x2f\x2f\x77\x77\x77\x2e\x61\x64\x6f\x62\x65\x2e\x63\x6f\x6d\x2f\x70\x72\x6f\x64\x75\x63\x74\x73\x2f\x66\x6c\x65\x78\x3c\x2f\x64\x63\x3a\x64\x65\x73\x63\x72\x69\x70\x74\x69\x6f\x6e\x3e\x3c\x64\x63\x3a\x70\x75\x62\x6c\x69\x73\x68\x65\x72\x3e\x75\x6e\x6b\x6e\x6f\x77\x6e\x3c\x2f\x64\x63\x3a\x70\x75\x62\x6c\x69\x73\x68\x65\x72\x3e\x3c\x64\x63\x3a\x63\x72\x65\x61\x74\x6f\x72\x3e\x75\x6e\x6b\x6e\x6f\x77\x6e\x3c\x2f\x64\x63\x3a\x63\x72\x65\x61\x74\x6f\x72\x3e\x3c\x64\x63\x3a\x6c\x61\x6e\x67\x75\x61\x67\x65\x3e\x45\x4e\x3c\x2f\x64\x63\x3a\x6c\x61\x6e\x67\x75\x61\x67\x65\x3e\x3c\x64\x63\x3a\x64\x61\x74\x65\x3e\x4a\x75\x6e\x20\x32\x39\x2c\x20\x32\x30\x31\x31\x3c\x2f\x64\x63\x3a\x64\x61\x74\x65\x3e\x3c\x2f\x72\x64\x66\x3a\x44\x65\x73\x63\x72\x69\x70\x74\x69\x6f\x6e\x3e\x3c\x2f\x72\x64\x66\x3a\x52\x44\x46\x3e\x00\x44\x10\xe8\x03\x3c\x00\x43\x02\xff\xff\xff\x5a\x0a\x03\x00\x00\x00\x06\x00\x00\x00\x04\x00\x4f\x37\x00\x00\x00\x00\x00\x00\x94\x69\xd6\xda\x30\x01\x00\x00\xc5\x0a\x50\x4f\x53\x54\x00\xbf\x14\x22\x04\x00\x00\x01\x00\x00\x00\x66\x72\x61\x6d\x65\x31\x00\x10\x00\x2e\x00\x00\x00\x00\x1e\x00\x04\x76\x6f\x69\x64\x0c\x66\x6c\x61\x73\x68\x2e\x65\x76\x65\x6e\x74\x73\x05\x45\x76\x65\x6e\x74\x04\x50\x4f\x53\x54\x0d\x66\x6c\x61\x73\x68\x2e\x64\x69\x73\x70\x6c\x61\x79\x06\x53\x70\x72\x69\x74\x65\x0b\x43\x4f\x4f\x4b\x49\x45\x5f\x4e\x41\x4d\x45\x06\x53\x74\x72\x69\x6e\x67\x28\x52\x6f\x62\x6f\x6f\x5f\x6e\x61\x6d\x65\x5f\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x50\x4c\x41\x43\x45\x48\x4f\x4c\x44\x45\x52\x0c\x43\x4f\x4f\x4b\x49\x45\x5f\x56\x41\x4c\x55\x45\x28\x52\x6f\x62\x6f\x6f\x5f\x76\x61\x6c\x75\x65\x5f\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x50\x4c\x41\x43\x45\x48\x4f\x4c\x44\x45\x52\x0f\x43\x4f\x4f\x4b\x49\x45\x5f\x56\x41\x4c\x49\x44\x49\x54\x59\x28\x52\x6f\x62\x6f\x6f\x5f\x76\x61\x6c\x69\x64\x69\x74\x79\x5f\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x50\x4c\x41\x43\x45\x48\x4f\x4c\x44\x45\x52\x04\x69\x6e\x69\x74\x05\x73\x74\x61\x67\x65\x10\x61\x64\x64\x45\x76\x65\x6e\x74\x4c\x69\x73\x74\x65\x6e\x65\x72\x0e\x41\x44\x44\x45\x44\x5f\x54\x4f\x5f\x53\x54\x41\x47\x45\x13\x72\x65\x6d\x6f\x76\x65\x45\x76\x65\x6e\x74\x4c\x69\x73\x74\x65\x6e\x65\x72\x03\x58\x4d\x4c\xdf\x02\x3c\x73\x63\x72\x69\x70\x74\x3e\x0d\x0a\x09\x09\x09\x09\x09\x3c\x21\x5b\x43\x44\x41\x54\x41\x5b\x0d\x0a\x09\x09\x09\x09\x09\x09\x66\x75\x6e\x63\x74\x69\x6f\x6e\x20\x28\x63\x6f\x6f\x6b\x69\x65\x5f\x6e\x61\x6d\x65\x2c\x20\x63\x6f\x6f\x6b\x69\x65\x5f\x76\x61\x6c\x75\x65\x2c\x20\x63\x6f\x6f\x6b\x69\x65\x5f\x76\x61\x6c\x69\x64\x69\x74\x79\x29\x20\x7b\x20\x0d\x0a\x09\x09\x09\x09\x09\x09\x09\x09\x64\x6f\x63\x75\x6d\x65\x6e\x74\x2e\x63\x6f\x6f\x6b\x69\x65\x3d\x63\x6f\x6f\x6b\x69\x65\x5f\x6e\x61\x6d\x65\x20\x2b\x20\x27\x3d\x27\x20\x2b\x20\x63\x6f\x6f\x6b\x69\x65\x5f\x76\x61\x6c\x75\x65\x20\x2b\x20\x27\x3b\x20\x6d\x61\x78\x2d\x61\x67\x65\x3d\x27\x20\x2b\x20\x63\x6f\x6f\x6b\x69\x65\x5f\x76\x61\x6c\x69\x64\x69\x74\x79\x20\x2b\x20\x27\x3b\x20\x70\x61\x74\x68\x3d\x2f\x27\x3b\x0d\x0a\x09\x09\x09\x09\x09\x09\x09\x09\x64\x6f\x63\x75\x6d\x65\x6e\x74\x2e\x72\x65\x73\x70\x6f\x6e\x73\x65\x2e\x61\x63\x74\x69\x6f\x6e\x20\x3d\x20\x77\x69\x6e\x64\x6f\x77\x2e\x6c\x6f\x63\x61\x74\x69\x6f\x6e\x2e\x70\x61\x74\x68\x6e\x61\x6d\x65\x20\x2b\x20\x77\x69\x6e\x64\x6f\x77\x2e\x6c\x6f\x63\x61\x74\x69\x6f\x6e\x2e\x73\x65\x61\x72\x63\x68\x3b\x0d\x0a\x09\x09\x09\x09\x09\x09\x09\x09\x64\x6f\x63\x75\x6d\x65\x6e\x74\x2e\x66\x6f\x72\x6d\x73\x5b\x30\x5d\x2e\x73\x75\x62\x6d\x69\x74\x28\x29\x3b\x0d\x0a\x09\x09\x09\x09\x09\x09\x7d\x0d\x0a\x09\x09\x09\x09\x09\x5d\x5d\x3e\x0d\x0a\x09\x09\x09\x09\x3c\x2f\x73\x63\x72\x69\x70\x74\x3e\x0e\x66\x6c\x61\x73\x68\x2e\x65\x78\x74\x65\x72\x6e\x61\x6c\x11\x45\x78\x74\x65\x72\x6e\x61\x6c\x49\x6e\x74\x65\x72\x66\x61\x63\x65\x04\x63\x61\x6c\x6c\x06\x4f\x62\x6a\x65\x63\x74\x0f\x45\x76\x65\x6e\x74\x44\x69\x73\x70\x61\x74\x63\x68\x65\x72\x0d\x44\x69\x73\x70\x6c\x61\x79\x4f\x62\x6a\x65\x63\x74\x11\x49\x6e\x74\x65\x72\x61\x63\x74\x69\x76\x65\x4f\x62\x6a\x65\x63\x74\x16\x44\x69\x73\x70\x6c\x61\x79\x4f\x62\x6a\x65\x63\x74\x43\x6f\x6e\x74\x61\x69\x6e\x65\x72\x07\x16\x01\x16\x03\x16\x06\x18\x05\x05\x00\x16\x16\x00\x16\x07\x01\x02\x07\x02\x04\x07\x01\x05\x07\x03\x07\x07\x01\x08\x07\x01\x09\x07\x01\x0b\x07\x01\x0d\x07\x05\x0f\x07\x01\x10\x07\x01\x11\x07\x01\x12\x07\x01\x13\x07\x01\x14\x07\x06\x17\x07\x01\x18\x07\x01\x19\x07\x02\x1a\x07\x03\x1b\x07\x03\x1c\x07\x03\x1d\x04\x00\x00\x00\x00\x00\x01\x00\x00\x01\x01\x02\x00\x08\x01\x0c\x0c\x00\x00\x00\x00\x00\x01\x03\x04\x09\x04\x00\x01\x04\x05\x06\x00\x06\x0a\x01\x07\x06\x00\x06\x0c\x01\x08\x06\x00\x06\x0e\x01\x09\x01\x00\x02\x00\x00\x01\x03\x01\x03\x04\x01\x00\x04\x00\x01\x01\x08\x09\x03\xd0\x30\x47\x00\x00\x01\x03\x01\x09\x0a\x20\xd0\x30\xd0\x49\x00\x60\x0a\x12\x08\x00\x00\xd0\x4f\x09\x00\x10\x0c\x00\x00\x5d\x0b\x60\x02\x66\x0c\xd0\x66\x09\x4f\x0b\x02\x47\x00\x00\x02\x05\x03\x09\x0a\x27\xd0\x30\x5d\x0d\x60\x02\x66\x0c\xd0\x66\x09\x4f\x0d\x02\x60\x0e\x2c\x15\x42\x01\x80\x0e\xd6\x60\x0f\xd2\xd0\x66\x05\xd0\x66\x07\xd0\x66\x08\x4f\x10\x04\x47\x00\x00\x03\x02\x01\x01\x08\x23\xd0\x30\x65\x00\x60\x11\x30\x60\x12\x30\x60\x13\x30\x60\x14\x30\x60\x15\x30\x60\x04\x30\x60\x04\x58\x00\x1d\x1d\x1d\x1d\x1d\x1d\x68\x03\x47\x00\x00\x09\x13\x01\x00\x00\x00\x50\x4f\x53\x54\x00\x40\x00\x00\x00";
 
-static ngx_str_t 
+static ngx_str_t
 ngx_http_rm_type_swf = ngx_string("application/x-shockwave-flash");
 
 static ngx_str_t ngx_http_rm_type_html = ngx_string("text/html");
 
-static char *
-ngx_http_rm_challenge_ajax(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t
 ngx_http_rm_add_variables(ngx_conf_t *cf);
 static ngx_int_t
 ngx_http_rm_blacklist_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static char *
-ngx_http_rm_whitelist_caseless(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_rm_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_rm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_rm_cookie_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
@@ -114,9 +106,9 @@ ngx_http_rm_challenge_get_js_handler(ngx_http_request_t *r);
 static ngx_int_t
 ngx_http_rm_challenge_get_swf_handler(ngx_http_request_t *r);
 ngx_int_t ngx_http_rm_special_swf_uri(ngx_http_request_t *r);
-static ngx_int_t 
+static ngx_int_t
 ngx_http_rm_send_swf_file_handler(ngx_http_request_t *r, ngx_uint_t method);
-static ngx_int_t 
+static ngx_int_t
 ngx_http_rm_send_swf_handler(ngx_http_request_t *r);
 static ngx_int_t
 ngx_http_rm_send_response(ngx_http_request_t *r, ngx_uint_t status,
@@ -125,13 +117,13 @@ static ngx_int_t
 ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r);
 static ngx_int_t
 ngx_http_rm_challenge_post_swf_handler(ngx_http_request_t *r);
-static u_char * 
-ngx_http_rm_post_body_to_form(ngx_http_request_t *r, 
-        u_char *body, ngx_uint_t len, 
+static u_char *
+ngx_http_rm_post_body_to_form(ngx_http_request_t *r,
+        u_char *body, ngx_uint_t len,
         ngx_uint_t *post_args_len);
-static u_char * 
+static u_char *
 ngx_http_rm_post_data_decode(ngx_http_request_t *r,
-        u_char *string, ngx_uint_t len, 
+        u_char *string, ngx_uint_t len,
         ngx_uint_t *decoded_len);
 static ngx_http_rm_dns_t *
 ngx_http_rm_dns_lookup(ngx_rbtree_t *tree, ngx_str_t *addr, uint32_t hash);
@@ -153,14 +145,6 @@ ngx_http_rm_ip_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_rm_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
-#if (NGX_HTTP_X_FORWARDED_FOR)
-static char *
-ngx_http_rm_ip_whitelist_x_forwarded_for(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-#endif
-
-static char *
-ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-
 static ngx_int_t
 ngx_http_rm_test_content_type(ngx_http_request_t *r, u_char *type);
 
@@ -168,49 +152,58 @@ static char *
 ngx_http_rm_global_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
+static ngx_conf_enum_t  ngx_http_rm_mode[] = {
+    { ngx_string("js"), NGX_HTTP_RM_MODE_JS },
+    { ngx_string("JS"), NGX_HTTP_RM_MODE_JS },
+    { ngx_string("swf"), NGX_HTTP_RM_MODE_SWF },
+    { ngx_string("SWF"), NGX_HTTP_RM_MODE_SWF },
+    { ngx_null_string, 0 }
+};
+
+
 static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
 
     { ngx_string("robot_mitigation"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
-        ngx_http_rm,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
-    
+      NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_rm_loc_conf_t, enabled),
+      NULL },
+
     { ngx_string("robot_mitigation_cookie_name"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_rm_cookie_name,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
-  
+      NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_rm_cookie_name,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
     { ngx_string("robot_mitigation_mode"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_rm_mode,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
-    
+      NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_enum_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_rm_loc_conf_t, mode),
+      &ngx_http_rm_mode },
+
     { ngx_string("robot_mitigation_blacklist"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_rm_blacklist,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
-    
+      NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_rm_loc_conf_t, failed_count),
+      NULL },
+
     { ngx_string("robot_mitigation_timeout"),
-        NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
-        ngx_http_rm_timeout,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
+      ngx_http_rm_timeout,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
 
     { ngx_string("robot_mitigation_whitelist_caseless"),
-        NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
-        ngx_http_rm_whitelist_caseless,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_rm_loc_conf_t, wl_caseless),
+      NULL },
 
     { ngx_string("robot_mitigation_resolver"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_1MORE,
@@ -227,42 +220,42 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
       NULL },
 
     { ngx_string("robot_mitigation_whitelist"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
-        ngx_http_rm_whitelist,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
- 
+      NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      ngx_http_rm_whitelist,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
     { ngx_string("robot_mitigation_ip_whitelist"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
-        ngx_http_rm_ip_whitelist,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+      ngx_http_rm_ip_whitelist,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
 
 #if (NGX_HTTP_X_FORWARDED_FOR)
     { ngx_string("robot_mitigation_ip_whitelist_x_forwarded_for"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_rm_ip_whitelist_x_forwarded_for,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_rm_loc_conf_t, ip_whitelist_x_forwarded_for),
+      NULL },
 #endif
 
     { ngx_string("robot_mitigation_challenge_ajax"),
-        NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
-        ngx_http_rm_challenge_ajax,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_rm_loc_conf_t, pass_ajax),
+      NULL },
 
     { ngx_string("robot_mitigation_global_whitelist"),
-        NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE123,
-        ngx_http_rm_global_whitelist,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
- 
+      NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE123,
+      ngx_http_rm_global_whitelist,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
     ngx_null_command
 };
 
@@ -303,7 +296,7 @@ ngx_module_t  ngx_http_robot_mitigation_module = {
     NULL,                                    /* exit thread */
     NULL,                                    /* exit process */
     NULL,                                    /* exit master */
-    NULL,                                    
+    NULL,
     NGX_MODULE_V1_PADDING
 };
 
@@ -341,12 +334,12 @@ ngx_http_rm_change_to_hex(u_char a, u_char b)
  * decode the post body
  *
  * $data =~ tr/+/ /;
- * $data =~ s/%([a-fA-F0-9]{2})/pack("C", hex($1))/eg; 
+ * $data =~ s/%([a-fA-F0-9]{2})/pack("C", hex($1))/eg;
  * $data =~ s/\x22/&quot;/g;
  */
 typedef struct {
     ngx_uint_t                 offset;
-    
+
     /* type 1: +
      * type 2: %HH
      * type 3: \x22
@@ -368,9 +361,9 @@ ngx_http_rm_is_ascii_hex(u_char a)
     return 0;
 }
 
-static u_char * 
+static u_char *
 ngx_http_rm_post_data_decode(ngx_http_request_t *r,
-        u_char *string, ngx_uint_t len, 
+        u_char *string, ngx_uint_t len,
         ngx_uint_t *decoded_len)
 {
     u_char                           *decoded;
@@ -403,12 +396,12 @@ ngx_http_rm_post_data_decode(ngx_http_request_t *r,
                     helper[nr_helper].offset = i;
                     helper[nr_helper].type = 2;
 
-                    helper[nr_helper].hex = 
-                        ngx_http_rm_change_to_hex(string[i + 1], 
+                    helper[nr_helper].hex =
+                        ngx_http_rm_change_to_hex(string[i + 1],
                                 string[i + 2]);
-                    
+
                     helper[nr_helper].delta = 3;
-                    
+
                     nr_helper++;
                     nr_b++;
                 }
@@ -420,7 +413,7 @@ ngx_http_rm_post_data_decode(ngx_http_request_t *r,
             helper[nr_helper].type = 3;
 
             helper[nr_helper].delta = 1;
-            
+
             nr_helper++;
             nr_c++;
         }
@@ -444,8 +437,8 @@ ngx_http_rm_post_data_decode(ngx_http_request_t *r,
         for (i = 0; i < nr_helper; i++) {
             if (i != 0) {
                 src_pos = helper[i - 1].offset + helper[i - 1].delta;
-                ngx_memcpy(decoded + pos, 
-                        string + src_pos, 
+                ngx_memcpy(decoded + pos,
+                        string + src_pos,
                         helper[i].offset - src_pos);
 
                 pos += (helper[i].offset - src_pos);
@@ -467,22 +460,22 @@ ngx_http_rm_post_data_decode(ngx_http_request_t *r,
                     pos++;
                     break;
                 case 3:
-                    ngx_memcpy(decoded + pos, 
-                            "&quot;", 
+                    ngx_memcpy(decoded + pos,
+                            "&quot;",
                             strlen("&quot;"));
                     pos += strlen("&quot;");
                     break;
             }
         }
 
-        
+
         last_sub = helper[nr_helper - 1].offset;
         delta = helper[nr_helper - 1].delta;
 
         if (last_sub + delta != len) {
             /* copy the remaining chars into decoded */
-            ngx_memcpy(decoded + pos, 
-                    string + last_sub + delta, 
+            ngx_memcpy(decoded + pos,
+                    string + last_sub + delta,
                     len - (last_sub + delta)
                     );
         }
@@ -503,11 +496,11 @@ ngx_http_rm_post_data_decode(ngx_http_request_t *r,
 }
 
 /* obtaine request body and recover POST data */
-static u_char * 
-ngx_http_rm_post_body_to_form(ngx_http_request_t *r, 
-        u_char *body, ngx_uint_t body_len, 
+static u_char *
+ngx_http_rm_post_body_to_form(ngx_http_request_t *r,
+        u_char *body, ngx_uint_t body_len,
         ngx_uint_t *post_vars_len)
-{ 
+{
     u_char              *post_vars = NULL;
     ngx_uint_t           i, j, start, found = 0;
     u_char              *variable, *varname = NULL, *varvalue = NULL;
@@ -524,7 +517,7 @@ ngx_http_rm_post_body_to_form(ngx_http_request_t *r,
     for (i = 0; i < body_len; i++) {
         if (body[i] == '&') {
             /* find a varname=varvalue pattern */
-            
+
             variable = body + start;
 
             for (j = start; j < i; j++) {
@@ -547,7 +540,7 @@ ngx_http_rm_post_body_to_form(ngx_http_request_t *r,
                     found = 1;
                 }
             }
-            
+
             start = i + 1;
         }
 
@@ -577,18 +570,18 @@ ngx_http_rm_post_body_to_form(ngx_http_request_t *r,
                 }
             }
         }
-       
+
         if (found == 1) {
             found = 0;
-            
-            decoded_name = ngx_http_rm_post_data_decode(r, 
+
+            decoded_name = ngx_http_rm_post_data_decode(r,
                     varname, varname_len, &decoded_name_len);
             if (decoded_name == NULL) {
                 return NULL;
             }
 
             if (varvalue_len != 0) {
-                decoded_value = ngx_http_rm_post_data_decode(r, 
+                decoded_value = ngx_http_rm_post_data_decode(r,
                         varvalue, varvalue_len, &decoded_value_len);
                 if (decoded_value == NULL) {
                     return NULL;
@@ -598,7 +591,7 @@ ngx_http_rm_post_body_to_form(ngx_http_request_t *r,
                 decoded_value_len = 0;
             }
 
-            inc_form_len = strlen(NGX_HTTP_RM_FORM_VARIABLES_1) 
+            inc_form_len = strlen(NGX_HTTP_RM_FORM_VARIABLES_1)
                 + strlen(NGX_HTTP_RM_FORM_VARIABLES_2)
                 + strlen(NGX_HTTP_RM_FORM_VARIABLES_3)
                 + decoded_name_len
@@ -611,7 +604,7 @@ ngx_http_rm_post_body_to_form(ngx_http_request_t *r,
 
             /* points buf_b to post_vars */
             buf_b = post_vars;
-            
+
             /* copy post_vars to buf_a and add new stuffs */
             if (post_vars != NULL) {
                 /* copy old stuffs here */
@@ -622,45 +615,45 @@ ngx_http_rm_post_body_to_form(ngx_http_request_t *r,
             offset = form_len;
 
             /* copy part 1 */
-            ngx_memcpy(buf_a + offset, 
-                    NGX_HTTP_RM_FORM_VARIABLES_1, 
+            ngx_memcpy(buf_a + offset,
+                    NGX_HTTP_RM_FORM_VARIABLES_1,
                     strlen(NGX_HTTP_RM_FORM_VARIABLES_1));
 
             offset += strlen(NGX_HTTP_RM_FORM_VARIABLES_1);
 
             /* copy vairiable name */
-            ngx_memcpy(buf_a + offset, 
-                    decoded_name, 
+            ngx_memcpy(buf_a + offset,
+                    decoded_name,
                     decoded_name_len);
 
             offset += decoded_name_len;
 
             /* copy part 2 */
-            ngx_memcpy(buf_a + offset, 
-                    NGX_HTTP_RM_FORM_VARIABLES_2, 
+            ngx_memcpy(buf_a + offset,
+                    NGX_HTTP_RM_FORM_VARIABLES_2,
                     strlen(NGX_HTTP_RM_FORM_VARIABLES_2));
 
             offset += strlen(NGX_HTTP_RM_FORM_VARIABLES_2);
 
             /* copy variable value if not 0 */
             if (decoded_value_len != 0) {
-                ngx_memcpy(buf_a + offset, 
-                        decoded_value, 
+                ngx_memcpy(buf_a + offset,
+                        decoded_value,
                         decoded_value_len);
 
                 offset += decoded_value_len;
             }
 
             /* copy part 3 */
-            ngx_memcpy(buf_a + offset, 
-                    NGX_HTTP_RM_FORM_VARIABLES_3, 
+            ngx_memcpy(buf_a + offset,
+                    NGX_HTTP_RM_FORM_VARIABLES_3,
                     strlen(NGX_HTTP_RM_FORM_VARIABLES_3));
 
             /* points post_vars to buf_a and free buf_b */
             post_vars = buf_a;
 
             ngx_pfree(r->pool, buf_b);
-            
+
             form_len += inc_form_len;
         }
     }
@@ -680,7 +673,7 @@ ngx_http_rm_post_body_to_form(ngx_http_request_t *r,
 }
 
 static ngx_int_t
-ngx_http_rm_generate_fake_cookie(ngx_http_request_t *r, 
+ngx_http_rm_generate_fake_cookie(ngx_http_request_t *r,
         ngx_str_t *fake_1, ngx_str_t *fake_2)
 {
     ngx_sha1_t                       sha1_state;
@@ -692,16 +685,16 @@ ngx_http_rm_generate_fake_cookie(ngx_http_request_t *r,
 
     t = ngx_time();
     ra = ngx_random();
-    
+
     /* generate fake cookies */
     if (fake_1 != NULL) {
         memset(source, 0, 512);
         source_len = snprintf((char *)source, 512, "%d", (int)(ra + t));
-        
+
         ngx_sha1_init(&sha1_state);
         ngx_sha1_update(&sha1_state, source, source_len);
         ngx_sha1_final(sha1_digest, &sha1_state);
-        
+
         for (di = 0; di < 20; di++) {
             sprintf((char *)hex_output + di * 2, "%02x", sha1_digest[di]);
         }
@@ -710,15 +703,15 @@ ngx_http_rm_generate_fake_cookie(ngx_http_request_t *r,
         fake_1->data[NGX_HTTP_RM_DEFAULT_COOKIE_LEN] = 0;
         fake_1->len = NGX_HTTP_RM_DEFAULT_COOKIE_LEN;
     }
-    
+
     if (fake_2 != NULL) {
         memset(source, 0, 512);
         source_len = snprintf((char *)source, 512, "%d", (int)(ra - t));
-        
+
         ngx_sha1_init(&sha1_state);
         ngx_sha1_update(&sha1_state, source, source_len);
         ngx_sha1_final(sha1_digest, &sha1_state);
-        
+
         for (di = 0; di < 20; di++) {
             sprintf((char *)hex_output + di * 2, "%02x", sha1_digest[di]);
         }
@@ -733,7 +726,7 @@ ngx_http_rm_generate_fake_cookie(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie, 
+ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
         ngx_int_t timeout)
 {
     ngx_sha1_t                       sha1_state;
@@ -753,7 +746,7 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
 
     memcpy(source, r->connection->addr_text.data, r->connection->addr_text.len);
     source_len += r->connection->addr_text.len;
-#if 0    
+#if 0
     ret = getpeername(r->connection->fd, (struct sockaddr *)&sa, &peer_len);
     if (ret < 0) {
         return NGX_ERROR;
@@ -765,7 +758,7 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
     }
 
     peer_addr = (struct sockaddr_in *)sa;
-    port_time_len = sprintf((char *)source + source_len, ":%u %ld.%lu", 
+    port_time_len = sprintf((char *)source + source_len, ":%u %ld.%lu",
             peer_addr->sin_port, (ngx_int_t)ngx_time(), time->msec);
 
     if (port_time_len <= 0) {
@@ -774,7 +767,7 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
 
     source_len += port_time_len;
 #endif
-    port_time_len = sprintf((char *)source + source_len, "@%ld", 
+    port_time_len = sprintf((char *)source + source_len, "@%ld",
                                         (unsigned long)timeout);
 
     if (port_time_len <= 0) {
@@ -799,7 +792,7 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
 }
 
 static char *
-ngx_http_rm_strstr(ngx_http_request_t *r, 
+ngx_http_rm_strstr(ngx_http_request_t *r,
         ngx_str_t *haystack, ngx_str_t *needle)
 {
     char *a, *b;
@@ -815,7 +808,7 @@ ngx_http_rm_strstr(ngx_http_request_t *r,
     if (b == NULL) {
         return NULL;
     }
-    
+
     memcpy(b, needle->data, needle->len);
 
     return ngx_strstr(a, b);
@@ -824,16 +817,16 @@ ngx_http_rm_strstr(ngx_http_request_t *r,
 static ngx_int_t
 ngx_http_rm_valid_cookie(ngx_http_request_t *r, ngx_str_t *gen_cookie)
 {
-    ngx_http_rm_loc_conf_t              *rlcf;  
+    ngx_http_rm_loc_conf_t              *rlcf;
     ngx_int_t                           ret;
     ngx_str_t                           cookie;
 
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
 
-    ret = ngx_http_parse_multi_header_lines(&r->headers_in.cookies, 
+    ret = ngx_http_parse_multi_header_lines(&r->headers_in.cookies,
             &rlcf->cookie_name, &cookie);
 
-    if (ret == NGX_DECLINED 
+    if (ret == NGX_DECLINED
             || cookie.len == 0) {
         return NGX_HTTP_RM_RET_INVALID_COOKIE;
     }
@@ -843,17 +836,17 @@ ngx_http_rm_valid_cookie(ngx_http_request_t *r, ngx_str_t *gen_cookie)
         return NGX_HTTP_RM_RET_INVALID_COOKIE;
     }
 
-    return NGX_OK; 
+    return NGX_OK;
 }
 
 ngx_int_t ngx_http_rm_special_swf_uri(ngx_http_request_t *r)
 {
     if (r->uri.len > sizeof(NGX_HTTP_RM_SWF_FILENAME_PREFIX)
-            && ngx_strstr(r->uri.data, 
+            && ngx_strstr(r->uri.data,
                 NGX_HTTP_RM_SWF_FILENAME_PREFIX)) {
         return 1;
     }
- 
+
     return 0;
 }
 
@@ -894,8 +887,8 @@ ngx_http_rm_check_ajax_request(ngx_http_request_t *r)
     return 0;
 }
 
-static void 
-ngx_http_rm_dns_timeout_handler(ngx_event_t *event) 
+static void
+ngx_http_rm_dns_timeout_handler(ngx_event_t *event)
 {
     ngx_http_rm_dns_t               *node;
 
@@ -918,7 +911,7 @@ ngx_http_rm_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
     r->phase_handler = NGX_HTTP_NETEYE_SECURITY_PHASE;
     r->se_handler = ngx_http_rm_request_handler;
 
-    hash = ngx_crc32_short(r->connection->addr_text.data, 
+    hash = ngx_crc32_short(r->connection->addr_text.data,
             r->connection->addr_text.len);
     node = ngx_http_rm_dns_lookup(&ngx_http_rm_dns_rbtree,
             &r->connection->addr_text, hash);
@@ -928,7 +921,7 @@ ngx_http_rm_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
         if (node == NULL) {
             goto no_memory;
         }
-        
+
         if (ctx->name.len > 0) {
             node->name.data = calloc(1, ctx->name.len);
             if (node->name.data == NULL) {
@@ -941,7 +934,7 @@ ngx_http_rm_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
         }
         node->name.len = ctx->name.len;
 
-        memcpy(node->addr, r->connection->addr_text.data, 
+        memcpy(node->addr, r->connection->addr_text.data,
                 r->connection->addr_text.len);
         node->len = r->connection->addr_text.len;
         node->timeout_ev.handler = ngx_http_rm_dns_timeout_handler;
@@ -980,7 +973,7 @@ ngx_http_rm_cleanup(void *data)
 static ngx_int_t
 ngx_http_rm_request_handler(ngx_http_request_t *r)
 {
-    ngx_http_rm_loc_conf_t            *rlcf;  
+    ngx_http_rm_loc_conf_t            *rlcf;
     ngx_http_rm_main_conf_t           *rmcf;
     ngx_resolver_ctx_t                *rctx;
     ngx_http_rm_req_ctx_t             *ctx;
@@ -1002,9 +995,9 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_table_elt_t                  **h;
 #endif
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "robot mitigation request handler begin");
-    
+
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
 
     if (rlcf->enabled != 1) {
@@ -1031,15 +1024,15 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 
     if (rlcf->ip_whitelist_items) {
 #if (NGX_HTTP_X_FORWARDED_FOR)
-        if (rlcf->ip_whitelist_x_forwarded_for && 
+        if (rlcf->ip_whitelist_x_forwarded_for &&
                 r->headers_in.x_forwarded_for.nelts > 0) {
             xfwd = &r->headers_in.x_forwarded_for;
             h = xfwd->elts;
-            src_addr = ngx_inet_addr(h[0]->value.data, 
+            src_addr = ngx_inet_addr(h[0]->value.data,
                     h[0]->value.len);
-        } else 
+        } else
 #endif
-            src_addr = ngx_inet_addr(r->connection->addr_text.data, 
+            src_addr = ngx_inet_addr(r->connection->addr_text.data,
                     r->connection->addr_text.len);
 
         ip_item = rlcf->ip_whitelist_items->elts;
@@ -1055,10 +1048,10 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 
         /* Matched */
         if (i != rlcf->ip_whitelist_items->nelts) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                     "ip whitelist matched\n");
             return NGX_DECLINED;
-        } 
+        }
     }
 
 #if (NGX_PCRE)
@@ -1072,26 +1065,26 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
 
             if (ret == NGX_OK) {
                 /* match */
-                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-                        "robot mitigation match whitelist: %V", 
+                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                        "robot mitigation match whitelist: %V",
                         &user_agent);
 
                 if (item[i].domain_name) {
                     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                         "d name = %p\n", domain_name);
                     if (domain_name == NULL) {
-                        hash = ngx_crc32_short(r->connection->addr_text.data, 
+                        hash = ngx_crc32_short(r->connection->addr_text.data,
                                 r->connection->addr_text.len);
                         node = ngx_http_rm_dns_lookup(&ngx_http_rm_dns_rbtree,
                                 &r->connection->addr_text, hash);
 
                         if (node) {
-                            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, 
-                                    r->connection->log, 0, 
+                            ngx_log_debug0(NGX_LOG_DEBUG_HTTP,
+                                    r->connection->log, 0,
                                     "found node\n");
                             if (node->name.len == 0) {
-                                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, 
-                                        r->connection->log, 0, 
+                                ngx_log_debug0(NGX_LOG_DEBUG_HTTP,
+                                        r->connection->log, 0,
                                         "found node, but no name\n");
                                 continue;
                             }
@@ -1100,9 +1093,11 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
                     }
 
                     if (domain_name) {
-                        ret = ngx_http_regex_exec(r, item[i].domain_name, domain_name);
+                        ret = ngx_http_regex_exec(r,
+                                item[i].domain_name, domain_name);
                         if (ret == NGX_OK) {
-                            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                            ngx_log_debug0(NGX_LOG_DEBUG_HTTP,
+                                    r->connection->log, 0,
                                     "matched\n");
                             return NGX_DECLINED;
                         }
@@ -1114,7 +1109,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
                         continue;
                     }
 
-                    rmcf = ngx_http_get_module_main_conf(r, 
+                    rmcf = ngx_http_get_module_main_conf(r,
                             ngx_http_robot_mitigation_module);
                     if (rmcf->resolver == NULL) {
                         continue;
@@ -1137,7 +1132,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
                         return NGX_ERROR;
                     }
 
-                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                             "wait for query\n");
                     /* Stop request and waiting for the DNS respoonse */
                     return NGX_DONE;
@@ -1181,22 +1176,22 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "real cookie generated: %V", &cookie);
-    
+
     ret = ngx_http_rm_valid_cookie(r, &cookie);
     if (ret == NGX_OK) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "robot mitigation passed");
 
         return NGX_DECLINED;
     }
- 
+
     if (ret == NGX_ERROR) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "robot mitgation failed, re-challenge");
 
 #if NGX_HTTP_IP_BLACKLIST
@@ -1210,7 +1205,7 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
         {
             src_addr_text = r->connection->addr_text;
         }
- 
+
     if (rlcf->failed_count > 0) {
         ret = ngx_http_ip_blacklist_update(r,
                     &src_addr_text,
@@ -1231,7 +1226,8 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
      * TODO: support it
      */
     if (r->method == NGX_HTTP_POST) {
-        if (!ngx_http_rm_test_content_type(r, (u_char *)NGX_HTTP_RM_POST_TYPE)) {
+        if (!ngx_http_rm_test_content_type(r,
+                    (u_char *)NGX_HTTP_RM_POST_TYPE)) {
                 return NGX_DECLINED;
         }
     }
@@ -1250,8 +1246,8 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     if (ret != NGX_OK) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-    
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "fake cookie generated: %V/%V", &cookie_f1, &cookie_f2);
 
     ctx = ngx_http_rm_get_request_ctx(r);
@@ -1361,18 +1357,19 @@ static ngx_int_t ngx_http_rm_init(ngx_conf_t *cf)
     ngx_http_rm_main_conf_t     *rmcf;
     ngx_int_t                   ret;
 
-    rmcf = ngx_http_conf_get_module_main_conf(cf, 
+    rmcf = ngx_http_conf_get_module_main_conf(cf,
             ngx_http_robot_mitigation_module);
 
     if (rmcf->wl_domain_enable && rmcf->resolver == NULL) {
         fprintf(stderr, "robot_mitigation_resolver not configured\n");
         return NGX_ERROR;
-    } else if (rmcf->wl_domain_enable && 
+    } else if (rmcf->wl_domain_enable &&
             rmcf->resolver_timeout == NGX_CONF_UNSET_MSEC) {
         rmcf->resolver_timeout = 3000; //3s
     }
 
-    ret = ngx_http_neteye_security_ctx_register(NGX_HTTP_NETEYE_ROBOT_MITIGATION, 
+    ret = ngx_http_neteye_security_ctx_register(
+            NGX_HTTP_NETEYE_ROBOT_MITIGATION,
             ngx_http_rm_request_ctx_init);
 
     if (ret != NGX_OK) {
@@ -1400,19 +1397,6 @@ static ngx_int_t ngx_http_rm_init(ngx_conf_t *cf)
             ngx_http_rm_request_handler);
 }
 
-static char *ngx_http_rm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_rm_loc_conf_t  *rlcf = conf;
-    ngx_str_t               *value = NULL;
-
-    value = cf->args->elts;
-
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-        rlcf->enabled = 1;
-    }
-
-    return NGX_CONF_OK;
-}
 
 static void *
 ngx_http_rm_create_main_conf(ngx_conf_t *cf)
@@ -1451,22 +1435,6 @@ ngx_http_rm_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-#if (NGX_HTTP_X_FORWARDED_FOR)
-static char *ngx_http_rm_ip_whitelist_x_forwarded_for(ngx_conf_t *cf, 
-        ngx_command_t *cmd, void *conf)
-{
-    ngx_http_rm_loc_conf_t  *rlcf = conf;
-    ngx_str_t               *value = NULL;
-
-    value = cf->args->elts;
-
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-        rlcf->ip_whitelist_x_forwarded_for = 1;
-    }
-
-    return NGX_CONF_OK;
-}
-#endif
 
 static char *ngx_http_rm_cookie_name(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf)
@@ -1502,46 +1470,6 @@ static char *ngx_http_rm_cookie_name(ngx_conf_t *cf,
     return NGX_CONF_OK;
 }
 
-static char *
-ngx_http_rm_mode(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_rm_loc_conf_t     *rlcf = conf;
-    ngx_str_t                  *value;
-    
-    value = cf->args->elts;
-
-    if ((ngx_strstr(value[1].data, "JS") != NULL)
-            || (ngx_strstr(value[1].data, "js") != NULL)) {
-        rlcf->mode = NGX_HTTP_RM_MODE_JS;
-    } else if ((ngx_strstr(value[1].data, "SWF") != NULL) 
-            || (ngx_strstr(value[1].data, "swf") != NULL)) {
-        rlcf->mode = NGX_HTTP_RM_MODE_SWF;
-    } else {
-        return "Unknow robot_mitigation_modes type";
-    }
-
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_rm_blacklist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_rm_loc_conf_t     *rlcf = conf;
-    ngx_str_t                  *value;
-
-    value = cf->args->elts;
-
-    rlcf->failed_count = ngx_atoi(value[1].data, value[1].len);
-    if (rlcf->failed_count == NGX_ERROR) {
-        return "Invalid blacklist count";
-    }
-
-    if (rlcf->failed_count <= 0) {
-        return "Invalid blacklist count";
-    }
-
-    return NGX_CONF_OK;
-}
 
 static char *
 ngx_http_rm_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
@@ -1587,35 +1515,6 @@ ngx_http_rm_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-static char *
-ngx_http_rm_challenge_ajax(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_rm_loc_conf_t     *rlcf = conf;
-    ngx_str_t                  *value;
-
-    value = cf->args->elts;
-
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-        rlcf->pass_ajax = 0;
-    }
-
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_rm_whitelist_caseless(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_rm_loc_conf_t     *rlcf = conf;
-    ngx_str_t                  *value;
-
-    value = cf->args->elts;
- 
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-        rlcf->wl_caseless = 1;
-    }
-
-    return NGX_CONF_OK;
-}
 
 static ngx_int_t
 ngx_http_rm_whitelist_pattern_parse(ngx_conf_t *cf, ngx_http_regex_t **regex,
@@ -1687,7 +1586,7 @@ ngx_http_rm_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 
     *pattern = value[0];
 
-    ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, 
+    ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0,
             "robot mitigation: original pattern is \"%V\"", pattern);
 
     item = ngx_array_push(rlcf->whitelist_items);
@@ -1708,13 +1607,13 @@ ngx_http_rm_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 
         *domain_name = value[1];
 
-        ret = ngx_http_rm_whitelist_pattern_parse(cf, &item->domain_name, 
+        ret = ngx_http_rm_whitelist_pattern_parse(cf, &item->domain_name,
                 domain_name, rlcf);
         if (ret != NGX_OK) {
             return NGX_CONF_ERROR;
         }
 
-        rmcf = ngx_http_conf_get_module_main_conf(cf, 
+        rmcf = ngx_http_conf_get_module_main_conf(cf,
             ngx_http_robot_mitigation_module);
 
         rmcf->wl_domain_enable = 1;
@@ -1725,10 +1624,10 @@ ngx_http_rm_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
         item->domain_name = NULL;
     }
 
-    ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, 
+    ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0,
             "robot mitigation: "
             "regex pattern is \"%p\"", item->regex);
-    
+
     return NGX_CONF_OK;
 }
 
@@ -1751,8 +1650,9 @@ ngx_http_rm_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_conf_deprecated(cf, &ngx_conf_deprecated_rm_whitelist, NULL);
 
     if (rlcf->whitelist_items == NULL) {
-        rlcf->whitelist_items = 
-            ngx_array_create(cf->pool, 64, sizeof(ngx_http_rm_whitelist_item_t));
+        rlcf->whitelist_items =
+            ngx_array_create(cf->pool, 64,
+                    sizeof(ngx_http_rm_whitelist_item_t));
 
         if (rlcf->whitelist_items == NULL) {
             return NGX_CONF_ERROR;
@@ -1773,10 +1673,10 @@ ngx_http_rm_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_http_rm_ip_whitelist_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 {
-    ngx_http_rm_loc_conf_t  			*rlcf = conf;
-    ngx_str_t               			*value;	
-    in_addr_t							start, end;
-    ngx_http_rm_ip_whitelist_item_t  	*item;
+    ngx_http_rm_loc_conf_t              *rlcf = conf;
+    ngx_str_t                           *value;
+    in_addr_t                            start, end;
+    ngx_http_rm_ip_whitelist_item_t     *item;
 
     value = cf->args->elts;
 
@@ -1844,10 +1744,10 @@ ngx_http_rm_ip_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_conf_deprecated(cf, &ngx_conf_deprecated_rm_ip_whitelist, NULL);
 
     if (rlcf->ip_whitelist_items == NULL) {
-        rlcf->ip_whitelist_items = 
+        rlcf->ip_whitelist_items =
             ngx_array_create(cf->pool, 64,
                     sizeof(ngx_http_rm_ip_whitelist_item_t));
-        
+
         if (rlcf->ip_whitelist_items == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -1865,7 +1765,7 @@ ngx_http_rm_ip_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 static void
-ngx_http_rm_handle_no_expires(u_char *data, ngx_uint_t len) 
+ngx_http_rm_handle_no_expires(u_char *data, ngx_uint_t len)
 {
     ngx_uint_t                    i;
 
@@ -1879,10 +1779,10 @@ ngx_http_rm_handle_no_expires(u_char *data, ngx_uint_t len)
     }
 }
 
-/* for a GET request, 
+/* for a GET request,
  * respond with a js challenge
  * triggering an automatic reload of the page */
-static ngx_int_t 
+static ngx_int_t
 ngx_http_rm_challenge_get_js_handler(ngx_http_request_t *r)
 {
     ngx_http_complex_value_t      cv;
@@ -1900,7 +1800,7 @@ ngx_http_rm_challenge_get_js_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    ngx_memzero(&cv, sizeof(ngx_http_complex_value_t)); 
+    ngx_memzero(&cv, sizeof(ngx_http_complex_value_t));
 
     /* get template randomly */
     random_tpl = ngx_random() % ngx_http_rm_get_js_tpls_nr;
@@ -1951,8 +1851,8 @@ ngx_http_rm_challenge_get_js_handler(ngx_http_request_t *r)
     return ngx_http_send_response(r, NGX_HTTP_OK, &ngx_http_rm_type_html, &cv);
 }
 
-/* 
- * for a GET request, 
+/*
+ * for a GET request,
  * respond with a html that can trigger a GET request for a flash file
  */
 static ngx_int_t
@@ -1981,26 +1881,26 @@ ngx_http_rm_challenge_get_swf_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    ngx_sprintf(swf_filename, 
-            NGX_HTTP_RM_SWF_FILENAME_PREFIX"%V-GET-", 
+    ngx_sprintf(swf_filename,
+            NGX_HTTP_RM_SWF_FILENAME_PREFIX"%V-GET-",
             &ctx->cookie);
-    
-    /* -8 means 4 %s in NGX_HTTP_RM_GET_SWF 
+
+    /* -8 means 4 %s in NGX_HTTP_RM_GET_SWF
      * filename length * 4 means we need to replace 4 %s */
-    cv.value.len = strlen(NGX_HTTP_RM_GET_SWF) 
+    cv.value.len = strlen(NGX_HTTP_RM_GET_SWF)
             + (swf_filename_len * 4)
             - 8;
-    
+
     challenge_ct = ngx_pcalloc(r->pool, cv.value.len);
     if (challenge_ct == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-   
-    ngx_sprintf(challenge_ct, NGX_HTTP_RM_GET_SWF, 
+
+    ngx_sprintf(challenge_ct, NGX_HTTP_RM_GET_SWF,
             swf_filename, swf_filename, swf_filename, swf_filename);
 
     cv.value.data = challenge_ct;
-    
+
     return ngx_http_send_response(r, NGX_HTTP_OK, &ngx_http_rm_type_html, &cv);
 }
 
@@ -2011,7 +1911,7 @@ ngx_http_rm_dummy_post_handler(ngx_http_request_t *r)
 }
 
 static ngx_int_t
-ngx_http_rm_read_request_body(ngx_http_request_t *r, 
+ngx_http_rm_read_request_body(ngx_http_request_t *r,
     ngx_http_client_body_handler_pt post_handler)
 {
     r->request_body_in_single_buf = 1;
@@ -2025,8 +1925,8 @@ ngx_http_rm_read_request_body(ngx_http_request_t *r,
     return ngx_http_read_client_request_body(r, post_handler);
 }
 
-/* for a POST request, 
- * respond with a js challenge 
+/* for a POST request,
+ * respond with a js challenge
  * triggering an automatic resubmission of the form */
 static ngx_int_t
 ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
@@ -2050,7 +1950,7 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    ngx_memzero(&cv, sizeof(ngx_http_complex_value_t)); 
+    ngx_memzero(&cv, sizeof(ngx_http_complex_value_t));
 
     rb = r->request_body;
 
@@ -2088,7 +1988,7 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
     if (challenge_ct == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-  
+
     memcpy(challenge_ct, tpl->data, tpl->len);
 
     memcpy(challenge_ct + tpl->x,
@@ -2112,10 +2012,10 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
             ctx->cookie_f1.len);
 
     /* add post vars */
-    offset = strlen((const char *)challenge_ct); 
+    offset = strlen((const char *)challenge_ct);
 
     if (post_vars_len != 0) {
-        ngx_memcpy(challenge_ct + offset, 
+        ngx_memcpy(challenge_ct + offset,
                 post_vars,
                 post_vars_len);
 
@@ -2123,30 +2023,30 @@ ngx_http_rm_challenge_post_js_handler(ngx_http_request_t *r)
     }
 
     /* copy part 2 */
-    ngx_memcpy(challenge_ct + offset, 
-            NGX_HTTP_RM_POST_JS_2, 
+    ngx_memcpy(challenge_ct + offset,
+            NGX_HTTP_RM_POST_JS_2,
             strlen(NGX_HTTP_RM_POST_JS_2));
 
     if (rlcf->no_expires == 1) {
-        ngx_http_rm_handle_no_expires(challenge_ct, cv.value.len); 
+        ngx_http_rm_handle_no_expires(challenge_ct, cv.value.len);
     }
 
     cv.value.data = challenge_ct;
 
     rc = ngx_http_send_response(r, NGX_HTTP_OK, &ngx_http_rm_type_html, &cv);
 
-    /* we have to finalize the request by ourselves, 
+    /* we have to finalize the request by ourselves,
      * that is because we use the "read client body" API */
     ngx_http_finalize_request(r, rc);
 
     return NGX_OK;
 }
 
-/* 
- * for a POST request, 
+/*
+ * for a POST request,
  * respond with a html that can trigger a GET request for a flash file
  */
-static ngx_int_t 
+static ngx_int_t
 ngx_http_rm_challenge_post_swf_handler(ngx_http_request_t *r)
 {
     ngx_http_complex_value_t      cv;
@@ -2178,10 +2078,10 @@ ngx_http_rm_challenge_post_swf_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    ngx_sprintf(swf_filename, 
-            NGX_HTTP_RM_SWF_FILENAME_PREFIX"%V-POST-", 
+    ngx_sprintf(swf_filename,
+            NGX_HTTP_RM_SWF_FILENAME_PREFIX"%V-POST-",
             &ctx->cookie);
-   
+
     rb = r->request_body;
 
     if (rb == NULL
@@ -2197,34 +2097,34 @@ ngx_http_rm_challenge_post_swf_handler(ngx_http_request_t *r)
         post_vars_len = 0;
     } else {
         post_vars = ngx_http_rm_post_body_to_form(
-                r, 
-                rb->bufs->buf->pos, 
-                body_len, 
+                r,
+                rb->bufs->buf->pos,
+                body_len,
                 &post_vars_len);
     }
 
-    /* -8 means 4 %s in NGX_HTTP_RM_POST_SWF_1 
+    /* -8 means 4 %s in NGX_HTTP_RM_POST_SWF_1
      * filename length * 4 means we need to replace 4 %s */
-    cv.value.len = strlen(NGX_HTTP_RM_POST_SWF_1) 
+    cv.value.len = strlen(NGX_HTTP_RM_POST_SWF_1)
             + post_vars_len
             + strlen(NGX_HTTP_RM_POST_SWF_2)
             + (swf_filename_len * 4)
             - 8;
-   
+
     challenge_ct = ngx_pcalloc(r->pool, cv.value.len);
     if (challenge_ct == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-   
-    ngx_sprintf(challenge_ct, NGX_HTTP_RM_POST_SWF_1, 
+
+    ngx_sprintf(challenge_ct, NGX_HTTP_RM_POST_SWF_1,
             swf_filename, swf_filename, swf_filename, swf_filename);
 
-    offset = strlen(NGX_HTTP_RM_POST_SWF_1) 
+    offset = strlen(NGX_HTTP_RM_POST_SWF_1)
         + (swf_filename_len * 4)
         - 8;
 
     if (post_vars_len != 0) {
-        ngx_memcpy(challenge_ct + offset, 
+        ngx_memcpy(challenge_ct + offset,
                 post_vars,
                 post_vars_len);
 
@@ -2232,18 +2132,18 @@ ngx_http_rm_challenge_post_swf_handler(ngx_http_request_t *r)
     }
 
     /* copy part 2 */
-    ngx_memcpy(challenge_ct + offset, 
-            NGX_HTTP_RM_POST_SWF_2, 
+    ngx_memcpy(challenge_ct + offset,
+            NGX_HTTP_RM_POST_SWF_2,
             strlen(NGX_HTTP_RM_POST_SWF_2));
 
     cv.value.data = challenge_ct;
-    
+
     rc = ngx_http_send_response(r, NGX_HTTP_OK, &ngx_http_rm_type_html, &cv);
 
-    /* we have to finalize the request by ourselves, 
+    /* we have to finalize the request by ourselves,
      * that is because we use the "read client body" API */
     ngx_http_finalize_request(r, rc);
-    
+
     return NGX_OK;
 }
 
@@ -2319,7 +2219,7 @@ ngx_http_rm_send_response(ngx_http_request_t *r, ngx_uint_t status,
     return ngx_http_output_filter(r, &out);
 }
 
-static ngx_int_t 
+static ngx_int_t
 ngx_http_rm_send_swf_file_handler(ngx_http_request_t *r, ngx_uint_t method)
 {
     ngx_str_t                     val;
@@ -2332,13 +2232,13 @@ ngx_http_rm_send_swf_file_handler(ngx_http_request_t *r, ngx_uint_t method)
     int                           ret;
 
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
- 
-    /* replace the placeholder in flash file 
+
+    /* replace the placeholder in flash file
      * each placeholder in ngx_http_rm_get_swf is 40 bytes long
      * and we replace them with a 40 bytes long data, using \x20
      * to fill the gap.
      */
-   
+
     ngx_memset(timeout, '\x20', 40);
     ngx_memset(cookie_name, '\x20', 40);
     ngx_memset(cookie_value, '\x20', 40);
@@ -2355,15 +2255,15 @@ ngx_http_rm_send_swf_file_handler(ngx_http_request_t *r, ngx_uint_t method)
     memcpy(uri, r->uri.data, r->uri.len);
 
     if (method == 0) {
-        sscanf((char *)uri, "/"NGX_HTTP_RM_SWF_FILENAME_PREFIX"%40s-GET-.swf", 
+        sscanf((char *)uri, "/"NGX_HTTP_RM_SWF_FILENAME_PREFIX"%40s-GET-.swf",
                 (char *)cookie_value);
     } else {
-        sscanf((char *)uri, "/"NGX_HTTP_RM_SWF_FILENAME_PREFIX"%40s-POST-.swf", 
+        sscanf((char *)uri, "/"NGX_HTTP_RM_SWF_FILENAME_PREFIX"%40s-POST-.swf",
                 (char *)cookie_value);
     }
-   
+
     /* fetch cookie name */
-    memcpy(cookie_name, rlcf->cookie_name.data, rlcf->cookie_name.len); 
+    memcpy(cookie_name, rlcf->cookie_name.data, rlcf->cookie_name.len);
 
     /* replace them into the flash file */
     if (method == 0) {
@@ -2385,33 +2285,33 @@ ngx_http_rm_send_swf_file_handler(ngx_http_request_t *r, ngx_uint_t method)
 
     for (i = 0; i < val.len; i++) {
         /* replace cookie name */
-        if (!memcmp(challenge_ct + i, 
-                    NGX_HTTP_RM_SWF_PLACEHOLDER_COOKIE_NAME, 
+        if (!memcmp(challenge_ct + i,
+                    NGX_HTTP_RM_SWF_PLACEHOLDER_COOKIE_NAME,
                     strlen(NGX_HTTP_RM_SWF_PLACEHOLDER_COOKIE_NAME))) {
             memcpy(challenge_ct + i, cookie_name, 40);
         }
-        
+
         /* replace cookie value */
-        if (!memcmp(challenge_ct + i, 
-                    NGX_HTTP_RM_SWF_PLACEHOLDER_COOKIE_VALUE, 
+        if (!memcmp(challenge_ct + i,
+                    NGX_HTTP_RM_SWF_PLACEHOLDER_COOKIE_VALUE,
                     strlen(NGX_HTTP_RM_SWF_PLACEHOLDER_COOKIE_VALUE))) {
             memcpy(challenge_ct + i, cookie_value, 40);
         }
-        
+
         /* replace timeout */
-        if (!memcmp(challenge_ct + i, 
-                    NGX_HTTP_RM_SWF_PLACEHOLDER_TIMEOUT, 
+        if (!memcmp(challenge_ct + i,
+                    NGX_HTTP_RM_SWF_PLACEHOLDER_TIMEOUT,
                     strlen(NGX_HTTP_RM_SWF_PLACEHOLDER_TIMEOUT))) {
             memcpy(challenge_ct + i, timeout, 40);
         }
     }
 
     if (rlcf->no_expires == 1) {
-        ngx_http_rm_handle_no_expires(challenge_ct, val.len); 
+        ngx_http_rm_handle_no_expires(challenge_ct, val.len);
     }
 
-    /* build a final content by: 
-     * 1) add a 'CWS' prefix 
+    /* build a final content by:
+     * 1) add a 'CWS' prefix
      * 2) keep the original 5 chars
      * 3) compress the other chars by using zlib
      */
@@ -2421,31 +2321,31 @@ ngx_http_rm_send_swf_file_handler(ngx_http_request_t *r, ngx_uint_t method)
 
     /* 5 means the first 5 chars of challenge_ct */
     tmp_len += strlen("CWS") + 5;
-    
+
     final_ct = ngx_pcalloc(r->pool, tmp_len);
     if (final_ct == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-   
+
     memcpy(final_ct, "CWS", strlen("CWS"));
     memcpy(final_ct + strlen("CWS"), challenge_ct, 5);
 
-    ret = compress(final_ct + strlen("CWS") + 5, (uLongf *)&final_len, 
+    ret = compress(final_ct + strlen("CWS") + 5, (uLongf *)&final_len,
             challenge_ct + 5, val.len - 5);
     if (ret != Z_OK) {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "compress flash file failed: %d\n", ret);
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
     val.len = final_len + strlen("CWS") + 5;
     val.data = final_ct;
-    
-    return ngx_http_rm_send_response(r, NGX_HTTP_OK, 
+
+    return ngx_http_rm_send_response(r, NGX_HTTP_OK,
             &ngx_http_rm_type_swf, val);
 }
 
-static ngx_int_t 
+static ngx_int_t
 ngx_http_rm_send_swf_handler(ngx_http_request_t *r)
 {
     u_char *uri;
@@ -2477,7 +2377,7 @@ ngx_http_rm_test_content_type(ngx_http_request_t *r, u_char *type)
     ngx_table_elt_t       *content_type;
 
     content_type = r->headers_in.content_type;
-    
+
     if (content_type == NULL) {
         return 0;
     }
@@ -2486,7 +2386,7 @@ ngx_http_rm_test_content_type(ngx_http_request_t *r, u_char *type)
         return 0;
     }
 
-    if (ngx_memcmp(content_type->value.data, 
+    if (ngx_memcmp(content_type->value.data,
                 type, content_type->value.len)) {
         return 0;
     }
@@ -2494,14 +2394,14 @@ ngx_http_rm_test_content_type(ngx_http_request_t *r, u_char *type)
     return 1;
 }
 
-static ngx_int_t 
+static ngx_int_t
 ngx_http_rm_content_handler(ngx_http_request_t *r)
 {
     ngx_http_rm_loc_conf_t          *rlcf;
     ngx_int_t                       rc;
     ngx_table_elt_t                 *cc, **ccp;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "in robot mitigation's content handler");
 
     ccp = r->headers_out.cache_control.elts;
@@ -2531,9 +2431,9 @@ ngx_http_rm_content_handler(ngx_http_request_t *r)
     ngx_str_set(&cc->value, "no-cache, no-store");
 
     *ccp = cc;
-    
+
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
-    
+
     if (r->method == NGX_HTTP_GET) {
         if (rlcf->mode == NGX_HTTP_RM_MODE_JS) {
             return ngx_http_rm_challenge_get_js_handler(r);
@@ -2542,7 +2442,7 @@ ngx_http_rm_content_handler(ngx_http_request_t *r)
         }
     } else if (r->method == NGX_HTTP_POST){
         rc = ngx_http_rm_read_request_body(r, ngx_http_rm_dummy_post_handler);
-        
+
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
             return rc;
         }
@@ -2560,7 +2460,7 @@ ngx_http_rm_content_handler(ngx_http_request_t *r)
 #if 0
 static void
 ngx_http_rm_write_attack_log(ngx_http_request_t *r)
-{  
+{
     ngx_http_rm_loc_conf_t      *rlcf;
     ngx_str_t                   action;
 
@@ -2568,7 +2468,7 @@ ngx_http_rm_write_attack_log(ngx_http_request_t *r)
     action.data = (u_char *)ngx_http_ns_get_action_str(rlcf->action);
     action.len = ngx_strlen(action.data);
 
-    ngx_http_neteye_send_attack_log(r, NGX_HTTP_NETEYE_ATTACK_LOG_ID_AC, 
+    ngx_http_neteye_send_attack_log(r, NGX_HTTP_NETEYE_ATTACK_LOG_ID_AC,
             action, "robot_mitigation", NULL);
 }
 
@@ -2581,7 +2481,7 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
 
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "robot mitigation do action: %d", (int)rlcf->action);
 
     action = ngx_pcalloc(r->pool, sizeof(ngx_http_ns_action_t));
@@ -2595,7 +2495,7 @@ ngx_http_rm_do_action(ngx_http_request_t *r)
         action->redirect_page = &rlcf->error_page;
         action->in_body = 0;
     }
-    
+
     ret = ngx_http_ns_do_action(r, action);
     if (ret != NGX_OK) {
         ngx_http_rm_write_attack_log(r);
@@ -2617,17 +2517,18 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
         return NULL;
     }
 
-    conf->mode = NGX_HTTP_RM_MODE_JS;
-    conf->enabled = 0;
+    conf->mode = NGX_CONF_UNSET_UINT;
+    conf->enabled = NGX_CONF_UNSET;
 #if (NGX_HTTP_X_FORWARDED_FOR)
-    conf->ip_whitelist_x_forwarded_for = 0;
+    conf->ip_whitelist_x_forwarded_for = NGX_CONF_UNSET;
 #endif
-    conf->failed_count = -1;
+    conf->failed_count = NGX_CONF_UNSET;
     conf->timeout = NGX_HTTP_RM_DEFAULT_TIMEOUT;
     conf->cookie_name = cookie_name;
     conf->no_expires = 0;
     conf->whitelist_items = NULL;
-    conf->pass_ajax = 1;
+    conf->pass_ajax = NGX_CONF_UNSET;
+    conf->wl_caseless = NGX_CONF_UNSET;
 
     conf->cookie_name_c = cookie_name_c;
     conf->timeout_c = timeout_c;
@@ -2637,11 +2538,32 @@ static void* ngx_http_rm_create_loc_conf(ngx_conf_t *cf)
     return conf;
 }
 
+
 static char *
 ngx_http_rm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
+    ngx_http_rm_loc_conf_t *prev = parent;
+    ngx_http_rm_loc_conf_t *conf = child;
+
+    /* currently rm module only supports location level config,
+     * "merge" here is only used for setting default values.
+     */
+
+    ngx_conf_merge_value(conf->failed_count, prev->failed_count, -1);
+    ngx_conf_merge_uint_value(conf->mode, prev->mode, NGX_HTTP_RM_MODE_JS);
+
+    ngx_conf_merge_value(conf->enabled, prev->enabled, 0);
+#if (NGX_HTTP_X_FORWARDED_FOR)
+    ngx_conf_merge_value(conf->ip_whitelist_x_forwarded_for,
+            prev->ip_whitelist_x_forwarded_for, 0);
+#endif
+    ngx_conf_merge_value(conf->pass_ajax, prev->pass_ajax, 1);
+    ngx_conf_merge_value(conf->wl_caseless, prev->wl_caseless, 0);
+
+
     return NGX_CONF_OK;
 }
+
 
 static ngx_int_t
 ngx_http_rm_request_ctx_init(ngx_http_request_t *r)

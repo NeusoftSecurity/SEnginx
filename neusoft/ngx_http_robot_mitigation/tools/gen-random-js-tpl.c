@@ -10,7 +10,7 @@
 
 const char *tpl = "'X X(){X.X=\\\\'X=X; X-X=X; X=/\\\\';X.X.X()};X X(){X.X=\\\\'X=X; X-X=X; X=/\\\\';X.X.X()}'";
 const char *key_tpl = "'%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'.split('|')";
-const char *full_tpl = 
+const char *full_tpl =
     "\"<html><body onload=\\\"challenge();\\\"><script>eval(function(p,a,c,k,e,r){e=function(c){return c.toString(a)};if(!''.replace(/^/,String)){while(c--)r[e(c)]=k[c]||e(c);k=[function(e){return r[e]}];e=function(){return'\\\\\\\\w+'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\\\\\\\b'+e(c)+'\\\\\\\\b','g'),k[c]);return p}(%s,26,26,%s,0,{}))</script></body></html>\"";
 
 char maps[] = {
@@ -52,9 +52,9 @@ const char *tpl_p = "'X X(){X=\\\\'X=X\\\\';X.X=\\\\'X=X; X-X=X; X=/\\\\';X.X.X=
 
 const char *key_tpl_p = "'|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'.split('|')";
 
-const char *full_tpl_p = 
+const char *full_tpl_p =
     "\"<html><body onload=\\\"challenge();\\\"><script>eval(function(p,a,c,k,e,r){e=function(c){return c.toString(a)};if(!''.replace(/^/,String)){while(c--)r[e(c)]=k[c]||e(c);k=[function(e){return r[e]}];e=function(){return'\\\\\\\\w+'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\\\\\\\b'+e(c)+'\\\\\\\\b','g'),k[c]);return p}(%s,26,26,%s,0,{}))</script><form name=\\\"response\\\" method=\\\"post\\\">\"";
-    
+
 char maps_p[] = {
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b',
     'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
@@ -152,13 +152,13 @@ gen:
                 perror("malloc");
                 return -1;
             }
-            
+
             key_str = malloc(2048);
             if (key_str == NULL) {
                 perror("malloc");
                 return -1;
             }
-            
+
             full_str = malloc(2048);
             if (full_str == NULL) {
                 perror("malloc");
@@ -177,32 +177,32 @@ gen:
                 }
             }
 
-            snprintf(key_str, 2047, key_tpl, 
-                    keys_list_str[0], 
-                    keys_list_str[1], 
-                    keys_list_str[2], 
-                    keys_list_str[3], 
-                    keys_list_str[4], 
-                    keys_list_str[5], 
-                    keys_list_str[6], 
-                    keys_list_str[7], 
-                    keys_list_str[8], 
-                    keys_list_str[9], 
-                    keys_list_str[10], 
-                    keys_list_str[11], 
+            snprintf(key_str, 2047, key_tpl,
+                    keys_list_str[0],
+                    keys_list_str[1],
+                    keys_list_str[2],
+                    keys_list_str[3],
+                    keys_list_str[4],
+                    keys_list_str[5],
+                    keys_list_str[6],
+                    keys_list_str[7],
+                    keys_list_str[8],
+                    keys_list_str[9],
+                    keys_list_str[10],
+                    keys_list_str[11],
                     keys_list_str[12],
-                    keys_list_str[13], 
-                    keys_list_str[14], 
-                    keys_list_str[15], 
-                    keys_list_str[16], 
-                    keys_list_str[17], 
-                    keys_list_str[18], 
-                    keys_list_str[19], 
-                    keys_list_str[20], 
-                    keys_list_str[21], 
-                    keys_list_str[22], 
-                    keys_list_str[23], 
-                    keys_list_str[24], 
+                    keys_list_str[13],
+                    keys_list_str[14],
+                    keys_list_str[15],
+                    keys_list_str[16],
+                    keys_list_str[17],
+                    keys_list_str[18],
+                    keys_list_str[19],
+                    keys_list_str[20],
+                    keys_list_str[21],
+                    keys_list_str[22],
+                    keys_list_str[23],
+                    keys_list_str[24],
                     keys_list_str[25]
                     );
 
@@ -263,14 +263,14 @@ int gen_post_js(int range, int debug, int sub, int num)
     }
 
     memset(list, 0, sizeof(int) * range);
-    
+
     srandom(time(NULL));
 
     for (i = 0; i < num; i++) {
         for (j = 0; j < range; j++) {
 gen:
             tmp = random() % (range + 1);
-            
+
             if (tmp == 0) {
                 goto gen;
             }
@@ -292,7 +292,7 @@ gen:
             }
             printf("\n");
         }
-        
+
         if (sub == 1) {
             list_str = malloc(strlen(tpl_p) + 1);
             if (list_str == NULL) {
@@ -305,13 +305,13 @@ gen:
                 perror("malloc");
                 return -1;
             }
-            
+
             key_str = malloc(2048);
             if (key_str == NULL) {
                 perror("malloc");
                 return -1;
             }
-            
+
             full_str = malloc(2048);
             if (full_str == NULL) {
                 perror("malloc");
@@ -329,35 +329,35 @@ gen:
                     keys_list_str[list[j] - 1] = keys_p[j];
                 }
             }
-            
-            snprintf(key_str, 2047, key_tpl_p, 
-                    keys_list_str[0], 
-                    keys_list_str[1], 
-                    keys_list_str[2], 
-                    keys_list_str[3], 
-                    keys_list_str[4], 
-                    keys_list_str[5], 
-                    keys_list_str[6], 
-                    keys_list_str[7], 
-                    keys_list_str[8], 
-                    keys_list_str[9], 
-                    keys_list_str[10], 
-                    keys_list_str[11], 
+
+            snprintf(key_str, 2047, key_tpl_p,
+                    keys_list_str[0],
+                    keys_list_str[1],
+                    keys_list_str[2],
+                    keys_list_str[3],
+                    keys_list_str[4],
+                    keys_list_str[5],
+                    keys_list_str[6],
+                    keys_list_str[7],
+                    keys_list_str[8],
+                    keys_list_str[9],
+                    keys_list_str[10],
+                    keys_list_str[11],
                     keys_list_str[12],
                     keys_list_str[13],
                     keys_list_str[14],
-                    keys_list_str[15], 
-                    keys_list_str[16], 
-                    keys_list_str[17], 
-                    keys_list_str[18], 
-                    keys_list_str[19], 
-                    keys_list_str[20], 
+                    keys_list_str[15],
+                    keys_list_str[16],
+                    keys_list_str[17],
+                    keys_list_str[18],
+                    keys_list_str[19],
+                    keys_list_str[20],
                     keys_list_str[21],
-                    keys_list_str[22], 
-                    keys_list_str[23], 
+                    keys_list_str[22],
+                    keys_list_str[23],
                     keys_list_str[24]
                     );
-            
+
             snprintf(full_str, 2047, full_tpl_p, list_str, key_str);
 
             pos[0] = strstr(full_str, keys_p[3]) - full_str + 1 - 14;

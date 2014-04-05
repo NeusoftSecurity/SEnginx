@@ -27,7 +27,7 @@
 #define NGX_HTTP_RM_DEFAULT_URI NGX_HTTP_STATUS_PAGE_PATH"/403.html"
 
 #define NGX_HTTP_RM_GET_SWF_URI "NetEye-ADSG-AC-GET-"
-#define NGX_HTTP_RM_POST_SWF_URI "NetEye-ADSG-AC-POST-"  
+#define NGX_HTTP_RM_POST_SWF_URI "NetEye-ADSG-AC-POST-"
 
 #define NGX_HTTP_RM_DEFAULT_COOKIE_LEN 40
 #define NGX_HTTP_RM_DEFAULT_COOKIE_NAME_LEN 40
@@ -82,14 +82,13 @@ typedef struct {
 
 typedef struct {
     ngx_int_t                   failed_count;
-    ngx_int_t                   mode;
+    ngx_uint_t                  mode;
 
-    ngx_uint_t                  enabled:1;
-    ngx_uint_t                  ip_whitelist_x_forwarded_for:1;
-    ngx_uint_t                  wl_caseless:1;
-    ngx_uint_t                  log:1;
-    ngx_uint_t                  no_expires:1;
-    ngx_uint_t                  pass_ajax:1;
+    ngx_flag_t                  enabled;
+    ngx_flag_t                  ip_whitelist_x_forwarded_for;
+    ngx_flag_t                  pass_ajax;
+    ngx_flag_t                  wl_caseless;
+    ngx_flag_t                  no_expires;
     ngx_str_t                   cookie_name;
     ngx_str_t                   cookie_name_c;
     ngx_str_t                   timeout_c;
@@ -111,14 +110,15 @@ typedef struct {
 
 typedef struct {
     ngx_uint_t                 failed_count;
-    ngx_uint_t                 request_type;    /* 0 for first, 1 for not first */
+    /* 0 for first, 1 for not first */
+    ngx_uint_t                 request_type;
     ngx_int_t                  generate_time;
 } ngx_http_rm_session_ctx_t;
 
 typedef struct {
     ngx_http_request_t    *request;
     ngx_str_t              cookie;
-    
+
     ngx_str_t              cookie_f1;
     ngx_str_t              cookie_f2;
 

@@ -39,11 +39,11 @@ ngx_http_wl_init_main_conf(ngx_conf_t *cf, void *conf);
 static ngx_command_t ngx_http_wl_commands[] = {
 
     { ngx_string("whitelist_ua"),
-        NGX_HTTP_MAIN_CONF|NGX_CONF_BLOCK|NGX_CONF_TAKE1,
-        ngx_http_wl_ua,
-        NGX_HTTP_MAIN_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_CONF_BLOCK|NGX_CONF_TAKE1,
+      ngx_http_wl_ua,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      0,
+      NULL },
 
     ngx_null_command,
 };
@@ -260,7 +260,7 @@ ngx_http_wl_list_parse(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
         item->domain_name = NULL;
     }
 
-    ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0, 
+    ngx_conf_log_error(NGX_LOG_DEBUG, cf, 0,
             "http whitelist: "
             "regex pattern is \"%p\"", item->regex);
 
@@ -398,8 +398,8 @@ ngx_http_wl_dns_lookup(ngx_rbtree_t *tree, ngx_str_t *addr, uint32_t hash)
     return NULL;
 }
 
-static void 
-ngx_http_wl_dns_timeout_handler(ngx_event_t *event) 
+static void
+ngx_http_wl_dns_timeout_handler(ngx_event_t *event)
 {
     ngx_http_wl_dns_t               *node;
 
@@ -423,7 +423,7 @@ ngx_http_wl_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
     r->phase_handler = NGX_HTTP_NETEYE_SECURITY_PHASE;
     r->se_handler = ngx_http_wl_handler;
 
-    hash = ngx_crc32_short(r->connection->addr_text.data, 
+    hash = ngx_crc32_short(r->connection->addr_text.data,
             r->connection->addr_text.len);
     node = ngx_http_wl_dns_lookup(&ngx_http_wl_dns_rbtree,
             &r->connection->addr_text, hash);
@@ -433,7 +433,7 @@ ngx_http_wl_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
         if (node == NULL) {
             goto no_memory;
         }
-        
+
         if (ctx->name.len > 0) {
             node->name.data = calloc(1, ctx->name.len);
             if (node->name.data == NULL) {
@@ -446,7 +446,7 @@ ngx_http_wl_resolve_addr_handler(ngx_resolver_ctx_t *ctx)
         }
         node->name.len = ctx->name.len;
 
-        memcpy(node->addr, r->connection->addr_text.data, 
+        memcpy(node->addr, r->connection->addr_text.data,
                 r->connection->addr_text.len);
         node->len = r->connection->addr_text.len;
         node->timeout_ev.handler = ngx_http_wl_dns_timeout_handler;
@@ -586,7 +586,7 @@ ngx_http_wl_match_item(ngx_http_request_t *r, ngx_http_wl_list_t *list)
                         return NGX_ERROR;
                     }
 
-                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                             "wait for dns query response");
 
                     /* Stop request and waiting for the DNS response */

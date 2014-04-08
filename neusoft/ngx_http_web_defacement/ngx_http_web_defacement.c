@@ -29,15 +29,9 @@ ngx_http_wd_deface_variable(ngx_http_request_t *r,
 static ngx_int_t
 ngx_http_wd_handler(ngx_http_request_t *r);
 static char *
-ngx_http_wd(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_wd_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
 ngx_http_wd_original(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_wd_hash_data(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_wd_index(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t
 ngx_http_wd_init(ngx_conf_t *cf);
 static void *
@@ -51,46 +45,46 @@ ngx_http_wd_whitelist(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_command_t ngx_http_wd_commands[] = {
 
     { ngx_string("web_defacement"),
-        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_wd,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wd_loc_conf_t, enabled),
+      NULL },
 
     { ngx_string("web_defacement_log"),
-        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_wd_log,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wd_loc_conf_t, log_enabled),
+      NULL },
 
     { ngx_string("web_defacement_original"),
-        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_wd_original,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_wd_original,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
 
     { ngx_string("web_defacement_hash_data"),
-        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_wd_hash_data,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_wd_hash_data,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
 
     { ngx_string("web_defacement_index"),
-        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_wd_index,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_wd_loc_conf_t, index_file),
+      NULL },
 
     { ngx_string("web_defacement_whitelist"),
-        NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
-        ngx_http_wd_whitelist,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
+      ngx_http_wd_whitelist,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
 
     ngx_null_command,
 };
@@ -105,7 +99,6 @@ static ngx_http_variable_t  ngx_http_wd_vars[] = {
 
     { ngx_null_string, NULL, NULL, 0, 0, 0 }
 };
-
 
 
 static ngx_http_module_t ngx_http_wd_module_ctx = {
@@ -170,33 +163,6 @@ ngx_http_wd_init(ngx_conf_t *cf)
 #endif
 }
 
-static char *
-ngx_http_wd(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_wd_loc_conf_t *wdlcf = conf;
-    ngx_str_t              *value;
-
-    value = cf->args->elts;
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-        wdlcf->enabled = 1;
-    }
-    
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_wd_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_wd_loc_conf_t      *wdlcf = conf;
-    ngx_str_t                   *value;
-
-    value = cf->args->elts;
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-        wdlcf->log_enabled = 1;
-    }
- 
-    return NGX_CONF_OK;
-}
 
 static char *
 ngx_http_wd_parse_path(ngx_conf_t *cf, ngx_str_t *conf_path)
@@ -258,8 +224,8 @@ ngx_http_wd_original(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return ngx_http_wd_parse_path(cf, &wdlcf->orig_path);
 }
 
-static void 
-htoi(unsigned char *output, char *hex) 
+static void
+htoi(unsigned char *output, char *hex)
 {
     int count = 0;
     char *s;
@@ -290,7 +256,8 @@ htoi(unsigned char *output, char *hex)
     (sizeof(void *) + ngx_align((name)->key.len + 2, sizeof(void *)))
 
 static ngx_int_t
-ngx_wd_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
+ngx_wd_hash_init(ngx_hash_init_t *hinit,
+        ngx_hash_key_t *names, ngx_uint_t nelts)
 {
     u_char          *elts;
     size_t           len;
@@ -513,7 +480,7 @@ ngx_http_wd_hash_data(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         goto out;
     }
 
-    if (ngx_array_init(&file_names, cf->pool, line_num, 
+    if (ngx_array_init(&file_names, cf->pool, line_num,
                 sizeof(ngx_hash_key_t)) != NGX_OK) {
         ret = NGX_CONF_ERROR;
         goto out;
@@ -562,8 +529,8 @@ ngx_http_wd_hash_data(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     file_hash.name = "web_defacement_file_hash";
     file_hash.pool = cf->pool;
     file_hash.temp_pool = NULL;
-    
-    if (ngx_wd_hash_init(&file_hash, file_names.elts, 
+
+    if (ngx_wd_hash_init(&file_hash, file_names.elts,
                 file_names.nelts) != NGX_OK) {
         ret = NGX_CONF_ERROR;
     }
@@ -575,17 +542,6 @@ out:
     return ret;
 }
 
-static char *
-ngx_http_wd_index(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_wd_loc_conf_t *wdlcf = conf;
-    ngx_str_t              *value;
-
-    value = cf->args->elts;
-    wdlcf->index_file = value[1];
- 
-    return NGX_CONF_OK;
-}
 
 static void *
 ngx_http_wd_create_loc_conf(ngx_conf_t *cf)
@@ -617,7 +573,7 @@ ngx_http_wd_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_str_value(conf->orig_path, prev->orig_path, "");
     ngx_conf_merge_str_value(conf->index_file, prev->index_file, "");
 
-    if (conf->file_name_hash.buckets == NULL && 
+    if (conf->file_name_hash.buckets == NULL &&
             prev->file_name_hash.buckets != NULL) {
         conf->file_name_hash = prev->file_name_hash;
     }
@@ -629,7 +585,7 @@ ngx_http_wd_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
 static void
 ngx_http_wd_write_attack_log(ngx_http_request_t *r)
-{  
+{
 #ifndef NGX_HTTP_NETEYE_SECURITY
     char                        *agent = NULL;
     char                        *do_action = "running ";
@@ -639,25 +595,25 @@ ngx_http_wd_write_attack_log(ngx_http_request_t *r)
 #endif
 
 #if (NGX_HTTP_NETEYE_SECURITY)
-    ngx_http_neteye_send_attack_log(r, NGX_HTTP_NETEYE_ATTACK_LOG_ID_WD, 
+    ngx_http_neteye_send_attack_log(r, NGX_HTTP_NETEYE_ATTACK_LOG_ID_WD,
             ngx_string(""), "web_defacement", NULL);
 #else
     connection = r->connection;
     if (r->headers_in.user_agent != NULL) {
-        agent = ngx_pcalloc(r->pool, 
+        agent = ngx_pcalloc(r->pool,
                 r->headers_in.user_agent->value.len + 1);
         if (!agent) {
             return;
         }
 
-        memcpy(agent, r->headers_in.user_agent->value.data, 
+        memcpy(agent, r->headers_in.user_agent->value.data,
                 r->headers_in.user_agent->value.len);
     } else {
         agent = "n/a";
     }
 
     log = connection->log;
-    log->action = ngx_pcalloc(r->pool, ngx_strlen(do_action) + 
+    log->action = ngx_pcalloc(r->pool, ngx_strlen(do_action) +
             ngx_strlen(module_name) + 1);
     if (log->action == NULL) {
         return;
@@ -666,7 +622,7 @@ ngx_http_wd_write_attack_log(ngx_http_request_t *r)
     strcpy(log->action + ngx_strlen(do_action), module_name);
 
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-            "%s: agent: \"%s\"", 
+            "%s: agent: \"%s\"",
             "web_defacement", agent);
 #endif
 }
@@ -701,12 +657,12 @@ ngx_http_wd_handler(ngx_http_request_t *r)
     ngx_uint_t                          key;
     ssize_t                             rlen;
     ngx_http_wd_ctx_t                  *ctx;
-    
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "web defacement handler begin");
-    
+
     wdlcf = ngx_http_get_module_loc_conf(r, ngx_http_web_defacement_module);
-    
+
     if (!wdlcf->enabled || wdlcf->file_name_hash.buckets == NULL) {
         return NGX_DECLINED;
     }
@@ -759,10 +715,10 @@ ngx_http_wd_handler(ngx_http_request_t *r)
     file_path.data = n;
 
     key = ngx_hash_key_lc(file_path.data, file_path.len);
-    hash_value = ngx_hash_find(&wdlcf->file_name_hash, key, 
+    hash_value = ngx_hash_find(&wdlcf->file_name_hash, key,
             file_path.data, file_path.len);
     if (hash_value == NULL) {
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "In hash, can't find file %V, pass", &file_path);
         return NGX_DECLINED;
     } else {

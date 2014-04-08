@@ -15,8 +15,8 @@
 #define NGX_HTTP_PS_MONITOR_COOKIE       "monitor_cookie="
 #define NGX_HTTP_PS_TIMEOUT              "timeout="
 
-/* Our session_ctx conflict with the sesion_ctx define in 
- * openssl/ssl.h, we need to undefine it 
+/* Our session_ctx conflict with the sesion_ctx define in
+ * openssl/ssl.h, we need to undefine it
  */
 #undef session_ctx
 
@@ -24,7 +24,7 @@
 static u_char *ngx_http_upstream_ps_session_name = (u_char *)"persistence";
 #endif
 static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
- 
+
 static char *ngx_http_upstream_ps(ngx_conf_t *cf, ngx_command_t *cmd,
                                     void *conf);
 static ngx_int_t ngx_http_upstream_ps_init(ngx_conf_t *cf);
@@ -75,7 +75,7 @@ ngx_module_t  ngx_http_upstream_persistence_module = {
 };
 
 
-ngx_int_t ngx_http_upstream_ps_get(ngx_http_request_t *r, 
+ngx_int_t ngx_http_upstream_ps_get(ngx_http_request_t *r,
         ngx_uint_t peer_number,
         ngx_http_upstream_ps_group_t *group)
 {
@@ -83,18 +83,18 @@ ngx_int_t ngx_http_upstream_ps_get(ngx_http_request_t *r,
     ngx_int_t                               current;
 
     if (r == NULL || p_group == NULL) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "r or group is NULL\n");
         return -1;
     }
 
     if (p_group->ps_get == NULL) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "persistence get not set\n");
         return -1;
     }
- 
-    current = p_group->ps_get(r, group); 
+
+    current = p_group->ps_get(r, group);
     if (current >= (ngx_int_t)peer_number) {
         return -1;
     }
@@ -102,24 +102,24 @@ ngx_int_t ngx_http_upstream_ps_get(ngx_http_request_t *r,
     return current;
 }
 
-void ngx_http_upstream_ps_set(ngx_http_request_t *r, 
+void ngx_http_upstream_ps_set(ngx_http_request_t *r,
         ngx_uint_t current, void *group)
 {
     ngx_http_upstream_ps_group_t *p_group = group;
 
     if (r == NULL || p_group == NULL) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "r or group is NULL\n");
         return;
     }
 
     if (p_group->ps_set == NULL) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "persistence set not set\n");
         return;
     }
-    
-    p_group->ps_set(r, current, group); 
+
+    p_group->ps_set(r, current, group);
 }
 
 static ngx_int_t
@@ -131,17 +131,17 @@ ngx_http_upstream_ps_cookie_get_peer(ngx_http_request_t *r, ngx_str_t *data)
     n = ngx_http_parse_multi_header_lines(&r->headers_in.cookies,
             data, &index_string);
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "cookie_get_peer\n");
 
     if (n == NGX_DECLINED ) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "get peer failed\n");
         return -1;
     }
 
     if (index_string.len == 0) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "get peer failed, index string len is 0\n");
         return -1;
     }
@@ -150,7 +150,7 @@ ngx_http_upstream_ps_cookie_get_peer(ngx_http_request_t *r, ngx_str_t *data)
 }
 
 static void
-ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r, 
+ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r,
         ngx_uint_t current, ngx_str_t *opt, ngx_int_t timeout,
         ngx_str_t *value)
 {
@@ -159,11 +159,11 @@ ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r,
     u_char                          *tmp;
     u_char                          *cookie_opt = NULL;
     size_t                          len;
-    
-    
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "insert_cookie_refresh_peer\n");
-    len = value->len + strlen("=655350") + strlen("; ") + opt->len; 
+    len = value->len + strlen("=655350") + strlen("; ") + opt->len;
     if (timeout) {
         len += 38;
     }//38 is + strlen("; expires=Thu, 31-Dec-37 23:55:55 GMT") + 1;
@@ -191,7 +191,7 @@ ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r,
         tmp = ngx_sprintf(tmp, "%s", cookie_opt);
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
         "insert_cookie_refresh_peer: set cookie %s", cookie);
 
     set_cookie = ngx_list_push(&r->headers_out.headers);
@@ -206,7 +206,7 @@ ngx_http_upstream_ps_set_cookie(ngx_http_request_t *r,
     set_cookie->value.data = cookie;
 }
 
-static ngx_int_t ngx_http_upstream_ps_cookie_get(ngx_http_request_t *r, 
+static ngx_int_t ngx_http_upstream_ps_cookie_get(ngx_http_request_t *r,
         ngx_http_upstream_ps_group_t *group)
 {
     ngx_int_t       n;
@@ -223,7 +223,7 @@ static ngx_int_t ngx_http_upstream_ps_cookie_get(ngx_http_request_t *r,
     return ngx_http_upstream_ps_cookie_get_peer(r, &group->insert_cookie);
 }
 
-static void ngx_http_upstream_ps_cookie_set(ngx_http_request_t *r, 
+static void ngx_http_upstream_ps_cookie_set(ngx_http_request_t *r,
         ngx_uint_t current,
         ngx_http_upstream_ps_group_t *group)
 {
@@ -239,12 +239,12 @@ static void ngx_http_upstream_ps_cookie_set(ngx_http_request_t *r,
         return;
     }
 
-    ngx_http_upstream_ps_set_cookie(r, current, &opt_path, 
+    ngx_http_upstream_ps_set_cookie(r, current, &opt_path,
             group->timeout, &group->insert_cookie);
 }
 
 static void
-ngx_http_upstream_ps_get_cookie_opt(ngx_str_t *str, 
+ngx_http_upstream_ps_get_cookie_opt(ngx_str_t *str,
         char *name, ngx_str_t *result)
 {
     char                                    *sp; //';' postion in str
@@ -341,10 +341,10 @@ ngx_http_upstream_ps_header_filter(ngx_http_request_t *r)
             header = part->elts;
             i = 0;
         }
-        if (i < part->nelts && 
-                ngx_strncmp(header->key.data, "Set-Cookie", 
+        if (i < part->nelts &&
+                ngx_strncmp(header->key.data, "Set-Cookie",
                     header->key.len) == 0) {
-            ngx_http_upstream_ps_get_cookie_opt(&header->value, 
+            ngx_http_upstream_ps_get_cookie_opt(&header->value,
                     (char *)cookie_name->data, &monitor_cookie);
             if (monitor_cookie.len == 0) {
                 /* Not monitored cookie */
@@ -352,13 +352,13 @@ ngx_http_upstream_ps_header_filter(ngx_http_request_t *r)
             }
 
             if (group->timeout < 0) {
-                ngx_http_upstream_ps_get_cookie_opt(&header->value, 
+                ngx_http_upstream_ps_get_cookie_opt(&header->value,
                         "expires", &opt_expires);
             } else {
                 memset(&opt_expires, 0, sizeof(opt_expires));
             }
 
-            ngx_http_upstream_ps_get_cookie_opt(&header->value, 
+            ngx_http_upstream_ps_get_cookie_opt(&header->value,
                     "path", &opt_path);
             opt.len = opt_value.len + opt_expires.len + 2 + opt_path.len + 2;
             opt.data = ngx_pcalloc(r->pool, opt.len);
@@ -380,10 +380,10 @@ ngx_http_upstream_ps_header_filter(ngx_http_request_t *r)
 
             memcpy(tmp, opt_value.data, opt_value.len);
 
-            ngx_http_upstream_ps_set_cookie(r, r->current, &opt, 
+            ngx_http_upstream_ps_set_cookie(r, r->current, &opt,
                     group->timeout, &group->insert_cookie);
         }
-        header = (ngx_table_elt_t *)((char *)header + 
+        header = (ngx_table_elt_t *)((char *)header +
                 r->headers_out.headers.size);
     }
 
@@ -406,13 +406,13 @@ static ngx_int_t ngx_http_upstream_ps_proc_session_ctx(ngx_http_request_t *r,
 
     session = ngx_http_session_get(r);
     if (!session) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "get session failed, treat this session as new\n");
         return -1;
     }
 
     ngx_shmtx_lock(&session->mutex);
-    session_ctx = ngx_http_session_find_ctx(session, 
+    session_ctx = ngx_http_session_find_ctx(session,
             ngx_http_upstream_ps_session_name);
 
     if (!session_ctx) {
@@ -429,7 +429,7 @@ static ngx_int_t ngx_http_upstream_ps_proc_session_ctx(ngx_http_request_t *r,
     return 0;
 }
 
-static void 
+static void
 ngx_http_upstream_ps_get_current(ngx_http_upstream_ps_session_ctx_t *ps_ctx,
         void *data)
 {
@@ -439,12 +439,12 @@ ngx_http_upstream_ps_get_current(ngx_http_upstream_ps_session_ctx_t *ps_ctx,
     *ret = ps_ctx->server_index;
 }
 
-static ngx_int_t ngx_http_upstream_ps_session_get(ngx_http_request_t *r, 
+static ngx_int_t ngx_http_upstream_ps_session_get(ngx_http_request_t *r,
         ngx_http_upstream_ps_group_t *group)
 {
     ngx_int_t                               ret;
 
-    if (ngx_http_upstream_ps_proc_session_ctx(r, 
+    if (ngx_http_upstream_ps_proc_session_ctx(r,
                 ngx_http_upstream_ps_get_current, &ret) == -1) {
         return -1;
     }
@@ -452,7 +452,7 @@ static ngx_int_t ngx_http_upstream_ps_session_get(ngx_http_request_t *r,
     return ret;
 }
 
-static void 
+static void
 ngx_http_upstream_ps_set_current(ngx_http_upstream_ps_session_ctx_t *ps_ctx,
         void *data)
 {
@@ -469,13 +469,13 @@ static void ngx_http_upstream_ps_session_set(ngx_http_request_t *r,
         ngx_uint_t current,
         ngx_http_upstream_ps_group_t *group)
 {
-    ngx_http_upstream_ps_proc_session_ctx(r, 
+    ngx_http_upstream_ps_proc_session_ctx(r,
                 ngx_http_upstream_ps_set_current, &current);
 }
 #endif
 
 static char *
-ngx_http_upstream_ps_config(ngx_http_upstream_ps_group_t 
+ngx_http_upstream_ps_config(ngx_http_upstream_ps_group_t
         *group, ngx_conf_t *cf)
 {
     ngx_str_t                        *value;
@@ -544,7 +544,7 @@ ngx_http_upstream_ps_config(ngx_http_upstream_ps_group_t
                 group->timeout = -1;
                 continue;
             }
-            group->timeout = ngx_atoi(timeout, 
+            group->timeout = ngx_atoi(timeout,
                     value[i].len - ngx_strlen(NGX_HTTP_PS_TIMEOUT));
             if (group->timeout <= 0) {
                 return "timeout must bigger then 0";
@@ -582,7 +582,7 @@ ngx_http_upstream_ps(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 #if (NGX_HTTP_SESSION)
-static ngx_int_t 
+static ngx_int_t
 ngx_http_upstream_ps_init_ctx_handler(void *ctx)
 {
     ngx_http_session_ctx_t                  *session_ctx;
@@ -591,7 +591,7 @@ ngx_http_upstream_ps_init_ctx_handler(void *ctx)
     session_ctx = (ngx_http_session_ctx_t *)ctx;
 
     /* initial session ctx */
-    session_ctx->data = 
+    session_ctx->data =
         ngx_http_session_shm_alloc_nolock(sizeof(*ps_ctx));
     if (!session_ctx->data) {
         fprintf(stderr, "create ac ctx error\n");
@@ -603,7 +603,7 @@ ngx_http_upstream_ps_init_ctx_handler(void *ctx)
     return NGX_OK;
 }
 
-static void 
+static void
 ngx_http_upstream_ps_destroy_ctx_handler(void *ctx)
 {
     ngx_http_session_ctx_t *session_ctx;

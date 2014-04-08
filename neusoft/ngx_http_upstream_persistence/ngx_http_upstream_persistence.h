@@ -10,14 +10,14 @@
 #include <ngx_http.h>
 
 typedef struct ngx_http_upstream_ps_group_s {
-    ngx_int_t                               (*ps_get)(ngx_http_request_t *r, 
-                                                    struct ngx_http_upstream_ps_group_s *group);
-    void                                    (*ps_set)(ngx_http_request_t *r, 
-                                                    ngx_uint_t current,
-                                                    struct ngx_http_upstream_ps_group_s *group);
-    ngx_str_t                               insert_cookie;
-    ngx_str_t                               monitor_cookie;
-    ngx_int_t                               timeout;
+    ngx_int_t              (*ps_get)(ngx_http_request_t *r,
+                           struct ngx_http_upstream_ps_group_s *group);
+    void                   (*ps_set)(ngx_http_request_t *r,
+                           ngx_uint_t current,
+                           struct ngx_http_upstream_ps_group_s *group);
+    ngx_str_t              insert_cookie;
+    ngx_str_t              monitor_cookie;
+    ngx_int_t              timeout;
 }ngx_http_upstream_ps_group_t;
 
 typedef struct {
@@ -27,7 +27,7 @@ typedef struct {
 extern ngx_int_t ngx_http_upstream_ps_get(ngx_http_request_t *r,
         ngx_uint_t peer_number,
         ngx_http_upstream_ps_group_t *group);
-extern void ngx_http_upstream_ps_set(ngx_http_request_t *r, 
+extern void ngx_http_upstream_ps_set(ngx_http_request_t *r,
         ngx_uint_t current, void *group);
 
 #endif

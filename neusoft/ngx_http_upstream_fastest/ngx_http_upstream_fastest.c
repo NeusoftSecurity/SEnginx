@@ -12,7 +12,7 @@
 #define NGX_HTTP_FASTEST_VALID_TIME_LENGTH          (60*1000)      //ms
 
 typedef struct {
-    ngx_uint_t                          response_msec; 
+    ngx_uint_t                          response_msec;
     ngx_uint_t                          last_access_msec;
 } ngx_http_upstream_fastest_access_t;
 
@@ -26,7 +26,7 @@ typedef struct {
     ngx_http_upstream_rr_peer_data_t   rrp;
 
     ngx_http_upstream_fastest_access_t *conns;
-    ngx_uint_t                         accessed_msec; 
+    ngx_uint_t                         accessed_msec;
 
     ngx_event_get_peer_pt              get_rr_peer;
     ngx_event_free_peer_pt             free_rr_peer;
@@ -114,7 +114,8 @@ ngx_http_upstream_init_fastest(ngx_conf_t *cf,
     lcf = ngx_http_conf_upstream_srv_conf(us,
                                           ngx_http_upstream_fastest_module);
 
-    lcf->conns = ngx_pcalloc(cf->pool, sizeof(ngx_http_upstream_fastest_access_t) * n);
+    lcf->conns = ngx_pcalloc(cf->pool,
+            sizeof(ngx_http_upstream_fastest_access_t) * n);
     if (lcf->conns == NULL) {
         return NGX_ERROR;
     }
@@ -295,7 +296,7 @@ ngx_http_upstream_get_fastest_peer(ngx_peer_connection_t *pc, void *data)
     fp->accessed_msec = ngx_current_msec;
 
 #if (NGX_HTTP_PERSISTENCE)
-    ngx_http_upstream_ps_set(fp->rrp.request, fp->rrp.current, 
+    ngx_http_upstream_ps_set(fp->rrp.request, fp->rrp.current,
             fp->rrp.group);
 #endif
     return NGX_OK;
@@ -370,7 +371,7 @@ ngx_http_upstream_free_fastest_peer(ngx_peer_connection_t *pc,
         peer->response_msec = (elapsed + peer->response_msec * 7) / 8;
     }
 
-    peer->last_access_msec = ngx_current_msec; 
+    peer->last_access_msec = ngx_current_msec;
 
     fp->free_rr_peer(pc, &fp->rrp, state);
 }

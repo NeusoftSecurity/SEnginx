@@ -21,84 +21,68 @@
 #endif
 
 static char *
-ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_session_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
 ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_session_redirect_timeout(ngx_conf_t *cf, 
-            ngx_command_t *cmd, void *conf);
-static char *
-ngx_http_session_show(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-
-static ngx_int_t 
+static ngx_int_t
 ngx_http_session_filter_init(ngx_conf_t *cf);
-
 static void *
 ngx_http_session_create_loc_conf(ngx_conf_t *cf);
 static char *
 ngx_http_session_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
-
 static ngx_int_t
 ngx_http_session_request_ctx_init(ngx_http_request_t *r);
-
 static ngx_int_t
 ngx_http_session_request_cleanup_init(ngx_http_request_t *r);
-
-static ngx_int_t 
+static ngx_int_t
 __ngx_http_session_delete(ngx_http_session_t *session);
-
 static ngx_int_t
 ngx_http_session_pre_init(ngx_conf_t *cf);
+
 
 static ngx_command_t  ngx_http_session_commands[] = {
 
     { ngx_string("session"),
-        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_session,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_session_conf_t, enabled),
+      NULL },
 
     { ngx_string("session_max_size"),
-        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
-        ngx_http_session_number,
-        NGX_HTTP_MAIN_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_http_session_number,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      0,
+      NULL },
 
     { ngx_string("session_cookie_name"),
-        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_session_name,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_session_conf_t, keyword),
+      NULL },
 
     { ngx_string("session_timeout"),
-        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_session_timeout,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_session_conf_t, timeout),
+      NULL },
 
     { ngx_string("session_redirect_timeout"),
-        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_session_redirect_timeout,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_session_conf_t, redirect_timeout),
+      NULL },
 
     { ngx_string("session_show"),
-        NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-        ngx_http_session_show,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL },
+      NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_session_conf_t, session_show_enabled),
+      NULL },
 
-    ngx_null_command 
+    ngx_null_command
 };
 
 
@@ -132,15 +116,17 @@ ngx_module_t  ngx_http_session_module = {
     NGX_MODULE_V1_PADDING
 };
 
+
 static ngx_shm_zone_t *ngx_http_session_shm_zone;
 static ngx_http_session_create_ctx_t ctx_handlers[NGX_HTTP_SESSION_MAX_CTX];
+
 
 static ngx_int_t
 ngx_http_session_pre_init(ngx_conf_t *cf)
 {
     memset(ctx_handlers, 0, sizeof(ngx_http_session_create_ctx_t)
             * NGX_HTTP_SESSION_MAX_CTX);
-    
+
     return NGX_OK;
 }
 
@@ -161,7 +147,7 @@ ngx_http_session_gen_sid(ngx_http_request_t *r, ngx_str_t *sid)
 
     memcpy(source, r->connection->addr_text.data, r->connection->addr_text.len);
     source_len += r->connection->addr_text.len;
-    
+
     ret = getpeername(r->connection->fd, (struct sockaddr *)&sa, &peer_len);
     if (ret < 0) {
         return NGX_ERROR;
@@ -173,7 +159,7 @@ ngx_http_session_gen_sid(ngx_http_request_t *r, ngx_str_t *sid)
     }
 
     peer_addr = (struct sockaddr_in *)sa;
-    port_time_len = sprintf((char *)source + source_len, ":%d %d.%d", 
+    port_time_len = sprintf((char *)source + source_len, ":%d %d.%d",
             peer_addr->sin_port, (int)ngx_time(), (int)time->msec);
 
     if (port_time_len <= 0) {
@@ -197,6 +183,7 @@ ngx_http_session_gen_sid(ngx_http_request_t *r, ngx_str_t *sid)
     return NGX_OK;
 }
 
+
 static ngx_int_t
 ngx_http_session_cookie_hash(ngx_http_request_t *r, ngx_str_t *cookie)
 {
@@ -215,7 +202,7 @@ ngx_http_session_cookie_hash(ngx_http_request_t *r, ngx_str_t *cookie)
     }
 
     memcpy(k, cookie->data, cookie->len);
-    memcpy(k + cookie->len, cscf->virtual_server_name.data, 
+    memcpy(k + cookie->len, cscf->virtual_server_name.data,
             cscf->virtual_server_name.len);
 
     while (len) {
@@ -229,11 +216,12 @@ ngx_http_session_cookie_hash(ngx_http_request_t *r, ngx_str_t *cookie)
 
     ha = h % NGX_HTTP_SESSION_DEFAULT_NUMBER;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
         "session hash: %u\n", ha);
 
     return ha;
 }
+
 
 static ngx_http_session_t *
 __ngx_http_session_search(ngx_http_request_t *r, ngx_str_t *cookie)
@@ -241,20 +229,20 @@ __ngx_http_session_search(ngx_http_request_t *r, ngx_str_t *cookie)
     ngx_http_session_list_t          *session_list;
     ngx_http_session_t               *tmp;
     ngx_int_t                        hash;
-    
+
     session_list = ngx_http_session_shm_zone->data;
-    
+
     hash = ngx_http_session_cookie_hash(r, cookie);
-   
+
     tmp = session_list->sessions[hash];
     if (!tmp) {
         return NULL;
     }
-        
+
     while (tmp) {
         if (!memcmp(tmp->id, cookie->data, cookie->len)
                 && !tmp->des > 0) {
-            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+            ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "session search ok, id: %s, addr: %p\n", tmp->id, tmp);
             return tmp;
         }
@@ -264,6 +252,7 @@ __ngx_http_session_search(ngx_http_request_t *r, ngx_str_t *cookie)
 
     return NULL;
 }
+
 
 static ngx_int_t
 __ngx_http_session_get_ref(ngx_http_request_t *r)
@@ -276,6 +265,7 @@ __ngx_http_session_get_ref(ngx_http_request_t *r)
     return NGX_OK;
 }
 
+
 static ngx_int_t
 ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
 {
@@ -285,24 +275,24 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
     ngx_http_session_conf_t         *sscf;
     u_char                           file[64];
     ngx_int_t                        i;
-    
+
     sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
-    
+
     session_list = ngx_http_session_shm_zone->data;
-    
+
     ngx_shmtx_lock(&session_list->shpool->mutex);
 
-    session = ngx_slab_alloc_locked(session_list->shpool, 
+    session = ngx_slab_alloc_locked(session_list->shpool,
             sizeof(ngx_http_session_t));
     if (session == NULL) {
-        ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0, 
+        ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,
                 "slab alloc failed");
 
         ngx_shmtx_unlock(&session_list->shpool->mutex);
         return NGX_ERROR;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
         "session create: %p\n", session);
 
     memset(session, 0, sizeof(ngx_http_session_t));
@@ -310,7 +300,7 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
 
     /* hang session to hash table */
     hash = ngx_http_session_cookie_hash(r, cookie);
-   
+
     if (session_list->sessions[hash]) {
         tmp = session_list->sessions[hash];
 
@@ -331,7 +321,7 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
     memset(file, 0, 64);
     sprintf((char *)file, "/var/tmp/%s", session->id);
 
-    if (ngx_shmtx_create(&session->mutex, (void *)&session->lock, 
+    if (ngx_shmtx_create(&session->mutex, (void *)&session->lock,
                 file) != NGX_OK) {
         ngx_shmtx_unlock(&session_list->shpool->mutex);
         ngx_slab_free_locked(session_list->shpool, session);
@@ -357,6 +347,7 @@ ngx_http_session_insert(ngx_http_request_t *r, ngx_str_t *cookie)
     return NGX_OK;
 }
 
+
 static ngx_int_t
 __ngx_http_session_ctx_delete(ngx_http_session_t *session)
 {
@@ -364,7 +355,7 @@ __ngx_http_session_ctx_delete(ngx_http_session_t *session)
     ngx_http_session_ctx_t *ctx;
 
     ctx = session->ctx;
-    
+
     for (i = 0; i < NGX_HTTP_SESSION_MAX_CTX; i++) {
         if (ctx[i].in_use) {
             if (ctx[i].data && ctx[i].destroy) {
@@ -378,14 +369,15 @@ __ngx_http_session_ctx_delete(ngx_http_session_t *session)
     return NGX_OK;
 }
 
-static ngx_int_t 
+
+static ngx_int_t
 __ngx_http_session_delete(ngx_http_session_t *session)
 {
     ngx_int_t ret;
     ngx_http_session_list_t          *session_list;
-    
+
     session_list = ngx_http_session_shm_zone->data;
- 
+
     if (!session->ref) {
         if (!session->next && !session->prev) {
             /* the only node in the chain */
@@ -418,7 +410,8 @@ __ngx_http_session_delete(ngx_http_session_t *session)
     return ret;
 }
 
-ngx_int_t 
+
+ngx_int_t
 ngx_http_session_delete(ngx_http_request_t *r)
 {
     ngx_http_session_list_t          *session_list;
@@ -433,7 +426,7 @@ ngx_http_session_delete(ngx_http_request_t *r)
     cookie.len = strlen(old->id);
 
     session_list = ngx_http_session_shm_zone->data;
-    
+
     ngx_shmtx_lock(&session_list->shpool->mutex);
 
     session = __ngx_http_session_search(r, &cookie);
@@ -456,19 +449,21 @@ ngx_http_session_delete(ngx_http_request_t *r)
     return NGX_OK;
 }
 
+
 static ngx_int_t
-__ngx_http_session_put_ref(ngx_http_request_t *r) 
+__ngx_http_session_put_ref(ngx_http_request_t *r)
 {
     ngx_http_session_t *session;
-   
+
     session = ngx_http_session_get_request_session(r);
     session->ref--;
-   
+
     if (session->ref == 0)
         ngx_http_session_clr_request_session(r);
 
     return NGX_OK;
 }
+
 
 static ngx_int_t
 ngx_http_session_is_favico(ngx_http_request_t *r)
@@ -476,7 +471,7 @@ ngx_http_session_is_favico(ngx_http_request_t *r)
     char *favico = "/favicon.ico";
     ngx_uint_t len = strlen(favico);
 
-    if (r->uri.len != len) 
+    if (r->uri.len != len)
         return 0;
 
     if (!memcmp(favico, (char *)r->uri.data, len))
@@ -484,6 +479,7 @@ ngx_http_session_is_favico(ngx_http_request_t *r)
 
     return 0;
 }
+
 
 static ngx_int_t
 ngx_http_session_handler(ngx_http_request_t *r)
@@ -494,12 +490,12 @@ ngx_http_session_handler(ngx_http_request_t *r)
     ngx_str_t                           sid;
     ngx_str_t                           cookie;
     ngx_int_t                           ret;
-    
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "session handler begin");
-    
+
     sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
-    
+
     if (!sscf->enabled) {
         return NGX_DECLINED;
     }
@@ -507,31 +503,31 @@ ngx_http_session_handler(ngx_http_request_t *r)
     if (ngx_http_session_request_cleanup_init(r) == NGX_ERROR) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-    
+
     if (sscf->session_show_enabled
             || ngx_http_session_is_favico(r)) {
         ngx_http_session_set_bypass(r);
         ngx_http_session_clr_found(r);
-        
+
         return NGX_DECLINED;
     }
 
     memset(&cookie, 0, sizeof(ngx_str_t));
 
-    ret = ngx_http_parse_multi_header_lines(&r->headers_in.cookies, 
+    ret = ngx_http_parse_multi_header_lines(&r->headers_in.cookies,
             &sscf->keyword, &cookie);
 
     session_list = ngx_http_session_shm_zone->data;
 
     if (ret == NGX_DECLINED || cookie.len == 0) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "new session, create one when response");
         goto create_session;
     }
 
     session = __ngx_http_session_search(r, &cookie);
     if (!session) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "session time out!");
         ngx_shmtx_unlock(&session_list->shpool->mutex);
 create_session:
@@ -554,7 +550,7 @@ create_session:
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
     } else {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "find a session");
 
         ngx_http_session_set_found(r);
@@ -563,8 +559,8 @@ create_session:
         __ngx_http_session_get_ref(r);
 
         /* reset timer */
-        ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-            "session: %p, ter_time: %d, ref: %d, good: %d\n", 
+        ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "session: %p, ter_time: %d, ref: %d, good: %d\n",
             session, session->ter_time, session->ref, session->good);
 
         session->ter_time = ngx_time() + sscf->timeout;
@@ -575,7 +571,8 @@ create_session:
     return NGX_DECLINED;
 }
 
-static ngx_int_t 
+
+static ngx_int_t
 ngx_http_session_header_filter(ngx_http_request_t *r)
 {
     ngx_http_session_conf_t      *sscf;
@@ -585,7 +582,7 @@ ngx_http_session_header_filter(ngx_http_request_t *r)
     u_char                           *cookie;
     ngx_http_session_t               *session;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "session filter begin\n");
 
     sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
@@ -622,7 +619,7 @@ ngx_http_session_header_filter(ngx_http_request_t *r)
     }
 
     cookie = ngx_pcalloc(r->pool, (strlen((char *)sscf->keyword.data) + 2 +
-                NGX_HTTP_SESSION_DEFAULT_SID_LEN + 
+                NGX_HTTP_SESSION_DEFAULT_SID_LEN +
                 strlen("; Path=/; HttpOnly")));
     if (cookie == NULL) {
         ngx_http_session_put(r);
@@ -631,7 +628,7 @@ ngx_http_session_header_filter(ngx_http_request_t *r)
 
     ngx_sprintf(cookie, "%s=%s; Path=/; HttpOnly",
             sscf->keyword.data, session->id);
-    
+
     ngx_http_session_put(r);
 
     set_cookie = ngx_list_push(&r->headers_out.headers);
@@ -645,18 +642,19 @@ ngx_http_session_header_filter(ngx_http_request_t *r)
     set_cookie->value.len = ngx_strlen(cookie);
     set_cookie->value.data = cookie;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "filter end\n");
 
     return NGX_DECLINED;
 }
 
+
 static ngx_int_t
 ngx_http_session_filter_init(ngx_conf_t *cf)
 {
     ngx_int_t                           ret;
-    
-    ret = ngx_http_neteye_security_ctx_register(NGX_HTTP_NETEYE_SESSION, 
+
+    ret = ngx_http_neteye_security_ctx_register(NGX_HTTP_NETEYE_SESSION,
             ngx_http_session_request_ctx_init);
 
     if (ret != NGX_OK) {
@@ -664,15 +662,16 @@ ngx_http_session_filter_init(ngx_conf_t *cf)
     }
 
     ret = ngx_http_neteye_security_header_register(
-	    NGX_HTTP_NETEYE_SESSION, ngx_http_session_header_filter);
+            NGX_HTTP_NETEYE_SESSION, ngx_http_session_header_filter);
 
     if (ret != NGX_OK) {
         return ret;
     }
-    
-    return ngx_http_neteye_security_request_register(NGX_HTTP_NETEYE_SESSION, 
+
+    return ngx_http_neteye_security_request_register(NGX_HTTP_NETEYE_SESSION,
             ngx_http_session_handler);
 }
+
 
 static ngx_int_t
 ngx_http_session_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
@@ -712,6 +711,7 @@ ngx_http_session_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
     return NGX_OK;
 }
 
+
 static ngx_int_t
 ngx_http_session_manager(void)
 {
@@ -746,42 +746,6 @@ ngx_http_session_manager(void)
     return NGX_OK;
 }
 
-static char *
-ngx_http_session(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_session_conf_t     *sscf = conf;
-    ngx_str_t                       *value;
-
-    value = cf->args->elts;
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-         sscf->enabled = 1;
-         cf->cycle->session_callback = ngx_http_session_manager;
-         cf->cycle->session_enabled = 1;
-    } else if (!strncmp((char *)(value[1].data), "off", value[1].len)) {
-         sscf->enabled = 0;
-    } else {
-        return "unknow session param";
-    }
-
-    if (ngx_http_session_shm_zone == NULL) {
-        return "not config session_max_size";
-    }
-
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_session_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_session_conf_t     *sscf = conf;
-    ngx_str_t                       *value;
-
-    value = cf->args->elts;
-
-    sscf->keyword = value[1];
-
-    return NGX_CONF_OK;
-}
 
 static char *
 ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
@@ -801,11 +765,11 @@ ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     shm_name->len = sizeof("session");
     shm_name->data = (unsigned char *) "session";
 
-    shm_size = (sizeof(ngx_http_session_t) + 
-            NGX_HTTP_SESSION_CTX_SIZE) * number + 
+    shm_size = (sizeof(ngx_http_session_t) +
+            NGX_HTTP_SESSION_CTX_SIZE) * number +
             sizeof(ngx_http_session_list_t);
     ngx_http_session_shm_zone = ngx_shared_memory_add(
-            cf, shm_name, shm_size, 
+            cf, shm_name, shm_size,
             &ngx_http_session_module);
 
     if (ngx_http_session_shm_zone == NULL) {
@@ -813,43 +777,6 @@ ngx_http_session_number(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     ngx_http_session_shm_zone->init = ngx_http_session_init_shm_zone;
-
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_session_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_http_session_conf_t *sscf = conf;
-    ngx_str_t        *value;
-
-    value = cf->args->elts;
-    sscf->timeout = ngx_atoi(value[1].data, value[1].len);
-
-    if (sscf->timeout < 20) {
-        return "Invalid timeout value, must larger than 20 seconds";
-    }
-
-    if (sscf->timeout == 0) {
-        sscf->timeout = NGX_HTTP_SESSION_DEFAULT_TMOUT;
-    }
-
-    return NGX_CONF_OK;
-}
-
-static char *
-ngx_http_session_redirect_timeout(ngx_conf_t *cf, ngx_command_t *cmd, 
-        void *conf)
-{
-    ngx_http_session_conf_t     *sscf = conf;
-    ngx_str_t                   *value;
-
-    value = cf->args->elts;
-    sscf->redirect_timeout = ngx_atoi(value[1].data, value[1].len);
-
-    if (sscf->redirect_timeout <= 0) {
-        return "Invalid timeout value, must larger than 0 seconds";
-    }
 
     return NGX_CONF_OK;
 }
@@ -866,28 +793,29 @@ ngx_http_session_show_handler(ngx_http_request_t *r)
     ngx_http_session_list_t          *session_list;
     ngx_http_session_t               *tmp;
     ngx_http_session_conf_t      *sscf;
-    const char                       *banner = 
+    const char                       *banner =
         "Session mechanism is not enabled on this v-server<br>";
 
     ngx_http_session_set_bypass(r);
 
     sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
-    
+
     test = ngx_pcalloc(r->pool, sizeof(ngx_str_t));
     if (!test) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    test->data = ngx_pcalloc(r->pool, 
-            NGX_HTTP_SESSION_DEFAULT_NUMBER * sizeof(ngx_http_session_t) + 1024);
+    test->data = ngx_pcalloc(r->pool,
+            NGX_HTTP_SESSION_DEFAULT_NUMBER * sizeof(ngx_http_session_t)
+            + 1024);
     if (!test->data) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-    
+
     if (!sscf->enabled) {
         memcpy(test->data, banner, strlen(banner));
         test->len = strlen(banner);
-        
+
         goto not_enabled;
     } else {
         memcpy(test->data, "Session(s): <br>", strlen("Session(s): <br>"));
@@ -904,9 +832,9 @@ ngx_http_session_show_handler(ngx_http_request_t *r)
         }
 
         while (tmp) {
-            j = sprintf((char *)(test->data + test->len), 
+            j = sprintf((char *)(test->data + test->len),
                     "id: %s, timeout: %d, des: %d, ref: %d <br>",
-                    tmp->id, (int)(tmp->ter_time - ngx_time()), 
+                    tmp->id, (int)(tmp->ter_time - ngx_time()),
                     tmp->des, tmp->ref);
 
             test->len += j;
@@ -925,7 +853,7 @@ ngx_http_session_show_handler(ngx_http_request_t *r)
 not_enabled:
     b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
     if (b == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                 "Failed to allocate response buffer.");
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -949,30 +877,10 @@ not_enabled:
     if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
         return rc;
     }
-    
+
     return ngx_http_output_filter(r, &out);
 }
 
-static char *
-ngx_http_session_show(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    ngx_str_t        *value;
-    ngx_http_core_loc_conf_t  *clcf;
-    ngx_http_session_conf_t  *sscf = conf;
-
-    value = cf->args->elts;
-
-    if (!strncmp((char *)(value[1].data), "on", value[1].len)) {
-         sscf->session_show_enabled = 1;
-    }
-
-    if (sscf->session_show_enabled) {
-        clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
-        clcf->handler = ngx_http_session_show_handler;
-    }
-
-    return NGX_CONF_OK;
-}
 
 static void *
 ngx_http_session_create_loc_conf(ngx_conf_t *cf)
@@ -987,37 +895,53 @@ ngx_http_session_create_loc_conf(ngx_conf_t *cf)
     conf->enabled = NGX_CONF_UNSET;
     conf->timeout = NGX_CONF_UNSET;
     conf->redirect_timeout = NGX_CONF_UNSET;
-    conf->keyword.data = NGX_CONF_UNSET_PTR;
-    conf->keyword.len = NGX_CONF_UNSET_SIZE;
-    conf->session_show_enabled = 0;
+    conf->session_show_enabled = NGX_CONF_UNSET;
 
     return conf;
 }
+
 
 static char *
 ngx_http_session_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
     ngx_http_session_conf_t  *prev = parent;
     ngx_http_session_conf_t  *conf = child;
+    ngx_http_core_loc_conf_t *clcf;
 
     ngx_conf_merge_value(conf->enabled, prev->enabled, 0);
-    ngx_conf_merge_value(conf->timeout, prev->timeout, 
+    if (conf->enabled) {
+        if (ngx_http_session_shm_zone == NULL) {
+            return "no session_max_size is set";
+        }
+
+        cf->cycle->session_callback = ngx_http_session_manager;
+        cf->cycle->session_enabled = 1;
+    }
+
+    ngx_conf_merge_value(conf->timeout, prev->timeout,
             NGX_HTTP_SESSION_DEFAULT_TMOUT);
-    ngx_conf_merge_value(conf->redirect_timeout, prev->redirect_timeout, 
+    ngx_conf_merge_value(conf->redirect_timeout, prev->redirect_timeout,
             NGX_HTTP_SESSION_DEFAULT_REDIRECT_TMOUT);
-    ngx_conf_merge_ptr_value(conf->keyword.data, prev->keyword.data, 
-            (u_char *)NGX_HTTP_SESSION_DEFAULT_COOKIE);
-    ngx_conf_merge_size_value(conf->keyword.len, prev->keyword.len, 
-            strlen(NGX_HTTP_SESSION_DEFAULT_COOKIE));
+    ngx_conf_merge_str_value(conf->keyword, prev->keyword,
+            NGX_HTTP_SESSION_DEFAULT_COOKIE);
 
     if (conf->redirect_timeout > conf->timeout) {
-        fprintf(stderr, "redirect timeout = %d, timeout = %d\n", 
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                "redirect timeout is %d, timeout is %d\n",
                 (int)conf->redirect_timeout, (int)conf->timeout);
-        return "redirect timeout must not large then session timeout";
+        return "redirect timeout must not be larger than session timeout";
+    }
+
+    ngx_conf_merge_value(conf->session_show_enabled,
+            prev->session_show_enabled, 0);
+    if (conf->session_show_enabled) {
+        clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
+        clcf->handler = ngx_http_session_show_handler;
     }
 
     return NGX_CONF_OK;
 }
+
 
 void * ngx_http_session_shm_alloc(size_t size)
 {
@@ -1047,8 +971,9 @@ void ngx_http_session_shm_free(void *p)
 
     ngx_shmtx_unlock(&session_list->shpool->mutex);
 
-    return; 
+    return;
 }
+
 
 void * ngx_http_session_shm_alloc_nolock(size_t size)
 {
@@ -1062,18 +987,20 @@ void * ngx_http_session_shm_alloc_nolock(size_t size)
     return p;
 }
 
+
 void ngx_http_session_shm_free_nolock(void *p)
 {
     ngx_http_session_list_t          *session_list;
 
     session_list = ngx_http_session_shm_zone->data;
-    
+
     ngx_slab_free_locked(session_list->shpool, p);
 
-    return; 
+    return;
 }
 
-ngx_http_session_ctx_t * 
+
+ngx_http_session_ctx_t *
 ngx_http_session_find_ctx(ngx_http_session_t *session, u_char *name)
 {
     ngx_int_t                        i, found = -1;
@@ -1086,7 +1013,7 @@ ngx_http_session_find_ctx(ngx_http_session_t *session, u_char *name)
                 && !strcmp((char *)(ctx[i].name), (char *)name)) {
             /* find a ctx */
             found = i;
-            
+
             return &ctx[found];
         }
     }
@@ -1094,11 +1021,12 @@ ngx_http_session_find_ctx(ngx_http_session_t *session, u_char *name)
     return NULL;
 }
 
+
 /*
  * no lock in this function must lock before use
  */
-ngx_http_session_ctx_t * 
-ngx_http_session_create_ctx(ngx_http_session_t *session, u_char *name, 
+ngx_http_session_ctx_t *
+ngx_http_session_create_ctx(ngx_http_session_t *session, u_char *name,
         ngx_int_t (*init)(void *ctx), void (*destroy)(void *ctx))
 {
     ngx_int_t                        i;
@@ -1116,7 +1044,7 @@ ngx_http_session_create_ctx(ngx_http_session_t *session, u_char *name,
     }
 
     ctx = session->ctx;
-    
+
     for (i = 0; i < NGX_HTTP_SESSION_MAX_CTX; i++) {
         if (ctx[i].in_use == 0) {
             /* find a empty slot */
@@ -1125,11 +1053,11 @@ ngx_http_session_create_ctx(ngx_http_session_t *session, u_char *name,
             }
 
             ctx[i].destroy = destroy;
-            
+
             ctx[i].in_use = 1;
             strncpy((char *)(ctx[i].name), (char *)name,
                     NGX_HTTP_SESSION_CTX_NAME_LEN);
-            
+
             return &ctx[i];
         }
     }
@@ -1139,6 +1067,7 @@ ngx_http_session_create_ctx(ngx_http_session_t *session, u_char *name,
     return NULL;
 
 }
+
 
 void
 ngx_http_session_destroy_ctx(ngx_http_session_t *session, u_char *name)
@@ -1155,7 +1084,8 @@ ngx_http_session_destroy_ctx(ngx_http_session_t *session, u_char *name)
             memset(ctx, 0, sizeof(ngx_http_session_ctx_t));
         } else {
             /* have data but no destroy function */
-            fprintf(stderr, "ERROR: no destroyer in session ctx(%s), memory leaks...\n",
+            fprintf(stderr,
+                    "ERROR: no destroyer in session ctx(%s), memory leaks...\n",
                     ctx->name);
         }
     }
@@ -1163,25 +1093,26 @@ ngx_http_session_destroy_ctx(ngx_http_session_t *session, u_char *name)
     return;
 }
 
-ngx_http_session_t * 
+
+ngx_http_session_t *
 ngx_http_session_get(ngx_http_request_t *r)
 {
     ngx_http_session_list_t *session_list;
     ngx_http_session_t      *session;
     ngx_http_session_conf_t      *sscf;
-    
+
     sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
-    
+
     if (!sscf->enabled) {
         return NULL;
     }
-   
+
     session_list = ngx_http_session_shm_zone->data;
 
     ngx_shmtx_lock(&session_list->shpool->mutex);
 
     session = ngx_http_session_get_request_session(r);
-    if (!session) 
+    if (!session)
         goto out;
 
     __ngx_http_session_get_ref(r);
@@ -1199,17 +1130,17 @@ void ngx_http_session_put(ngx_http_request_t *r)
     ngx_http_session_conf_t      *sscf;
 
     sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
-    
+
     if (!sscf->enabled) {
         return;
     }
- 
+
     session_list = ngx_http_session_shm_zone->data;
 
     ngx_shmtx_lock(&session_list->shpool->mutex);
 
     session = ngx_http_session_get_request_session(r);
-    if (!session) 
+    if (!session)
         goto out;
 
     __ngx_http_session_put_ref(r);
@@ -1219,6 +1150,7 @@ out:
 
     return;
 }
+
 
 static ngx_http_session_request_ctx_t *
 ngx_http_session_get_request_ctx(ngx_http_request_t *r)
@@ -1233,7 +1165,7 @@ ngx_http_session_get_request_ctx(ngx_http_request_t *r)
 void ngx_http_session_set_found(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return;
@@ -1241,10 +1173,11 @@ void ngx_http_session_set_found(ngx_http_request_t *r)
     ctx->found = 1;
 }
 
+
 void ngx_http_session_set_bypass(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return;
@@ -1252,10 +1185,11 @@ void ngx_http_session_set_bypass(ngx_http_request_t *r)
     ctx->bypass = 1;
 }
 
+
 void ngx_http_session_set_local(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return;
@@ -1263,10 +1197,11 @@ void ngx_http_session_set_local(ngx_http_request_t *r)
     ctx->local = 1;
 }
 
+
 void ngx_http_session_clr_found(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return;
@@ -1274,10 +1209,11 @@ void ngx_http_session_clr_found(ngx_http_request_t *r)
     ctx->found = 0;
 }
 
+
 void ngx_http_session_clr_bypass(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return;
@@ -1285,10 +1221,11 @@ void ngx_http_session_clr_bypass(ngx_http_request_t *r)
     ctx->bypass = 0;
 }
 
+
 void ngx_http_session_clr_local(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return;
@@ -1296,11 +1233,12 @@ void ngx_http_session_clr_local(ngx_http_request_t *r)
     ctx->local = 0;
 }
 
+
 ngx_uint_t
 ngx_http_session_test_found(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return 0;
@@ -1308,11 +1246,12 @@ ngx_http_session_test_found(ngx_http_request_t *r)
     return ctx->found;
 }
 
+
 ngx_uint_t
 ngx_http_session_test_bypass(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return 0;
@@ -1320,11 +1259,12 @@ ngx_http_session_test_bypass(ngx_http_request_t *r)
     return ctx->bypass;
 }
 
-ngx_uint_t 
+
+ngx_uint_t
 ngx_http_session_test_local(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return 0;
@@ -1332,12 +1272,13 @@ ngx_http_session_test_local(ngx_http_request_t *r)
     return ctx->local;
 }
 
-void 
-ngx_http_session_set_request_session(ngx_http_request_t *r, 
+
+void
+ngx_http_session_set_request_session(ngx_http_request_t *r,
         ngx_http_session_t *session)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return;
@@ -1345,11 +1286,12 @@ ngx_http_session_set_request_session(ngx_http_request_t *r,
     ctx->session = session;
 }
 
-ngx_http_session_t * 
+
+ngx_http_session_t *
 ngx_http_session_get_request_session(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return NULL;
@@ -1357,17 +1299,19 @@ ngx_http_session_get_request_session(ngx_http_request_t *r)
     return ctx->session;
 }
 
-void 
+
+void
 ngx_http_session_clr_request_session(ngx_http_request_t *r)
 {
     ngx_http_session_request_ctx_t       *ctx;
-   
+
     ctx = ngx_http_session_get_request_ctx(r);
     if (ctx == NULL)
         return;
 
     /* ctx->session = NULL; */
 }
+
 
 static ngx_int_t
 ngx_http_session_request_ctx_init(ngx_http_request_t *r)
@@ -1383,6 +1327,7 @@ ngx_http_session_request_ctx_init(ngx_http_request_t *r)
     return NGX_OK;
 }
 
+
 static void
 ngx_http_session_cleanup(void *data)
 {
@@ -1393,11 +1338,12 @@ ngx_http_session_cleanup(void *data)
     }
 }
 
+
 static ngx_int_t
 ngx_http_session_request_cleanup_init(ngx_http_request_t *r)
 {
     ngx_http_cleanup_t             *cln;
-    
+
     cln = ngx_http_cleanup_add(r, 0);
     if (cln == NULL) {
         return NGX_ERROR;
@@ -1409,11 +1355,12 @@ ngx_http_session_request_cleanup_init(ngx_http_request_t *r)
     return NGX_OK;
 }
 
+
 ngx_int_t
 ngx_http_session_is_enabled(ngx_http_request_t *r)
 {
     ngx_http_session_conf_t       *sscf;
-    
+
     sscf = ngx_http_get_module_loc_conf(r, ngx_http_session_module);
     if (!sscf->enabled) {
         return 0;
@@ -1421,6 +1368,7 @@ ngx_http_session_is_enabled(ngx_http_request_t *r)
 
     return 1;
 }
+
 
 void ngx_http_session_register_create_ctx_handler(
         ngx_http_session_create_ctx_t handler)

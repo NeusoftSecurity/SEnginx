@@ -19,16 +19,16 @@
 #error "must compile with neteye security module"
 #endif
 
-static ngx_int_t 
+static ngx_int_t
 ngx_http_status_page_filter_init(ngx_conf_t *cf);
 
 static ngx_int_t
 ngx_http_status_page_request_ctx_init(ngx_http_request_t *r);
-    
+
 static ngx_http_module_t  ngx_http_status_page_module_ctx = {
     NULL,                                  /* preconfiguration */
     ngx_http_status_page_filter_init,          /* postconfiguration */
-    
+
     NULL,                                  /* create main configuration */
     NULL,                                  /* init main configuration */
     NULL,                                  /* create server configuration */
@@ -55,7 +55,7 @@ ngx_module_t  ngx_http_status_page_module = {
 static ngx_int_t
 ngx_http_status_page_filter_init(ngx_conf_t *cf)
 {
-    return ngx_http_neteye_security_ctx_register(NGX_HTTP_NETEYE_STATUS_PAGE, 
+    return ngx_http_neteye_security_ctx_register(NGX_HTTP_NETEYE_STATUS_PAGE,
             ngx_http_status_page_request_ctx_init);
 }
 
@@ -69,17 +69,17 @@ ngx_http_status_page_filter_init(ngx_conf_t *cf)
  *
  */
 ngx_int_t
-ngx_http_status_page_send_page(ngx_http_request_t *r, ngx_str_t *page, 
+ngx_http_status_page_send_page(ngx_http_request_t *r, ngx_str_t *page,
         ngx_int_t in_body, ngx_uint_t status)
 {
     ngx_list_part_t *part;
-   
+
 #if (NGX_HTTP_SESSION)
     ngx_http_ns_jump_bit_set(r, NGX_HTTP_NETEYE_SESSION);
 #endif
     ngx_http_status_page_set_bypass(r);
     ngx_http_ns_set_bypass_all(r);
-    
+
     if (status != 0) {
         ngx_http_status_page_set_change_status(r);
         ngx_http_status_page_set_status(r, status);
@@ -97,7 +97,7 @@ ngx_http_status_page_send_page(ngx_http_request_t *r, ngx_str_t *page,
     part->nelts = 0;
 
     if (in_body) {
-	    ngx_http_status_page_set_old_header(r);
+        ngx_http_status_page_set_old_header(r);
     }
 
     /* to bypass the method check in http_static_module */
@@ -105,8 +105,8 @@ ngx_http_status_page_send_page(ngx_http_request_t *r, ngx_str_t *page,
         r->method &= ~NGX_HTTP_POST;
         r->method |= NGX_HTTP_GET;
     }
-    
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "in status page filter, redirect to %V", page);
 
     ngx_http_internal_redirect(r, page, NULL);
@@ -141,7 +141,7 @@ ngx_http_status_page_request_ctx_init(ngx_http_request_t *r)
 void ngx_http_status_page_set_bypass(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return;
@@ -152,7 +152,7 @@ void ngx_http_status_page_set_bypass(ngx_http_request_t *r)
 void ngx_http_status_page_set_change_status(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return;
@@ -160,11 +160,11 @@ void ngx_http_status_page_set_change_status(ngx_http_request_t *r)
     ctx->change_status = 1;
 }
 
-void ngx_http_status_page_set_status(ngx_http_request_t *r, 
+void ngx_http_status_page_set_status(ngx_http_request_t *r,
         ngx_uint_t status)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return;
@@ -175,7 +175,7 @@ void ngx_http_status_page_set_status(ngx_http_request_t *r,
 void ngx_http_status_page_set_old_header(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return;
@@ -186,7 +186,7 @@ void ngx_http_status_page_set_old_header(ngx_http_request_t *r)
 void ngx_http_status_page_clr_bypass(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return;
@@ -197,7 +197,7 @@ void ngx_http_status_page_clr_bypass(ngx_http_request_t *r)
 void ngx_http_status_page_clr_change_status(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return;
@@ -208,7 +208,7 @@ void ngx_http_status_page_clr_change_status(ngx_http_request_t *r)
 void ngx_http_status_page_clr_status(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return;
@@ -219,7 +219,7 @@ void ngx_http_status_page_clr_status(ngx_http_request_t *r)
 void ngx_http_status_page_clr_old_header(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return;
@@ -227,11 +227,11 @@ void ngx_http_status_page_clr_old_header(ngx_http_request_t *r)
     ctx->old_header = 0;
 }
 
-ngx_uint_t 
+ngx_uint_t
 ngx_http_status_page_test_bypass(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return 0;
@@ -243,7 +243,7 @@ ngx_uint_t
 ngx_http_status_page_test_change_status(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return 0;
@@ -251,11 +251,11 @@ ngx_http_status_page_test_change_status(ngx_http_request_t *r)
     return ctx->change_status;
 }
 
-ngx_uint_t 
+ngx_uint_t
 ngx_http_status_page_get_status(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return 0;
@@ -263,11 +263,11 @@ ngx_http_status_page_get_status(ngx_http_request_t *r)
     return ctx->status;
 }
 
-ngx_uint_t 
+ngx_uint_t
 ngx_http_status_page_test_old_header(ngx_http_request_t *r)
 {
     ngx_http_status_page_ctx_t       *ctx;
-   
+
     ctx = ngx_http_status_page_get_ctx(r);
     if (ctx == NULL)
         return 0;

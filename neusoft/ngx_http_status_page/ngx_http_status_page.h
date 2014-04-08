@@ -25,7 +25,7 @@ typedef struct {
 } ngx_http_status_page_ctx_t;
 
 ngx_int_t
-ngx_http_status_page_send_page(ngx_http_request_t *r, ngx_str_t *page, 
+ngx_http_status_page_send_page(ngx_http_request_t *r, ngx_str_t *page,
         ngx_int_t in_body, ngx_uint_t status);
 
 void ngx_http_status_page_set_bypass(ngx_http_request_t *r);

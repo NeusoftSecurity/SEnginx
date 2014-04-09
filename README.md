@@ -9,6 +9,7 @@ Features
     * TCP Proxy and Load Balancing
     * Enhanced "if" Direcitve in Rewrite Module
     * Dynamic DNS Resolve in Upstream
+    * Proxy HTTPS Client Certificate
     * Load Balancing Algorithm
         * Fastest Load Balancing Algorithm
         * Fair Load Balancing Alogorithm

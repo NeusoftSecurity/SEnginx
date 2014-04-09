@@ -1803,12 +1803,12 @@ ngx_ssl_session_cache_init(ngx_shm_zone_t *shm_zone, void *data)
         return NGX_OK;
     }
 
+    shpool = (ngx_slab_pool_t *) shm_zone->shm.addr;
+
     if (shm_zone->shm.exists) {
-        shm_zone->data = data;
+        shm_zone->data = shpool->data;
         return NGX_OK;
     }
-
-    shpool = (ngx_slab_pool_t *) shm_zone->shm.addr;
 
     cache = ngx_slab_alloc(shpool, sizeof(ngx_ssl_session_cache_t));
     if (cache == NULL) {
@@ -1832,6 +1832,8 @@ ngx_ssl_session_cache_init(ngx_shm_zone_t *shm_zone, void *data)
 
     ngx_sprintf(shpool->log_ctx, " in SSL session shared cache \"%V\"%Z",
                 &shm_zone->shm.name);
+
+    shpool->log_nomem = 0;
 
     return NGX_OK;
 }
@@ -1985,7 +1987,7 @@ failed:
     ngx_shmtx_unlock(&shpool->mutex);
 
     ngx_log_error(NGX_LOG_ALERT, c->log, 0,
-                  "could not add new SSL session to the session cache");
+                  "could not allocate new session%s", shpool->log_ctx);
 
     return 0;
 }

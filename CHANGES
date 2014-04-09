@@ -1,4 +1,31 @@
 
+Changes with nginx 1.5.13                                        08 Apr 2014
+
+    *) Change: improved hash table handling; the default values of the
+       "variables_hash_max_size" and "types_hash_bucket_size" were changed
+       to 1024 and 64 respectively.
+
+    *) Feature: the ngx_http_mp4_module now supports the "end" argument.
+
+    *) Feature: byte ranges support in the ngx_http_mp4_module and while
+       saving responses to cache.
+
+    *) Bugfix: alerts "ngx_slab_alloc() failed: no memory" no longer logged
+       when using shared memory in the "ssl_session_cache" directive and in
+       the ngx_http_limit_req_module.
+
+    *) Bugfix: the "underscores_in_headers" directive did not allow
+       underscore as a first character of a header.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: cache manager might hog CPU on exit in nginx/Windows.
+
+    *) Bugfix: nginx/Windows terminated abnormally if the
+       "ssl_session_cache" directive was used with the "shared" parameter.
+
+    *) Bugfix: in the ngx_http_spdy_module.
+
+
 Changes with nginx 1.5.12                                        18 Mar 2014
 
     *) Security: a heap memory buffer overflow might occur in a worker

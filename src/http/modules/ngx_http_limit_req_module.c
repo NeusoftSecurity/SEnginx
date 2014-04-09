@@ -620,6 +620,8 @@ out:
 
         node = ngx_slab_alloc_locked(ctx->shpool, size);
         if (node == NULL) {
+            ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
+                          "could not allocate node%s", ctx->shpool->log_ctx);
             return NGX_ERROR;
         }
     }
@@ -859,6 +861,8 @@ ngx_http_limit_req_init_zone(ngx_shm_zone_t *shm_zone, void *data)
 
     ngx_sprintf(ctx->shpool->log_ctx, " in limit_req zone \"%V\"%Z",
                 &shm_zone->shm.name);
+
+    ctx->shpool->log_nomem = 0;
 
     return NGX_OK;
 }

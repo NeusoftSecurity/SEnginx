@@ -47,11 +47,11 @@
 
 
 #define ngx_spdy_ctl_frame_check(h)                                           \
-    (((h) & 0xffffff00) == ngx_spdy_ctl_frame_head(0))
+    (((h) & 0xffff0000) == ngx_spdy_ctl_frame_head(0))
 #define ngx_spdy_data_frame_check(h)                                          \
     (!((h) & (uint32_t) NGX_SPDY_CTL_BIT << 31))
 
-#define ngx_spdy_ctl_frame_type(h)   ((h) & 0x000000ff)
+#define ngx_spdy_ctl_frame_type(h)   ((h) & 0x0000ffff)
 #define ngx_spdy_frame_flags(p)      ((p) >> 24)
 #define ngx_spdy_frame_length(p)     ((p) & 0x00ffffff)
 #define ngx_spdy_frame_id(p)         ((p) & 0x00ffffff)
@@ -836,7 +836,8 @@ static u_char *
 ngx_http_spdy_state_head(ngx_http_spdy_connection_t *sc, u_char *pos,
     u_char *end)
 {
-    uint32_t  head, flen;
+    uint32_t    head, flen;
+    ngx_uint_t  type;
 
     if (end - pos < NGX_SPDY_FRAME_HEADER_SIZE) {
         return ngx_http_spdy_state_save(sc, pos, end,
@@ -859,7 +860,9 @@ ngx_http_spdy_state_head(ngx_http_spdy_connection_t *sc, u_char *pos,
                    head, sc->flags, sc->length);
 
     if (ngx_spdy_ctl_frame_check(head)) {
-        switch (ngx_spdy_ctl_frame_type(head)) {
+        type = ngx_spdy_ctl_frame_type(head);
+
+        switch (type) {
 
         case NGX_SPDY_SYN_STREAM:
             return ngx_http_spdy_state_syn_stream(sc, pos, end);
@@ -885,7 +888,9 @@ ngx_http_spdy_state_head(ngx_http_spdy_connection_t *sc, u_char *pos,
         case NGX_SPDY_WINDOW_UPDATE:
             return ngx_http_spdy_state_window_update(sc, pos, end);
 
-        default: /* TODO logging */
+        default:
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
+                           "spdy control frame with unknown type %ui", type);
             return ngx_http_spdy_state_skip(sc, pos, end);
         }
     }
@@ -1049,6 +1054,15 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
     if (r->headers_in.headers.part.elts == NULL) {
 
         if (buf->last - buf->pos < NGX_SPDY_NV_NUM_SIZE) {
+
+            if (complete) {
+                ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                              "client sent SYN_STREAM frame "
+                              "with invalid HEADERS block");
+                ngx_http_spdy_close_stream(sc->stream, NGX_HTTP_BAD_REQUEST);
+                return ngx_http_spdy_state_protocol_error(sc);
+            }
+
             return ngx_http_spdy_state_save(sc, pos, end,
                                             ngx_http_spdy_state_headers);
         }
@@ -1187,10 +1201,10 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
         }
     }
 
-    if (buf->pos != buf->last) {
-        /* TODO: improve error message */
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "end %ui %p %p", complete, buf->pos, buf->last);
+    if (buf->pos != buf->last || sc->zstream_in.avail_in) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent SYN_STREAM frame "
+                      "with invalid HEADERS block");
         ngx_http_spdy_close_stream(sc->stream, NGX_HTTP_BAD_REQUEST);
         return ngx_http_spdy_state_protocol_error(sc);
     }
@@ -1489,7 +1503,6 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
     ssize_t                    n;
     ngx_buf_t                 *buf;
     ngx_int_t                  rc;
-    ngx_uint_t                 complete;
     ngx_temp_file_t           *tf;
     ngx_http_request_t        *r;
     ngx_http_spdy_stream_t    *stream;
@@ -1514,13 +1527,8 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
 
     size = end - pos;
 
-    if (size >= sc->length) {
+    if (size > sc->length) {
         size = sc->length;
-        complete = 1;
-
-    } else {
-        sc->length -= size;
-        complete = 0;
     }
 
     r = stream->request;
@@ -1562,6 +1570,8 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
             }
         }
 
+        sc->length -= size;
+
         if (tf) {
             buf->start = pos;
             buf->pos = pos;
@@ -1590,7 +1600,7 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
         r->request_length += size;
     }
 
-    if (!complete) {
+    if (sc->length) {
         return ngx_http_spdy_state_save(sc, pos, end,
                                         ngx_http_spdy_state_read_data);
     }
@@ -1598,6 +1608,19 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
     if (sc->flags & NGX_SPDY_FLAG_FIN) {
 
         stream->in_closed = 1;
+
+        if (r->headers_in.content_length_n < 0) {
+            r->headers_in.content_length_n = rb->rest;
+
+        } else if (r->headers_in.content_length_n != rb->rest) {
+            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                          "client prematurely closed stream: "
+                          "%O of %O bytes of request body received",
+                          rb->rest, r->headers_in.content_length_n);
+
+            stream->skip_data = NGX_SPDY_DATA_ERROR;
+            goto error;
+        }
 
         if (tf) {
             ngx_memzero(buf, sizeof(ngx_buf_t));
@@ -1607,10 +1630,6 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
             buf->file = &tf->file;
 
             rb->buf = NULL;
-        }
-
-        if (r->headers_in.content_length_n < 0) {
-            r->headers_in.content_length_n = rb->rest;
         }
 
         if (rb->post_handler) {
@@ -1872,18 +1891,20 @@ static u_char *
 ngx_http_spdy_state_save(ngx_http_spdy_connection_t *sc,
     u_char *pos, u_char *end, ngx_http_spdy_handler_pt handler)
 {
-#if 1
-    if (end - pos > NGX_SPDY_STATE_BUFFER_SIZE) {
+    size_t  size;
+
+    size = end - pos;
+
+    if (size > NGX_SPDY_STATE_BUFFER_SIZE) {
         ngx_log_error(NGX_LOG_ALERT, sc->connection->log, 0,
                       "spdy state buffer overflow: "
-                      "%z bytes required", end - pos);
+                      "%uz bytes required", size);
         return ngx_http_spdy_state_internal_error(sc);
     }
-#endif
 
     ngx_memcpy(sc->buffer, pos, NGX_SPDY_STATE_BUFFER_SIZE);
 
-    sc->buffer_used = end - pos;
+    sc->buffer_used = size;
     sc->handler = handler;
     sc->incomplete = 1;
 
@@ -2938,6 +2959,16 @@ ngx_http_spdy_run_request(ngx_http_request_t *r)
     r->http_state = NGX_HTTP_PROCESS_REQUEST_STATE;
 
     if (ngx_http_process_request_header(r) != NGX_OK) {
+        return;
+    }
+
+    if (r->headers_in.content_length_n > 0 && r->spdy_stream->in_closed) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client prematurely closed stream");
+
+        r->spdy_stream->skip_data = NGX_SPDY_DATA_ERROR;
+
+        ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
         return;
     }
 

@@ -59,6 +59,9 @@ struct ngx_http_upstream_rr_peers_s {
 
     ngx_http_upstream_rr_peers_t   *next;
 
+    ngx_int_t                       ref;
+    ngx_int_t                       stale;
+
     ngx_http_upstream_rr_peer_t     peer[1];
 };
 

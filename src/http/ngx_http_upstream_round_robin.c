@@ -464,6 +464,19 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
     pc->name = &peer->name;
     pc->host = &peer->host;
 
+    struct sockaddr_in *in;
+    in = (struct sockaddr_in *)peer->sockaddr;
+
+    ngx_log_debug4(NGX_LOG_DEBUG_HTTP, pc->log, 0,
+            "peer: %xd, %d, %V, %V",
+            in->sin_addr.s_addr,
+            peer->socklen,
+            &peer->name,
+            &peer->host);
+
+    /* increase ref count in peers */
+    rrp->peers->ref++;
+
     /* ngx_unlock_mutex(rrp->peers->mutex); */
 
     if (pc->tries == 1 && rrp->peers->next) {
@@ -495,6 +508,9 @@ failed:
         rc = ngx_http_upstream_get_round_robin_peer(pc, rrp);
 
         if (rc != NGX_BUSY) {
+            /* increase ref count in peers */
+            peers->ref++;
+
             return rc;
         }
 
@@ -646,6 +662,15 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
 
     if (rrp->peers->single) {
         pc->tries = 0;
+        /* decrease reference count */
+        rrp->peers->ref--;
+
+        if (rrp->peers->ref < 0) {
+            ngx_log_error(NGX_LOG_EMERG, pc->log, 0,
+                    "BUG: reference count error when freeing rr peer, "
+                    "peers: %x", rrp->peers);
+        }
+
         return;
     }
 
@@ -685,6 +710,16 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
 
     if (pc->tries) {
         pc->tries--;
+    }
+
+    /* decrease reference count */
+
+    rrp->peers->ref--;
+
+    if (rrp->peers->ref < 0) {
+        ngx_log_error(NGX_LOG_EMERG, pc->log, 0,
+                "BUG: reference count error when freeing rr peer, "
+                "peers: %x", rrp->peers);
     }
 
     /* ngx_unlock_mutex(rrp->peers->mutex); */

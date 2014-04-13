@@ -86,6 +86,7 @@ typedef struct {
     ngx_http_upstream_init_pt        init_upstream;
     ngx_http_upstream_init_peer_pt   init;
     void                            *data;
+    void                            *dyn_data;
 } ngx_http_upstream_peer_t;
 
 typedef struct {
@@ -115,6 +116,11 @@ typedef struct {
 #define NGX_HTTP_UPSTREAM_SRUN_ID       0x0080
 #define NGX_HTTP_UPSTREAM_MAX_BUSY      0x0100
 #define NGX_HTTP_UPSTREAM_RETIRE        0x0200
+
+#define NGX_HTTP_UPSTREAM_DR_INIT         0
+#define NGX_HTTP_UPSTREAM_DR_OK_UP        1
+#define NGX_HTTP_UPSTREAM_DR_OK_NOT_UP    2
+#define NGX_HTTP_UPSTREAM_DR_FAILED       3
 
 
 struct ngx_http_upstream_srv_conf_s {

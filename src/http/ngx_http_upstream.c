@@ -1195,8 +1195,36 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
 }
 
 
-static inline in_port_t
-ngx_http_upstream_get_port(struct sockaddr *sockaddr)
+static ngx_int_t
+ngx_http_upstream_dyn_cmp_addr(struct sockaddr *one, struct sockaddr *two)
+{
+#if (NGX_HAVE_INET6)
+    uint8_t           *addr6_1, *addr6_2;
+#endif
+    in_addr_t         *addr_1, *addr_2;
+
+    if (one->sa_family != two->sa_family) {
+        return one->sa_family - two->sa_family;
+    }
+
+    switch (one->sa_family) {
+#if (NGX_HAVE_INET6)
+        case AF_INET6:
+            addr6_1 = ((struct sockaddr_in6 *) one)->sin6_addr.s6_addr;
+            addr6_2 = ((struct sockaddr_in6 *) two)->sin6_addr.s6_addr;
+
+            return ngx_memcmp(addr6_1, addr6_2, 16);
+#endif
+        default: /* AF_INET */
+            addr_1 = &(((struct sockaddr_in *) one)->sin_addr.s_addr);
+            addr_2 = &(((struct sockaddr_in *) two)->sin_addr.s_addr);
+
+            return ngx_memcmp(addr_1, addr_2, 4);
+    }
+}
+
+static in_port_t
+ngx_http_upstream_dyn_get_port(struct sockaddr *sockaddr)
 {
     in_port_t port;
 
@@ -1215,7 +1243,7 @@ ngx_http_upstream_get_port(struct sockaddr *sockaddr)
 
 
 static void
-ngx_http_upstream_set_port(struct sockaddr *sockaddr, in_port_t port)
+ngx_http_upstream_dyn_set_port(struct sockaddr *sockaddr, in_port_t port)
 {
     switch (sockaddr->sa_family) {
 #if (NGX_HAVE_INET6)
@@ -1230,18 +1258,19 @@ ngx_http_upstream_set_port(struct sockaddr *sockaddr, in_port_t port)
 
 
 static void
-ngx_http_upstream_dup_name(ngx_pool_t *p, ngx_str_t *from, ngx_str_t *to)
+ngx_http_upstream_dyn_dup_str(ngx_pool_t *p, ngx_str_t *from, ngx_str_t *to)
 {
-    u_char      *name;
+    u_char      *str;
 
     if (from->len) {
-        name = ngx_pstrdup(p, from);
-        if (name == NULL) {
+        str = ngx_pstrdup(p, from);
+        if (str == NULL) {
             ngx_str_null(to);
             return;
         }
 
-        ngx_str_set(to, name);
+        to->data = str;
+        to->len = from->len;
     } else {
         ngx_str_null(to);
     }
@@ -1249,40 +1278,34 @@ ngx_http_upstream_dup_name(ngx_pool_t *p, ngx_str_t *from, ngx_str_t *to)
 
 
 static void
-ngx_http_upstream_free_addrs(ngx_pool_t *pool,
-        ngx_addr_t *addrs,
-        ngx_uint_t naddrs,
-        ngx_int_t flag)
-{
-    ngx_uint_t i;
-
-    if (flag) {
-        /* free sockaddr */
-        for (i = 0; i < naddrs; i++) {
-            if (addrs[i].sockaddr) {
-                ngx_pfree(pool, addrs[i].sockaddr);
-            }
-        }
-    }
-
-    ngx_pfree(pool, addrs);
-}
-
-
-static void
-ngx_http_upstream_free_peers(ngx_pool_t *pool,
+ngx_http_upstream_dyn_free_peers(ngx_pool_t *pool,
         ngx_http_upstream_rr_peers_t *peers)
 {
     ngx_uint_t            i;
 
-    if (peers->next) {
-        ngx_http_upstream_free_peers(pool, peers->next);
+    if (peers->stale != 1) {
+        return;
     }
 
-    /* free sockaddrs kept by this peers */
+    ngx_log_error(NGX_LOG_DEBUG, pool->log, 0,
+            "free dyn peers: %p", peers);
+
+    if (peers->next) {
+        ngx_http_upstream_dyn_free_peers(pool, peers->next);
+    }
+
+    /* free sockaddrs, names, hosts kept by this peers */
     for (i = 0; i < peers->number; i++) {
         if (peers->peer[i].sockaddr) {
             ngx_pfree(pool, peers->peer[i].sockaddr);
+        }
+
+        if (peers->peer[i].name.data) {
+            ngx_pfree(pool, peers->peer[i].name.data);
+        }
+
+        if (peers->peer[i].host.data) {
+            ngx_pfree(pool, peers->peer[i].host.data);
         }
     }
 
@@ -1290,144 +1313,311 @@ ngx_http_upstream_free_peers(ngx_pool_t *pool,
 }
 
 
-/* flag == 0 means old_addrs is ngx_addr_t *
- * flag == 1 means old_addrs is ngx_http_upstream_rr_peers_t *
- *
+/*
  * on return:
- * 1 means need update
- * 0 means don't need update
+ * how many peers need to be replaced, 0 for no need to update
  */
 static ngx_int_t
-ngx_http_upstream_need_update_config(void *old_addrs,
-        ngx_uint_t old_naddrs,
-        ngx_addr_t *addrs,
-        ngx_uint_t naddrs,
-        ngx_int_t flag)
+ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers,
+    ngx_addr_t *addrs, ngx_uint_t naddrs, ngx_str_t *host, ngx_int_t implicit)
 {
-    return 1;
+    ngx_int_t                         n = 0;
+    ngx_uint_t                        i, j, k, m, b, e;
+    ngx_http_upstream_rr_peer_t      *old_peer;
+
+
+    old_peer = old_peers->peer;
+
+    if (!implicit) {
+
+        m = 0;
+        b = e = (ngx_uint_t)-1;
+
+        for (i = 0; i < old_peers->number; i++) {
+
+            if (old_peer[i].host.len == host->len
+                    && !ngx_memcmp(old_peer[i].host.data, host->data,
+                        host->len)) {
+
+                if (m == 0
+                        || old_peer[i - 1].color == old_peer[i].color) {
+                    m++;
+
+                    if (b == (ngx_uint_t)-1) {
+                        b = i;
+                    }
+
+                    if (i == old_peers->number - 1) {
+                        i++;
+                    } else {
+                        continue;
+                    }
+                }
+            }
+
+            if (m) {
+
+                fprintf(stderr, "m: %lu\n", m);
+
+                e = i;
+
+                /* only the first host(peer group) needs to check */
+                if (n == 0 && m == naddrs) {
+                    /* TODO: this is O(n^2)...
+                     * could use rbtree to reduce to O(nlogn)
+                     */
+                    fprintf(stderr, "b: %lu, e: %lu\n", b, e);
+                    for (j = b; j < e; j++) {
+                        for (k = 0; k < naddrs; k++) {
+                            fprintf(stderr, "old: l: %d, addr: %xd, new: l: %d, addr: %xd \n",
+                                    old_peer[j].socklen,
+                                    ((struct sockaddr_in *)old_peer[j].sockaddr)->sin_addr.s_addr,
+                                    addrs[k].socklen,
+                                    ((struct sockaddr_in *)addrs[k].sockaddr)->sin_addr.s_addr);
+
+                            if (old_peer[j].socklen == addrs[k].socklen
+                                    && !ngx_http_upstream_dyn_cmp_addr(
+                                        old_peer[j].sockaddr,
+                                        addrs[k].sockaddr)) {
+                                fprintf(stderr, "match, break\n");
+                                break;
+                            }
+                        }
+
+                        if (k == naddrs) {
+                            /* no item is matched */
+                            fprintf(stderr, "not match, add m to n\n");
+                            goto not_match;
+                        }
+                    }
+
+                    /* all matched */
+                    goto out;
+                }
+not_match:
+                n += (ngx_int_t)m;
+            }
+
+            /* TODO: record b, e... for later use in create_peer */
+
+            m = 0;
+            b = e = (ngx_uint_t)-1;
+        }
+
+    } else {
+
+        if (old_peers->number != naddrs) {
+            return old_peers->number;
+        }
+
+        /* TODO: this is O(n^2)...
+         * could use rbtree to reduce to O(nlogn)
+         */
+        for (i = 0; i < old_peers->number; i++) {
+            for (k = 0; k < naddrs; k++) {
+                if (old_peer[i].socklen == addrs[k].socklen
+                        && !ngx_memcmp(old_peer[i].sockaddr,
+                            addrs[k].sockaddr, addrs[k].socklen)) {
+                    break;
+                }
+            }
+
+            if (k == naddrs) {
+                return old_peers->number;
+            }
+        }
+    }
+
+out:
+    return n;
 }
 
 
 static ngx_http_upstream_rr_peers_t *
-ngx_http_upstream_update_config(ngx_http_request_t *r, ngx_http_upstream_t *u,
-        ngx_peer_connection_t *pc, ngx_resolver_ctx_t *ctx)
+ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
+    ngx_peer_connection_t *pc, ngx_resolver_ctx_t *ctx,
+    ngx_http_upstream_rr_peers_t *old_peers, ngx_int_t virgin)
 {
     ngx_http_upstream_srv_conf_t     *uscf;
-    ngx_http_upstream_server_t       *us, *tmp;
-    ngx_uint_t                        i, n;
-    ngx_http_upstream_rr_peers_t     *peers, *stale_peers;
-    ngx_addr_t                       *old_addrs, *old_addr;
-    ngx_conf_t                        cf;
-    ngx_http_connection_t            *hc;
-    ngx_http_upstream_init_pt         init;
+    ngx_uint_t                        i, n, w, k, m, j;
+    ngx_int_t                         need;
+    ngx_http_upstream_rr_peers_t     *peers, *next = NULL;
+    ngx_http_upstream_rr_peer_t      *peer, *old_peer;
     in_port_t                         port;
     struct sockaddr                  *sockaddr;
+    ngx_int_t                         implicit;
+    size_t                            len;
+    u_char                           *p;
 
 
     uscf = u->conf->upstream;
 
-    hc = r->connection->data;
+    implicit = uscf->servers ? 0 : 1;
 
-    ngx_memzero(&cf, sizeof(ngx_conf_t));
-    cf.name = "update_upstream_config";
-    cf.pool = ngx_cycle->pool;
-    cf.module_type = NGX_HTTP_MODULE;
-    cf.cmd_type = NGX_HTTP_MAIN_CONF;
-    cf.log = ngx_cycle->log;
-    cf.ctx = hc->conf_ctx;
+    need = ngx_http_upstream_dyn_need_update_config(old_peers,
+            ctx->addrs, ctx->naddrs, pc->host, implicit);
 
-    stale_peers = uscf->peer.data;
-
-    if (uscf->servers) {
-        tmp = uscf->servers->elts;
-        for (i = 0; i < uscf->servers->nelts; i++) {
-            us = &tmp[i];
-            if (us->host.len == pc->host->len
-                    && !ngx_memcmp(us->host.data, pc->host->data,
-                        us->host.len)) {
-                break;
-            }
-        }
-
-        if (i == uscf->servers->nelts) {
-            /* no server found is srv_conf */
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
+            "need: %d", need);
+    
+    if (need == 0) {
+        /* no update needed at this level, check next peers */
+        if (!old_peers->next) {
             return NULL;
-        }
-
-        old_addrs = us->addrs;
-
-        if (!ngx_http_upstream_need_update_config(old_addrs, us->naddrs,
-                    ctx->addrs, ctx->naddrs, 0)) {
-            return NULL;
-        }
-
-        us->addrs = ngx_palloc(cf.pool,
-                sizeof(ngx_addr_t) * ctx->naddrs);
-        if (us->addrs == NULL) {
-            us->addrs = old_addrs;
-            return NULL;
-        }
-
-        us->naddrs = ctx->naddrs;
-
-        old_addr = &old_addrs[0];
-        sockaddr = old_addr->sockaddr;
-
-        port = ngx_http_upstream_get_port(sockaddr);
-
-        for (i = 0; i < us->naddrs; i++) {
-            sockaddr = ngx_palloc(cf.pool, ctx->addrs[i].socklen);
-            if (sockaddr == NULL) {
-                ngx_http_upstream_free_addrs(cf.pool,
-                        us->addrs, us->naddrs, 1);
-
-                us->addrs = old_addrs;
-
+        } else {
+            next = ngx_http_upstream_dyn_create_peers(u, pc, ctx,
+                    old_peers->next, virgin);
+            if (!next) {
                 return NULL;
             }
-
-            ngx_memcpy(sockaddr, ctx->addrs[i].sockaddr, ctx->addrs[i].socklen);
-
-            ngx_http_upstream_set_port(sockaddr, port);
-
-            us->addrs[i].sockaddr = sockaddr;
-            us->addrs[i].socklen = ctx->addrs[i].socklen;
-
-            ngx_http_upstream_dup_name(cf.pool,
-                    &ctx->addrs[i].name, &us->addrs[i].name);
         }
 
-        init = uscf->peer.init_upstream ? uscf->peer.init_upstream :
-            ngx_http_upstream_init_round_robin;
+        /* next peers is updated, update parent,
+         * just a dup of old peers ...
+         */
+        n = old_peers->number;
+    } else {
+        /* need update */
+        n = old_peers->number - need + ctx->naddrs;
+    }
 
-        /* re-generate peers into uscf */
-        if (init(&cf, uscf) != NGX_OK) {
-            ngx_http_upstream_free_addrs(cf.pool, us->addrs, us->naddrs, 1);
+    peers = ngx_pcalloc(ngx_cycle->pool, sizeof(ngx_http_upstream_rr_peers_t)
+            + sizeof(ngx_http_upstream_rr_peer_t) * (n - 1));
+    if (peers == NULL) {
+        return NULL;
+    }
 
-            us->addrs = old_addrs;
-            uscf->peer.data = stale_peers;
+    if (!implicit) {
+        peer = peers->peer;
+        old_peer = old_peers->peer;
+        k = 0;
+        w = 0;
+        m = 0;
 
-            return NULL;
+        /* TODO: don't re-loop here, use result from need_update */
+        for (i = 0; i < old_peers->number; i++) {
+
+            if (!next && old_peer[i].host.len == pc->host->len
+                    && !ngx_memcmp(old_peer[i].host.data, pc->host->data,
+                        pc->host->len)) {
+                if (m == 0
+                    || old_peer[i - 1].color == old_peer[i].color) {
+
+                    m++;
+
+                    if (i == old_peers->number - 1) {
+                        i++;
+                    } else {
+                        continue;
+                    }
+
+                }
+            }
+
+            if (m) {
+                m = 0;
+
+                port = ngx_http_upstream_dyn_get_port(old_peer[i - 1].sockaddr);
+
+                for (j = 0; j < ctx->naddrs; j++) {
+                    sockaddr = ngx_palloc(ngx_cycle->pool,
+                            ctx->addrs[j].socklen);
+                    if (sockaddr == NULL) {
+                        goto failed;
+                    }
+
+                    ngx_memcpy(sockaddr, ctx->addrs[j].sockaddr,
+                            ctx->addrs[j].socklen);
+
+                    ngx_http_upstream_dyn_set_port(sockaddr, port);
+
+                    p = ngx_pnalloc(ngx_cycle->pool, NGX_SOCKADDR_STRLEN);
+                    if (p == NULL) {
+                        goto failed;
+                    }
+
+                    len = ngx_sock_ntop(sockaddr,
+                            ctx->addrs[j].socklen, p, NGX_SOCKADDR_STRLEN, 1);
+
+                    peer[k].sockaddr = sockaddr;
+                    peer[k].socklen = ctx->addrs[j].socklen;
+                    peer[k].name.data = p;
+                    peer[k].name.len = len;
+
+                    ngx_http_upstream_dyn_dup_str(ngx_cycle->pool,
+                            pc->host, &peer[k].host);
+
+                    peer[k].weight = old_peer[i - 1].weight;
+                    peer[k].effective_weight = old_peer[i - 1].weight;
+                    peer[k].current_weight = 0;
+                    peer[k].max_fails = old_peer[i - 1].max_fails;
+                    peer[k].fail_timeout = old_peer[i - 1].fail_timeout;
+                    peer[k].down = old_peer[i - 1].down;
+                    peer[k].color = old_peer[i - 1].color;
+
+                    w += peer[k].weight;
+
+                    k++;
+                }
+            }
+
+            if (i < old_peers->number) {
+                sockaddr = ngx_palloc(ngx_cycle->pool,
+                        old_peer[i].socklen);
+                if (sockaddr == NULL) {
+                    goto failed;
+                }
+
+                ngx_memcpy(sockaddr, old_peer[i].sockaddr,
+                        old_peer[i].socklen);
+
+                peer[k].sockaddr = sockaddr;
+                peer[k].socklen = old_peer[i].socklen;
+
+                ngx_http_upstream_dyn_dup_str(ngx_cycle->pool,
+                        &old_peer[i].name, &peer[k].name);
+
+                ngx_http_upstream_dyn_dup_str(ngx_cycle->pool,
+                        &old_peer[i].host, &peer[k].host);
+
+                peer[k].weight = old_peer[i].weight;
+                peer[k].effective_weight = old_peer[i].weight;
+                peer[k].current_weight = 0;
+                peer[k].max_fails = old_peer[i].max_fails;
+                peer[k].fail_timeout = old_peer[i].fail_timeout;
+                peer[k].down = old_peer[i].down;
+                peer[k].color = old_peer[i].color;
+
+                w += peer[k].weight;
+
+                k++;
+            }
         }
 
-        ngx_http_upstream_free_addrs(cf.pool, old_addrs, 0, 0);
+        peers->single = (n == 1);
+        peers->number = n;
+        peers->weighted = (w != n);
+        peers->total_weight = w;
+        peers->name = &uscf->host;
+
+        if (!next && old_peers->next) {
+            /* old peers has next peers and it's not checked */
+            next = ngx_http_upstream_dyn_create_peers(u, pc, ctx,
+                    old_peers->next, virgin);
+        }
+
+        if (next) {
+            peers->next = next;
+            if (!virgin) {
+                old_peers->next->stale = 1;
+            }
+        } else {
+            peers->next = old_peers->next;
+        }
     } else {
         /* an upstream implicitly defined by proxy_pass,
          * don't resolve name at this moment.
          */
-
-        if (!ngx_http_upstream_need_update_config(stale_peers, 0,
-                    ctx->addrs, ctx->naddrs, 1)) {
-            return NULL;
-        }
-
-        n = ctx->naddrs;
-
-        peers = ngx_pcalloc(cf.pool, sizeof(ngx_http_upstream_rr_peers_t)
-                + sizeof(ngx_http_upstream_rr_peer_t) * (n - 1));
-        if (peers == NULL) {
-            return NULL;
-        }
 
         peers->single = (n == 1);
         peers->number = n;
@@ -1435,41 +1625,89 @@ ngx_http_upstream_update_config(ngx_http_request_t *r, ngx_http_upstream_t *u,
         peers->total_weight = n;
         peers->name = &uscf->host;
 
+        peer = peers->peer;
         for (i = 0; i < ctx->naddrs; i++) {
-            sockaddr = ngx_palloc(cf.pool, ctx->addrs[i].socklen);
+            sockaddr = ngx_palloc(ngx_cycle->pool, ctx->addrs[i].socklen);
             if (sockaddr == NULL) {
                 return NULL;
             }
 
             ngx_memcpy(sockaddr, ctx->addrs[i].sockaddr, ctx->addrs[i].socklen);
 
-            ngx_http_upstream_set_port(sockaddr, htons(uscf->port));
+            ngx_http_upstream_dyn_set_port(sockaddr, htons(uscf->port));
 
-            peers->peer[i].sockaddr = sockaddr;
-            peers->peer[i].socklen = ctx->addrs[i].socklen;
+            peer[i].sockaddr = sockaddr;
+            peer[i].socklen = ctx->addrs[i].socklen;
 
-            ngx_http_upstream_dup_name(cf.pool,
-                    &ctx->addrs[i].name, &peers->peer[i].name);
+            p = ngx_pnalloc(ngx_cycle->pool, NGX_SOCKADDR_STRLEN);
+            if (p == NULL) {
+                goto failed;
+            }
 
-            peers->peer[i].host = uscf->host;
-            peers->peer[i].weight = 1;
-            peers->peer[i].effective_weight = 1;
-            peers->peer[i].current_weight = 0;
-            peers->peer[i].max_fails = 1;
-            peers->peer[i].fail_timeout = 10;
-#if (NGX_HTTP_UPSTREAM_CHECK)
-            peers->peer[i].check_index = (ngx_uint_t) NGX_ERROR;
-#endif
+            len = ngx_sock_ntop(sockaddr,
+                    ctx->addrs[i].socklen, p, NGX_SOCKADDR_STRLEN, 1);
+
+
+            peer[i].name.data = p;
+            peer[i].name.len = len;
+            peer[i].host = uscf->host;
+            peer[i].weight = 1;
+            peer[i].effective_weight = 1;
+            peer[i].current_weight = 0;
+            peer[i].max_fails = 1;
+            peer[i].fail_timeout = 10;
         }
+    }
 
-        uscf->peer.data = peers;
+    return peers;
+
+
+failed:
+
+    peers->stale = 1;
+    ngx_http_upstream_dyn_free_peers(ngx_cycle->pool, peers);
+
+    return NULL;
+}
+
+
+/*
+ * on return:
+ * NULL: no update happened
+ * an "address": config is updated, new peers is at "address"
+ */
+static ngx_http_upstream_rr_peers_t *
+ngx_http_upstream_dyn_update_config(ngx_http_request_t *r, ngx_http_upstream_t *u,
+    ngx_peer_connection_t *pc, ngx_resolver_ctx_t *ctx)
+{
+    ngx_http_upstream_srv_conf_t     *uscf;
+    ngx_http_upstream_rr_peers_t     *peers, *stale_peers, *old_peers;
+
+
+    uscf = u->conf->upstream;
+
+    stale_peers = uscf->peer.dyn_data;
+
+    if (stale_peers) {
+        old_peers = stale_peers;
+    } else {
+        old_peers = uscf->peer.data;
+    }
+
+    peers = ngx_http_upstream_dyn_create_peers(u, pc, ctx, old_peers,
+            (old_peers == uscf->peer.data ? 1 : 0));
+    if (peers == NULL) {
+        return NULL;
     }
 
     /* replaced "peers" is freed postponed when ref count is zero */
+    uscf->peer.dyn_data = peers;
 
-    stale_peers->stale = 1;
+    if (stale_peers) {
+        stale_peers->stale = 1;
+    }
 
-    return uscf->peer.data;
+    return peers;
 }
 
 
@@ -1492,13 +1730,13 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
                       &ctx->name, ctx->state,
                       ngx_resolver_strerror(ctx->state));
 
-        pc->resolved = 2;
+        pc->resolved = NGX_HTTP_UPSTREAM_DR_FAILED;
     } else {
         /* dns query ok */
-        peers = ngx_http_upstream_update_config(r, u, pc, ctx);
+        peers = ngx_http_upstream_dyn_update_config(r, u, pc, ctx);
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                "update config, peers: %p", peers);
+                "dynamic resolve update config, peers: %p", peers);
 
         if (peers) {
             /* configuration is updated, use new configuration */
@@ -1506,7 +1744,16 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
             u->peer.sockaddr = NULL;
 
             rrp = pc->data;
+            if (rrp->peers->stale) {
+                rrp->peers->ref--;
+
+                if (rrp->peers->ref == 0) {
+                    ngx_http_upstream_dyn_free_peers(ngx_cycle->pool, rrp->peers);
+                }
+            }
+
             rrp->peers = peers;
+            rrp->peers->ref++;
 
 #if (NGX_DEBUG)
             ngx_uint_t i;
@@ -1526,9 +1773,13 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
                         &peers->peer[i].name);
             }
 #endif
-        }
 
-        pc->resolved = 1;
+            pc->resolved = NGX_HTTP_UPSTREAM_DR_OK_UP;
+
+        } else {
+            /* configuration is not updated */
+            pc->resolved = NGX_HTTP_UPSTREAM_DR_OK_NOT_UP;
+        }
     }
 
     ngx_resolve_name_done(ctx);
@@ -1547,19 +1798,25 @@ ngx_http_upstream_connect_and_resolve_peer(ngx_peer_connection_t *pc,
     ngx_http_upstream_t            *u;
     int                             rc;
 
-    if (pc->resolved == 1) {
+    if (pc->resolved == NGX_HTTP_UPSTREAM_DR_OK_NOT_UP) {
+        return _ngx_event_connect_peer(pc);
+    }
+
+    if (pc->resolved == NGX_HTTP_UPSTREAM_DR_OK_UP) {
         return ngx_event_connect_peer(pc);
     }
 
-    if (pc->resolved == 2) {
+    if (pc->resolved == NGX_HTTP_UPSTREAM_DR_FAILED) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "resolve failed!");
-        /* TODO: check fall back action */
-        return ngx_event_connect_peer(pc);
-        //return NGX_DECLINED;
+
+        return _ngx_event_connect_peer(pc);
     }
 
+    /* pc->resolved == 0, new request */
+
     pc->host = NULL;
+
     rc = pc->get(pc, pc->data);
     if (rc != NGX_OK) {
         return rc;
@@ -1608,8 +1865,7 @@ ngx_http_upstream_connect_and_resolve_peer(ngx_peer_connection_t *pc,
         return NGX_DECLINED;
     }
 
-
-    return NGX_STOP;
+    return NGX_DONE;
 }
 
 
@@ -1643,7 +1899,8 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     if (u->conf->dyn_resolve) {
         rc = ngx_http_upstream_connect_and_resolve_peer(&u->peer, r);
-        if (rc == NGX_STOP) {
+
+        if (rc == NGX_DONE) {
             return;
         }
     } else {
@@ -3931,11 +4188,21 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
     if (u->peer.free && u->peer.sockaddr) {
         u->peer.free(&u->peer, u->peer.data, 0);
         u->peer.sockaddr = NULL;
-    }
 
-    rrp = u->peer.data;
-    if (rrp->peers->stale && rrp->peers->ref == 0) {
-        ngx_http_upstream_free_peers(ngx_cycle->pool, rrp->peers);
+        /* decrease reference count */
+
+        rrp = u->peer.data;
+        rrp->peers->ref--;
+
+        if (rrp->peers->ref < 0) {
+            ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,
+                    "BUG: reference count error when freeing rr peer, "
+                    "peers: %p", rrp->peers);
+        }
+
+        if (rrp->peers->stale && rrp->peers->ref == 0) {
+            ngx_http_upstream_dyn_free_peers(ngx_cycle->pool, rrp->peers);
+        }
     }
 
     if (u->peer.connection) {

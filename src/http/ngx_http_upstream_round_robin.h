@@ -40,6 +40,8 @@ typedef struct {
 #if (NGX_HTTP_SSL)
     ngx_ssl_session_t              *ssl_session;   /* local to a process */
 #endif
+
+    ngx_uint_t                      color;
 } ngx_http_upstream_rr_peer_t;
 
 

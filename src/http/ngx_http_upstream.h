@@ -386,6 +386,12 @@ typedef struct {
 } ngx_http_upstream_param_t;
 
 
+typedef struct {
+    ngx_int_t   total;
+    ngx_int_t   domains;
+} ngx_http_upstream_dyn_need_t;
+
+
 ngx_int_t ngx_http_upstream_header_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 

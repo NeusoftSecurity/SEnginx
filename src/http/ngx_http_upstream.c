@@ -1317,16 +1317,18 @@ ngx_http_upstream_dyn_free_peers(ngx_pool_t *pool,
  * on return:
  * how many peers need to be replaced, 0 for no need to update
  */
-static ngx_int_t
+static ngx_http_upstream_dyn_need_t
 ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers,
     ngx_addr_t *addrs, ngx_uint_t naddrs, ngx_str_t *host, ngx_int_t implicit)
 {
     ngx_int_t                         n = 0;
     ngx_uint_t                        i, j, k, m, b, e;
     ngx_http_upstream_rr_peer_t      *old_peer;
+    ngx_http_upstream_dyn_need_t      need;
 
 
     old_peer = old_peers->peer;
+    ngx_memset(&need, 0, sizeof(ngx_http_upstream_dyn_need_t));
 
     if (!implicit) {
 
@@ -1358,6 +1360,7 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
             if (m) {
 
                 fprintf(stderr, "m: %lu\n", m);
+                need.domains++;
 
                 e = i;
 
@@ -1395,7 +1398,7 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
                     goto out;
                 }
 not_match:
-                n += (ngx_int_t)m;
+                need.total += (ngx_int_t)m;
             }
 
             /* TODO: record b, e... for later use in create_peer */
@@ -1407,7 +1410,10 @@ not_match:
     } else {
 
         if (old_peers->number != naddrs) {
-            return old_peers->number;
+            need.total = old_peers->number;
+            need.domains = 1;
+
+            return need;
         }
 
         /* TODO: this is O(n^2)...
@@ -1423,13 +1429,16 @@ not_match:
             }
 
             if (k == naddrs) {
-                return old_peers->number;
+                need.total = old_peers->number;
+                need.domains = 1;
+
+                return need;
             }
         }
     }
 
 out:
-    return n;
+    return need;
 }
 
 
@@ -1440,7 +1449,6 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
 {
     ngx_http_upstream_srv_conf_t     *uscf;
     ngx_uint_t                        i, n, w, k, m, j;
-    ngx_int_t                         need;
     ngx_http_upstream_rr_peers_t     *peers, *next = NULL;
     ngx_http_upstream_rr_peer_t      *peer, *old_peer;
     in_port_t                         port;
@@ -1448,6 +1456,7 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
     ngx_int_t                         implicit;
     size_t                            len;
     u_char                           *p;
+    ngx_http_upstream_dyn_need_t      need;
 
 
     uscf = u->conf->upstream;
@@ -1458,9 +1467,9 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
             ctx->addrs, ctx->naddrs, pc->host, implicit);
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-            "need: %d", need);
+            "need: %d", need.total);
     
-    if (need == 0) {
+    if (need.total == 0) {
         /* no update needed at this level, check next peers */
         if (!old_peers->next) {
             return NULL;
@@ -1478,8 +1487,11 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
         n = old_peers->number;
     } else {
         /* need update */
-        n = old_peers->number - need + ctx->naddrs;
+        n = old_peers->number - need.total + ctx->naddrs * need.domains;
     }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
+            "n: %d", n);
 
     peers = ngx_pcalloc(ngx_cycle->pool, sizeof(ngx_http_upstream_rr_peers_t)
             + sizeof(ngx_http_upstream_rr_peer_t) * (n - 1));
@@ -1693,6 +1705,25 @@ ngx_http_upstream_dyn_update_config(ngx_http_request_t *r, ngx_http_upstream_t *
     } else {
         old_peers = uscf->peer.data;
     }
+
+#if (NGX_DEBUG)
+    ngx_uint_t i;
+    struct sockaddr_in *in;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "peers number: %ud", old_peers->number);
+
+    for (i = 0; i < old_peers->number; i++) {
+        in = (struct sockaddr_in *)old_peers->peer[i].sockaddr;
+
+        ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "peer[%ud]: %xd, %d, %V",
+                i,
+                in->sin_addr.s_addr,
+                old_peers->peer[i].socklen,
+                &old_peers->peer[i].name);
+    }
+#endif
 
     peers = ngx_http_upstream_dyn_create_peers(u, pc, ctx, old_peers,
             (old_peers == uscf->peer.data ? 1 : 0));

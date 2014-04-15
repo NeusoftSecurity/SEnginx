@@ -32,8 +32,11 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
 {
     ngx_url_t                      u;
     ngx_uint_t                     i, j, n, w, color;
+    ngx_uint_t                     dyn_resolve = 0;
     ngx_http_upstream_server_t    *server;
     ngx_http_upstream_rr_peers_t  *peers, *backup;
+    u_char                         addr6[NGX_INET6_ADDRSTRLEN];
+
 
     us->peer.init = ngx_http_upstream_init_round_robin_peer;
 
@@ -79,6 +82,18 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                 continue;
             }
 
+#if (NGX_HAVE_INET6)
+            dyn_resolve = (ngx_inet6_addr(server[i].host.data,
+                        server[i].host.len, addr6) == NGX_ERROR) ? 1 : 0;
+            if (dyn_resolve)
+                /* host is not an ipv6 address, check ipv4 */
+
+#endif
+            {
+                dyn_resolve = (ngx_inet_addr(server[i].host.data,
+                            server[i].host.len) == INADDR_NONE) ? 1 : 0;
+            }
+
             for (j = 0; j < server[i].naddrs; j++) {
                 peers->peer[n].sockaddr = server[i].addrs[j].sockaddr;
                 peers->peer[n].socklen = server[i].addrs[j].socklen;
@@ -91,6 +106,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                 peers->peer[n].fail_timeout = server[i].fail_timeout;
                 peers->peer[n].down = server[i].down;
                 peers->peer[n].color = color;
+                peers->peer[n].dyn_resolve = dyn_resolve;
 
 #if (NGX_HTTP_UPSTREAM_CHECK)
                 if (!server[i].down) {
@@ -148,6 +164,18 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                 continue;
             }
 
+#if (NGX_HAVE_INET6)
+                dyn_resolve = (ngx_inet6_addr(server[i].host.data,
+                            server[i].host.len, addr6) == NGX_ERROR) ? 1 : 0;
+                if (dyn_resolve)
+                    /* host is not an ipv6 address, check ipv4 */
+
+#endif
+                {
+                    dyn_resolve = (ngx_inet_addr(server[i].host.data,
+                                server[i].host.len) == INADDR_NONE) ? 1 : 0;
+                }
+
             for (j = 0; j < server[i].naddrs; j++) {
                 backup->peer[n].sockaddr = server[i].addrs[j].sockaddr;
                 backup->peer[n].socklen = server[i].addrs[j].socklen;
@@ -160,6 +188,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                 backup->peer[n].fail_timeout = server[i].fail_timeout;
                 backup->peer[n].down = server[i].down;
                 backup->peer[n].color = color;
+                backup->peer[n].dyn_resolve = dyn_resolve;
 
 #if (NGX_HTTP_UPSTREAM_CHECK)
                 if (!server[i].down) {
@@ -221,6 +250,18 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     peers->total_weight = n;
     peers->name = &us->host;
 
+#if (NGX_HAVE_INET6)
+    dyn_resolve = (ngx_inet6_addr(u.host.data,
+                u.host.len, addr6) == NGX_ERROR) ? 1 : 0;
+    if (dyn_resolve)
+        /* host is not an ipv6 address, check ipv4 */
+
+#endif
+    {
+        dyn_resolve = (ngx_inet_addr(u.host.data,
+                    u.host.len) == INADDR_NONE) ? 1 : 0;
+    }
+
     for (i = 0; i < u.naddrs; i++) {
         peers->peer[i].sockaddr = u.addrs[i].sockaddr;
         peers->peer[i].socklen = u.addrs[i].socklen;
@@ -235,6 +276,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
         peers->peer[i].check_index = (ngx_uint_t) NGX_ERROR;
 #endif
         peers->peer[n].color = 0;
+        peers->peer[n].dyn_resolve = dyn_resolve;
     }
 
     us->peer.data = peers;
@@ -478,6 +520,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
     pc->socklen = peer->socklen;
     pc->name = &peer->name;
     pc->host = &peer->host;
+    pc->dyn_resolve = peer->dyn_resolve;
 
     struct sockaddr_in *in;
     in = (struct sockaddr_in *)peer->sockaddr;

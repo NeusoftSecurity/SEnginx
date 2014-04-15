@@ -42,6 +42,7 @@ typedef struct {
 #endif
 
     ngx_uint_t                      color;
+    ngx_uint_t                      dyn_resolve;
 } ngx_http_upstream_rr_peer_t;
 
 

@@ -1361,7 +1361,6 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
             if (m) {
 
                 fprintf(stderr, "m: %lu\n", m);
-                need.domains++;
 
                 e = i;
 
@@ -1400,6 +1399,7 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
                 }
 not_match:
                 need.total += (ngx_int_t)m;
+                need.domains++;
             } else {
                 i++;
             }
@@ -1521,7 +1521,6 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
                     || old_peer[i - 1].color == old_peer[i].color) {
 
                     m++;
-
                     i++;
 
                     if (i < old_peers->number) {
@@ -1570,6 +1569,7 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
                     peer[k].fail_timeout = old_peer[i - 1].fail_timeout;
                     peer[k].down = old_peer[i - 1].down;
                     peer[k].color = old_peer[i - 1].color;
+                    peer[k].dyn_resolve = 1;
 
                     w += peer[k].weight;
 
@@ -1602,6 +1602,7 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
                     peer[k].fail_timeout = old_peer[i].fail_timeout;
                     peer[k].down = old_peer[i].down;
                     peer[k].color = old_peer[i].color;
+                    peer[k].dyn_resolve = old_peer[i].dyn_resolve;
 
                     w += peer[k].weight;
 
@@ -1674,6 +1675,7 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
             peer[i].current_weight = 0;
             peer[i].max_fails = 1;
             peer[i].fail_timeout = 10;
+            peer[i].dyn_resolve = 1;
         }
     }
 
@@ -1754,7 +1756,7 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
     ngx_http_request_t            *r;
     ngx_http_upstream_t           *u;
     ngx_peer_connection_t         *pc;
-    ngx_http_upstream_rr_peers_t  *peers;
+    ngx_http_upstream_rr_peers_t  *peers = NULL;
     ngx_http_upstream_rr_peer_data_t  *rrp;
 
     r = ctx->data;
@@ -1770,10 +1772,15 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
         pc->resolved = NGX_HTTP_UPSTREAM_DR_FAILED;
     } else {
         /* dns query ok */
-        peers = ngx_http_upstream_dyn_update_config(r, u, pc, ctx);
+        if (!ctx->cached) {
+            peers = ngx_http_upstream_dyn_update_config(r, u, pc, ctx);
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                "dynamic resolve update config, peers: %p", peers);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                    "dynamic resolve update config, peers: %p", peers);
+        } else {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                    "dns result is cached , no need to update peers");
+        }
 
         if (peers) {
             /* configuration is updated, use new configuration */
@@ -1808,6 +1815,24 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
                         in->sin_addr.s_addr,
                         peers->peer[i].socklen,
                         &peers->peer[i].name);
+            }
+
+            if (peers->next) {
+                peers = peers->next;
+
+                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                        "backup peers number: %ud", peers->number);
+
+                for (i = 0; i < peers->number; i++) {
+                    in = (struct sockaddr_in *)peers->peer[i].sockaddr;
+
+                    ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                            "peer[%ud]: %xd, %d, %V",
+                            i,
+                            in->sin_addr.s_addr,
+                            peers->peer[i].socklen,
+                            &peers->peer[i].name);
+                }
             }
 #endif
 
@@ -1857,6 +1882,13 @@ ngx_http_upstream_connect_and_resolve_peer(ngx_peer_connection_t *pc,
     rc = pc->get(pc, pc->data);
     if (rc != NGX_OK) {
         return rc;
+    }
+
+    if (pc->dyn_resolve == 0) {
+        /* this peer needn't to be resolved */
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "peer doesn't need to be dyn resolved!");
+        return _ngx_event_connect_peer(pc);
     }
 
     if (pc->host == NULL) {
@@ -4105,6 +4137,7 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
          */
 
         default:
+        fprintf(stderr, "1\n");
             status = NGX_HTTP_BAD_GATEWAY;
         }
     }

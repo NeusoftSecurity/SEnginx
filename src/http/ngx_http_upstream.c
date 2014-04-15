@@ -1334,8 +1334,9 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
 
         m = 0;
         b = e = (ngx_uint_t)-1;
+        i = 0;
 
-        for (i = 0; i < old_peers->number; i++) {
+        while (i < old_peers->number) {
 
             if (old_peer[i].host.len == host->len
                     && !ngx_memcmp(old_peer[i].host.data, host->data,
@@ -1349,9 +1350,9 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
                         b = i;
                     }
 
-                    if (i == old_peers->number - 1) {
-                        i++;
-                    } else {
+                    i++;
+
+                    if (i < old_peers->number) {
                         continue;
                     }
                 }
@@ -1399,6 +1400,8 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
                 }
 not_match:
                 need.total += (ngx_int_t)m;
+            } else {
+                i++;
             }
 
             /* TODO: record b, e... for later use in create_peer */
@@ -1466,8 +1469,8 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
     need = ngx_http_upstream_dyn_need_update_config(old_peers,
             ctx->addrs, ctx->naddrs, pc->host, implicit);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-            "need: %d", need.total);
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0,
+            "need: %d, domains: %d", need.total, need.domains);
     
     if (need.total == 0) {
         /* no update needed at this level, check next peers */
@@ -1507,7 +1510,9 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
         m = 0;
 
         /* TODO: don't re-loop here, use result from need_update */
-        for (i = 0; i < old_peers->number; i++) {
+        i = 0;
+
+        while(i < old_peers->number) {
 
             if (!next && old_peer[i].host.len == pc->host->len
                     && !ngx_memcmp(old_peer[i].host.data, pc->host->data,
@@ -1517,12 +1522,11 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
 
                     m++;
 
-                    if (i == old_peers->number - 1) {
-                        i++;
-                    } else {
+                    i++;
+
+                    if (i < old_peers->number) {
                         continue;
                     }
-
                 }
             }
 
@@ -1571,38 +1575,40 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
 
                     k++;
                 }
-            }
+            } else {
+                if (i < old_peers->number) {
+                    sockaddr = ngx_palloc(ngx_cycle->pool,
+                            old_peer[i].socklen);
+                    if (sockaddr == NULL) {
+                        goto failed;
+                    }
 
-            if (i < old_peers->number) {
-                sockaddr = ngx_palloc(ngx_cycle->pool,
-                        old_peer[i].socklen);
-                if (sockaddr == NULL) {
-                    goto failed;
+                    ngx_memcpy(sockaddr, old_peer[i].sockaddr,
+                            old_peer[i].socklen);
+
+                    peer[k].sockaddr = sockaddr;
+                    peer[k].socklen = old_peer[i].socklen;
+
+                    ngx_http_upstream_dyn_dup_str(ngx_cycle->pool,
+                            &old_peer[i].name, &peer[k].name);
+
+                    ngx_http_upstream_dyn_dup_str(ngx_cycle->pool,
+                            &old_peer[i].host, &peer[k].host);
+
+                    peer[k].weight = old_peer[i].weight;
+                    peer[k].effective_weight = old_peer[i].weight;
+                    peer[k].current_weight = 0;
+                    peer[k].max_fails = old_peer[i].max_fails;
+                    peer[k].fail_timeout = old_peer[i].fail_timeout;
+                    peer[k].down = old_peer[i].down;
+                    peer[k].color = old_peer[i].color;
+
+                    w += peer[k].weight;
+
+                    k++;
                 }
 
-                ngx_memcpy(sockaddr, old_peer[i].sockaddr,
-                        old_peer[i].socklen);
-
-                peer[k].sockaddr = sockaddr;
-                peer[k].socklen = old_peer[i].socklen;
-
-                ngx_http_upstream_dyn_dup_str(ngx_cycle->pool,
-                        &old_peer[i].name, &peer[k].name);
-
-                ngx_http_upstream_dyn_dup_str(ngx_cycle->pool,
-                        &old_peer[i].host, &peer[k].host);
-
-                peer[k].weight = old_peer[i].weight;
-                peer[k].effective_weight = old_peer[i].weight;
-                peer[k].current_weight = 0;
-                peer[k].max_fails = old_peer[i].max_fails;
-                peer[k].fail_timeout = old_peer[i].fail_timeout;
-                peer[k].down = old_peer[i].down;
-                peer[k].color = old_peer[i].color;
-
-                w += peer[k].weight;
-
-                k++;
+                i++;
             }
         }
 

@@ -715,6 +715,8 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
     if (rrp->peers->single) {
         pc->tries = 0;
 
+        fprintf(stderr, "single\n");
+
         return;
     }
 

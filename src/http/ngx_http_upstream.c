@@ -1739,6 +1739,12 @@ ngx_http_upstream_dyn_update_config(ngx_http_request_t *r, ngx_http_upstream_t *
         return NULL;
     }
 
+    if (peers->next) {
+        /* new "peers" has backup "peers" */
+        peers->single = 0;
+        peers->next->single = 0;
+    }
+
     /* replaced "peers" is freed postponed when ref count is zero */
     uscf->peer.dyn_data = peers;
 
@@ -1772,6 +1778,7 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
         pc->resolved = NGX_HTTP_UPSTREAM_DR_FAILED;
     } else {
         /* dns query ok */
+
         if (!ctx->cached) {
             peers = ngx_http_upstream_dyn_update_config(r, u, pc, ctx);
 
@@ -1798,6 +1805,8 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
 
             rrp->peers = peers;
             rrp->peers->ref++;
+
+            /* TODO: peers replaced, reinit fileds in pc */
 
 #if (NGX_DEBUG)
             ngx_uint_t i;

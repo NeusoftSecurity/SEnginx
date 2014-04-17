@@ -1336,6 +1336,10 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
         b = e = (ngx_uint_t)-1;
         i = 0;
 
+        /* TODO: build a table to record peers group by host
+         * to avoid loop here
+         */
+
         while (i < old_peers->number) {
 
             if (old_peer[i].host.len == host->len
@@ -1759,11 +1763,12 @@ ngx_http_upstream_dyn_update_config(ngx_http_request_t *r, ngx_http_upstream_t *
 static void
 ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
 {
-    ngx_http_request_t            *r;
-    ngx_http_upstream_t           *u;
-    ngx_peer_connection_t         *pc;
-    ngx_http_upstream_rr_peers_t  *peers = NULL;
+    ngx_http_request_t                *r;
+    ngx_http_upstream_t               *u;
+    ngx_peer_connection_t             *pc;
+    ngx_http_upstream_rr_peers_t      *peers = NULL;
     ngx_http_upstream_rr_peer_data_t  *rrp;
+    ngx_uint_t                         n;
 
     r = ctx->data;
 
@@ -1806,7 +1811,29 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
             rrp->peers = peers;
             rrp->peers->ref++;
 
-            /* TODO: peers replaced, reinit fileds in pc */
+            rrp->current = 0;
+
+            n = rrp->peers->number;
+
+            if (rrp->peers->next && rrp->peers->next->number > n) {
+                n = rrp->peers->next->number;
+            }
+
+            if (n <= 8 * sizeof(uintptr_t)) {
+                rrp->tried = &rrp->data;
+                rrp->data = 0;
+
+            } else {
+                n = (n + (8 * sizeof(uintptr_t) - 1)) / (8 * sizeof(uintptr_t));
+
+                rrp->tried = ngx_pcalloc(r->pool, n * sizeof(uintptr_t));
+                if (rrp->tried == NULL) {
+                    ngx_http_upstream_finalize_request(r, u,
+                        NGX_HTTP_INTERNAL_SERVER_ERROR);
+
+                    return;
+                }
+            }
 
 #if (NGX_DEBUG)
             ngx_uint_t i;

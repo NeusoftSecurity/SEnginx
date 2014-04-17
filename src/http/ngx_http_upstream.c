@@ -1342,7 +1342,8 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
 
         while (i < old_peers->number) {
 
-            if (old_peer[i].host.len == host->len
+            if (old_peer[i].dyn_resolve
+                    && old_peer[i].host.len == host->len
                     && !ngx_memcmp(old_peer[i].host.data, host->data,
                         host->len)) {
 
@@ -1363,8 +1364,6 @@ ngx_http_upstream_dyn_need_update_config(ngx_http_upstream_rr_peers_t *old_peers
             }
 
             if (m) {
-
-                fprintf(stderr, "m: %lu\n", m);
 
                 e = i;
 
@@ -1429,8 +1428,8 @@ not_match:
         for (i = 0; i < old_peers->number; i++) {
             for (k = 0; k < naddrs; k++) {
                 if (old_peer[i].socklen == addrs[k].socklen
-                        && !ngx_memcmp(old_peer[i].sockaddr,
-                            addrs[k].sockaddr, addrs[k].socklen)) {
+                        && !ngx_http_upstream_dyn_cmp_addr(
+                            old_peer[i].sockaddr, addrs[k].sockaddr)) {
                     break;
                 }
             }
@@ -1518,7 +1517,9 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
 
         while(i < old_peers->number) {
 
-            if (!next && old_peer[i].host.len == pc->host->len
+            if (!next
+                    && old_peer[i].dyn_resolve
+                    && old_peer[i].host.len == pc->host->len
                     && !ngx_memcmp(old_peer[i].host.data, pc->host->data,
                         pc->host->len)) {
                 if (m == 0
@@ -1670,7 +1671,6 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
             len = ngx_sock_ntop(sockaddr,
                     ctx->addrs[i].socklen, p, NGX_SOCKADDR_STRLEN, 1);
 
-
             peer[i].name.data = p;
             peer[i].name.len = len;
             peer[i].host = uscf->host;
@@ -1684,7 +1684,6 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
     }
 
     return peers;
-
 
 failed:
 
@@ -1834,6 +1833,8 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
                     return;
                 }
             }
+
+            pc->tries = rrp->peers->number;
 
 #if (NGX_DEBUG)
             ngx_uint_t i;

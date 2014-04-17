@@ -275,8 +275,8 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
 #if (NGX_HTTP_UPSTREAM_CHECK)
         peers->peer[i].check_index = (ngx_uint_t) NGX_ERROR;
 #endif
-        peers->peer[n].color = 0;
-        peers->peer[n].dyn_resolve = dyn_resolve;
+        peers->peer[i].color = 0;
+        peers->peer[i].dyn_resolve = dyn_resolve;
     }
 
     us->peer.data = peers;
@@ -522,6 +522,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
     pc->host = &peer->host;
     pc->dyn_resolve = peer->dyn_resolve;
 
+#if (NGX_DEBUG)
     struct sockaddr_in *in;
     in = (struct sockaddr_in *)peer->sockaddr;
 
@@ -531,6 +532,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
             peer->socklen,
             &peer->name,
             &peer->host);
+#endif
 
     /* ngx_unlock_mutex(rrp->peers->mutex); */
 

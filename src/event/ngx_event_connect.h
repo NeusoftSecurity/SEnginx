@@ -46,6 +46,7 @@ struct ngx_peer_connection_s {
     ngx_uint_t                       tries;
 
     ngx_uint_t                       check_index;
+    ngx_uint_t                       dyn_resolve;
 
     ngx_event_get_peer_pt            get;
     ngx_event_free_peer_pt           free;

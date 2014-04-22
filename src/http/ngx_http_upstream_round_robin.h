@@ -78,6 +78,7 @@ typedef struct {
     void                            *request;
     void                            *group;
 #endif
+    ngx_http_upstream_rr_peers_t   *dyn_peers;
 } ngx_http_upstream_rr_peer_data_t;
 
 

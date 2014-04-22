@@ -89,6 +89,42 @@ ngx_module_t  ngx_http_upstream_fastest_module = {
 
 
 static ngx_int_t
+ngx_http_upstream_reinit_fastest(ngx_http_request_t *r, ngx_pool_t *pool,
+    ngx_http_upstream_srv_conf_t *us, void *data)
+{
+    ngx_uint_t                            n;
+    ngx_http_upstream_rr_peers_t         *peers;
+    ngx_http_upstream_fastest_conf_t  *lcf;
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "reinit fastest");
+
+    peers = data;
+
+    n = peers->number;
+
+    if (peers->next) {
+        n += peers->next->number;
+    }
+
+    lcf = ngx_http_conf_upstream_srv_conf(us,
+                                          ngx_http_upstream_fastest_module);
+
+    if (lcf->conns) {
+        ngx_pfree(pool, lcf->conns);
+    }
+
+    lcf->conns = ngx_pcalloc(pool,
+            sizeof(ngx_http_upstream_fastest_access_t) * n);
+    if (lcf->conns == NULL) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 ngx_http_upstream_init_fastest(ngx_conf_t *cf,
     ngx_http_upstream_srv_conf_t *us)
 {
@@ -121,6 +157,7 @@ ngx_http_upstream_init_fastest(ngx_conf_t *cf,
     }
 
     us->peer.init = ngx_http_upstream_init_fastest_peer;
+    us->peer.reinit_upstream = ngx_http_upstream_reinit_fastest;
 
     return NGX_OK;
 }
@@ -147,6 +184,7 @@ ngx_http_upstream_init_fastest_peer(ngx_http_request_t *r,
     fp->conns = fcf->conns;
 
     r->upstream->peer.data = &fp->rrp;
+    fp->rrp.dyn_peers = NULL;
 
     if (ngx_http_upstream_init_round_robin_peer(r, us) != NGX_OK) {
         return NGX_ERROR;

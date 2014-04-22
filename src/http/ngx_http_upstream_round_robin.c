@@ -302,11 +302,12 @@ ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
             return NGX_ERROR;
         }
 
+        rrp->dyn_peers = NULL;
         r->upstream->peer.data = rrp;
     }
 
     if (r->upstream->conf->dyn_resolve && us->peer.dyn_data) {
-        rrp->peers = us->peer.dyn_data;
+        rrp->peers = rrp->dyn_peers = us->peer.dyn_data;
     } else {
         rrp->peers = us->peer.data;
     }
@@ -347,7 +348,9 @@ ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
                                ngx_http_upstream_save_round_robin_peer_session;
 #endif
 
-    rrp->peers->ref++;
+    if (rrp->dyn_peers) {
+        rrp->dyn_peers->ref++;
+    }
 
     return NGX_OK;
 }

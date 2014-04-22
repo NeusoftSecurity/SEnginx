@@ -109,6 +109,7 @@ ngx_http_upstream_init_ip_hash_peer(ngx_http_request_t *r,
     }
 
     r->upstream->peer.data = &iphp->rrp;
+    iphp->rrp.dyn_peers = NULL;
 
     if (ngx_http_upstream_init_round_robin_peer(r, us) != NGX_OK) {
         return NGX_ERROR;

@@ -1759,7 +1759,7 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
     ngx_peer_connection_t             *pc;
     ngx_http_upstream_rr_peers_t      *peers = NULL;
     ngx_http_upstream_rr_peer_data_t  *rrp;
-    ngx_uint_t                         n;
+    ngx_http_upstream_srv_conf_t      *uscf;
 
     r = ctx->data;
 
@@ -1797,44 +1797,38 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
             u->peer.free(&u->peer, u->peer.data, 0);
             u->peer.sockaddr = NULL;
 
-            rrp = pc->data;
-            if (rrp->peers->stale) {
-                rrp->peers->ref--;
+            uscf = u->conf->upstream;
 
-                if (rrp->peers->ref == 0) {
+            rrp = pc->data;
+            if (rrp->dyn_peers) {
+                rrp->dyn_peers->ref--;
+
+                if (rrp->dyn_peers->ref < 0) {
+                    ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,
+                            "BUG: reference count error when freeing rr peer, "
+                            "peers: %p", rrp->dyn_peers);
+                }
+
+                if (rrp->dyn_peers->stale && rrp->dyn_peers->ref == 0) {
                     ngx_http_upstream_dyn_free_peers(ngx_cycle->pool,
-                                                     rrp->peers);
+                            rrp->dyn_peers);
                 }
             }
 
-            rrp->peers = peers;
-            rrp->peers->ref++;
-
-            rrp->current = 0;
-
-            n = rrp->peers->number;
-
-            if (rrp->peers->next && rrp->peers->next->number > n) {
-                n = rrp->peers->next->number;
-            }
-
-            if (n <= 8 * sizeof(uintptr_t)) {
-                rrp->tried = &rrp->data;
-                rrp->data = 0;
-
-            } else {
-                n = (n + (8 * sizeof(uintptr_t) - 1)) / (8 * sizeof(uintptr_t));
-
-                rrp->tried = ngx_pcalloc(r->pool, n * sizeof(uintptr_t));
-                if (rrp->tried == NULL) {
+            if (uscf->peer.reinit_upstream) {
+                if (uscf->peer.reinit_upstream(r, ngx_cycle->pool,
+                        uscf, peers) != NGX_OK) {
                     ngx_http_upstream_finalize_request(r, u,
-                        NGX_HTTP_INTERNAL_SERVER_ERROR);
-
+                            NGX_HTTP_INTERNAL_SERVER_ERROR);
                     return;
                 }
             }
 
-            pc->tries = rrp->peers->number;
+            if (uscf->peer.init(r, uscf) != NGX_OK) {
+                ngx_http_upstream_finalize_request(r, u,
+                    NGX_HTTP_INTERNAL_SERVER_ERROR);
+                return;
+            }
 
 #if (NGX_DEBUG)
             ngx_uint_t i;
@@ -4321,16 +4315,20 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
         /* decrease reference count */
 
         rrp = u->peer.data;
-        rrp->peers->ref--;
 
-        if (rrp->peers->ref < 0) {
-            ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,
-                    "BUG: reference count error when freeing rr peer, "
-                    "peers: %p", rrp->peers);
-        }
+        if (rrp->dyn_peers) {
+            rrp->dyn_peers->ref--;
 
-        if (rrp->peers->stale && rrp->peers->ref == 0) {
-            ngx_http_upstream_dyn_free_peers(ngx_cycle->pool, rrp->peers);
+            if (rrp->dyn_peers->ref < 0) {
+                ngx_log_error(NGX_LOG_EMERG, r->connection->log, 0,
+                        "BUG: reference count error when freeing rr peer, "
+                        "peers: %p", rrp->dyn_peers);
+            }
+
+            if (rrp->dyn_peers->stale && rrp->dyn_peers->ref == 0) {
+                ngx_http_upstream_dyn_free_peers(ngx_cycle->pool,
+                                                 rrp->dyn_peers);
+            }
         }
     }
 

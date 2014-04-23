@@ -40,6 +40,9 @@ typedef struct {
 #if (NGX_HTTP_SSL)
     ngx_ssl_session_t              *ssl_session;   /* local to a process */
 #endif
+
+    ngx_uint_t                      color;
+    ngx_uint_t                      dyn_resolve;
 } ngx_http_upstream_rr_peer_t;
 
 
@@ -59,6 +62,9 @@ struct ngx_http_upstream_rr_peers_s {
 
     ngx_http_upstream_rr_peers_t   *next;
 
+    ngx_int_t                       ref;
+    ngx_int_t                       stale;
+
     ngx_http_upstream_rr_peer_t     peer[1];
 };
 
@@ -72,6 +78,7 @@ typedef struct {
     void                            *request;
     void                            *group;
 #endif
+    ngx_http_upstream_rr_peers_t   *dyn_peers;
 } ngx_http_upstream_rr_peer_data_t;
 
 

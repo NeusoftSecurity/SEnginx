@@ -3,11 +3,16 @@
 # (C) Jason Liu
 
 # Tests for dynamic resolve in proxy module.
-
+#
+# Usage: need to write one entry in /etc/hosts file to let
+# nginx get started:
+#     127.0.0.1 senginx.test
+#
 ###############################################################################
 
 use warnings;
 use strict;
+use v5.14;
 
 use Test::More;
 
@@ -22,19 +27,12 @@ use Net::DNS::Nameserver;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy/)->plan(6);
-my $resolve_count = 0;
-my @addrs = ("3.0.0.1", "3.0.0.2", "3.0.0.3");
-for (my $i = 0; $i < @addrs; $i++) {
-    my $ret = system("ifconfig lo:$i $addrs[$i]/8");
-    if ($ret) {
-        die("Config $addrs[$i] to lo:$i failed!\n");
-    }
-}
+my $t = Test::Nginx->new()->has(qw/http proxy/)->plan(7);
+my @server_addrs = ("127.0.0.1", "127.0.0.2", "127.0.0.3", "127.0.0.4");
+my @domain_addrs = ("127.0.0.2", "127.0.0.3");
 
-my $domain_name1 = "www.senginx-test.com";
-my $domain_name2 = "test.senginx-test.com";
-my $domain_name3 = "can-not-resolve.com";
+my $ipv6 = $t->has_module("ipv6") ? "ipv6=off" : "";
+
 $t->write_file_expand('nginx.conf', <<"EOF");
 
 %%TEST_GLOBALS%%
@@ -47,63 +45,99 @@ events {
 http {
     %%TEST_GLOBALS_HTTP%%
 
-    resolver 127.0.0.1:53530 valid=1;
+    resolver 127.0.0.1:53530 valid=1s $ipv6;
     resolver_timeout 1s;
+
+    upstream backend {
+        server senginx.test:8081 fail_timeout=0s;
+
+        server 127.0.0.4:8081 backup;
+    }
 
     server {
         listen       127.0.0.1:8080;
         server_name  localhost;
 
+        location /static {
+            proxy_pass http://backend;
+        }
+
         location / {
-            proxy_pass http://$domain_name1:8081 dynamic_resolve;
+            proxy_pass http://backend dynamic_resolve;
         }
 
-        location /dns_loadblance {
-            proxy_pass http://$domain_name2:8081 dynamic_resolve;
+        location /stale {
+            proxy_pass http://backend dynamic_resolve dynamic_fallback=stale;
         }
 
-        location /dns_error {
-            proxy_pass http://$domain_name3:8081 dynamic_resolve;
+        location /next {
+            proxy_pass http://backend dynamic_resolve dynamic_fallback=next;
+        }
+
+        location /shutdown {
+            proxy_pass http://backend dynamic_resolve dynamic_fallback=shutdown;
         }
     }
 }
 
 EOF
 
-$t->run_daemon(\&http_daemon, "127.0.0.1");
-foreach my $ip (@addrs) {
+foreach my $ip (@server_addrs) {
     $t->run_daemon(\&http_daemon, $ip);
 }
+
 $t->run_daemon(\&dns_server_daemon);
+my $dns_pid = pop @{$t->{_daemons}};
+
 $t->run();
 
 ###############################################################################
 
-like(http_get('/'), qr/TEST-1-OK-IF-YOU-SEE-THIS-127/, 'expect http server is 127');
-sleep(2);
-like(http_get('/'), qr/TEST-1-OK-IF-YOU-SEE-THIS-$addrs[0]/, 'expect http server is the first member in @addrs');
-sleep(2);
-like(http_get('/'), qr/TEST-1-OK-IF-YOU-SEE-THIS-127/, 'expect http server is 127');
-sleep(2);
-like(http_get('/dns_loadblance'), qr/TEST-2-OK-IF-YOU-SEE-THIS-3/, 'expect http server is one of @addrs');
-sleep(2);
-like(http_get('/dns_loadblance'), qr/TEST-2-OK-IF-YOU-SEE-THIS-127/, 'expect http server is 127');
-like(http_get('/dns_error'), qr/502 Bad Gateway/, 'get 502 when resolve failed');
+like(http_get('/static'), qr/127\.0\.0\.1/,
+    'static resolved should be 127.0.0.1');
 
-for (my $i = 0; $i < @addrs; $i++) {
-    system("ifconfig lo:$i 0.0.0.0 2>/dev/null");
-}
+like(http_get('/'), qr/127\.0\.0\.2/,
+    'http server should be 127.0.0.2, using rr method');
+like(http_get('/'), qr/127\.0\.0\.3/,
+    'http server should be 127.0.0.3, using rr method');
+
+# kill dns daemon
+kill $^O eq 'MSWin32' ? 9 : 'TERM', $dns_pid;
+wait;
+
+# wait for dns cache to expire
+sleep(2);
+
+# peers should be 127.0.0.2 and 127.0.0.3
+like(http_get('/stale'), qr/127\.0\.0\.2/,
+    'stale http server should be 127.0.0.2, using rr method');
+like(http_get('/stale'), qr/127\.0\.0\.3/,
+    'stale http server should be 127.0.0.3, using rr method');
+
+like(http_get('/next'), qr/127\.0\.0\.4/, 'next upstream should be 127.0.0.4');
+
+like(http_get('/shutdown'), qr/502 Bad Gateway/,
+    'shutdown connection if dns query is failed');
+
 ###############################################################################
 
 sub http_daemon {
-    my ($addr) = @_;
+    my $addr = shift @_;
     my $server = IO::Socket::INET->new(
         Proto => 'tcp',
         LocalHost => "$addr:8081",
         Listen => 5,
         Reuse => 1
-    )
-        or die "Can't create listening socket: $!\n";
+    ) or die "Can't create listening socket: $!\n";
+
+    my $resp;
+
+    for ($addr) {
+        when ("127.0.0.1") {$resp = "from server 127.0.0.1";}
+        when ("127.0.0.2") {$resp = "from server 127.0.0.2";}
+        when ("127.0.0.3") {$resp = "from server 127.0.0.3";}
+        when ("127.0.0.4") {$resp = "from server 127.0.0.4";}
+    }
 
     while (my $client = $server->accept()) {
         $client->autoflush(1);
@@ -118,26 +152,19 @@ sub http_daemon {
 
         $uri = $1 if $headers =~ /^\S+\s+([^ ]+)\s+HTTP/i;
 
-        if ($uri eq '/') {
+        if ($uri eq '/'
+            or $uri eq '/static'
+            or $uri eq '/next'
+            or $uri eq '/stale'
+            or $uri eq '/shutdown') {
+
             print $client <<'EOF';
 HTTP/1.1 200 OK
 Connection: close
 
 EOF
-            print $client "TEST-1-OK-IF-YOU-SEE-THIS-$addr"
-            unless $headers =~ /^HEAD/i;
-
-        } elsif ($uri eq '/dns_loadblance') {
-            print $client <<'EOF';
-HTTP/1.1 200 OK
-Connection: close
-
-EOF
-            print $client "TEST-2-OK-IF-YOU-SEE-THIS-$addr"
-            unless $headers =~ /^HEAD/i;
-
+            print $client "$resp" unless $headers =~ /^HEAD/i;
         } else {
-
             print $client <<"EOF";
 HTTP/1.1 404 Not Found
 Connection: close
@@ -154,7 +181,6 @@ EOF
 sub reply_handler {
     my ($qname, $qclass, $qtype, $peerhost,$query,$conn) = @_;
     my ($rcode, $rr, $ttl, $rdata, @ans, @auth, @add,);
-    my $addr;
 
     #print "Received query from $peerhost to ". $conn->{sockhost}. "\n";
     $query->print;
@@ -164,34 +190,18 @@ sub reply_handler {
         return ($rcode, \@ans, \@auth, \@add, { aa => 1 });
     }
 
-    if ($resolve_count == 0) {
-        $resolve_count = 1; 
-    } else {
-        $resolve_count = 0; 
-    }
-
-    if ($resolve_count == 1) {
-        ($ttl, $rdata) = (3600, "127.0.0.1");
-        $rr = new Net::DNS::RR("$qname $ttl $qclass $qtype $rdata");
-        push @ans, $rr;
-        $rcode = "NOERROR";
-    } elsif ($qname eq $domain_name1) {
-        ($ttl, $rdata) = (3600, $addrs[0]);
-        $rr = new Net::DNS::RR("$qname $ttl $qclass $qtype $rdata");
-        push @ans, $rr;
-        $rcode = "NOERROR";
-    } elsif ($qname eq $domain_name2) {
-        foreach my $ip (@addrs) {
+    if ($qname eq "senginx.test") {
+        foreach my $ip (@domain_addrs) {
             ($ttl, $rdata) = (3600, $ip);
             $rr = new Net::DNS::RR("$qname $ttl $qclass $qtype $rdata");
             push @ans, $rr;
         }
+
         $rcode = "NOERROR";
     } else {
         $rcode = "NXDOMAIN";
     }
 
-# mark the answer as authoritive (by setting the 'aa' flag
     return ($rcode, \@ans, \@auth, \@add, { aa => 1 });
 }
 
@@ -200,7 +210,7 @@ sub dns_server_daemon {
         LocalPort    => 53530,
         ReplyHandler => \&reply_handler,
         Verbose      => 0
-    ) || die "couldn't create nameserver object\n";
+    ) or die "couldn't create nameserver object\n";
 
     $ns->main_loop;
 }

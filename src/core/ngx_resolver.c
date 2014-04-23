@@ -515,6 +515,8 @@ ngx_resolve_name_locked(ngx_resolver_t *r, ngx_resolver_ctx_t *ctx)
                     ctx->state = NGX_OK;
                     ctx->naddrs = naddrs;
 
+                    ctx->cached = 1;
+
                     if (addrs == NULL) {
                         ctx->addrs = &ctx->addr;
                         ctx->addr.sockaddr = (struct sockaddr *) &ctx->sin;

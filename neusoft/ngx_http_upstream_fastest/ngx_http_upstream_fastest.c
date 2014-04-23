@@ -120,6 +120,10 @@ ngx_http_upstream_reinit_fastest(ngx_http_request_t *r, ngx_pool_t *pool,
         return NGX_ERROR;
     }
 
+    if (us->peer.init(r, us) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
     return NGX_OK;
 }
 

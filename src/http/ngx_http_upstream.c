@@ -1824,12 +1824,6 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
                 }
             }
 
-            if (uscf->peer.init(r, uscf) != NGX_OK) {
-                ngx_http_upstream_finalize_request(r, u,
-                    NGX_HTTP_INTERNAL_SERVER_ERROR);
-                return;
-            }
-
 #if (NGX_DEBUG)
             ngx_uint_t i;
             struct sockaddr_in *in;

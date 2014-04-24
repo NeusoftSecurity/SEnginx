@@ -81,6 +81,9 @@ typedef struct {
     ngx_uint_t                     ssl;
     ngx_uint_t                     ssl_protocols;
     ngx_str_t                      ssl_ciphers;
+    ngx_uint_t                     ssl_verify_depth;
+    ngx_str_t                      ssl_trusted_certificate;
+    ngx_str_t                      ssl_crl;
 #endif
 } ngx_http_proxy_loc_conf_t;
 
@@ -551,6 +554,48 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       ngx_conf_set_str_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_proxy_loc_conf_t, ssl_ciphers),
+      NULL },
+
+    { ngx_string("proxy_ssl_name"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_set_complex_value_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_proxy_loc_conf_t, upstream.ssl_name),
+      NULL },
+
+    { ngx_string("proxy_ssl_server_name"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_proxy_loc_conf_t, upstream.ssl_server_name),
+      NULL },
+
+    { ngx_string("proxy_ssl_verify"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_proxy_loc_conf_t, upstream.ssl_verify),
+      NULL },
+
+    { ngx_string("proxy_ssl_verify_depth"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_proxy_loc_conf_t, ssl_verify_depth),
+      NULL },
+
+    { ngx_string("proxy_ssl_trusted_certificate"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_proxy_loc_conf_t, ssl_trusted_certificate),
+      NULL },
+
+    { ngx_string("proxy_ssl_crl"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_proxy_loc_conf_t, ssl_crl),
       NULL },
 
 #endif
@@ -2390,6 +2435,7 @@ ngx_http_proxy_create_loc_conf(ngx_conf_t *cf)
      *     conf->upstream.location = NULL;
      *     conf->upstream.store_lengths = NULL;
      *     conf->upstream.store_values = NULL;
+     *     conf->upstream.ssl_name = NULL;
      *
      *     conf->method = { 0, NULL };
      *     conf->headers_source = NULL;
@@ -2403,6 +2449,8 @@ ngx_http_proxy_create_loc_conf(ngx_conf_t *cf)
      *     conf->ssl = 0;
      *     conf->ssl_protocols = 0;
      *     conf->ssl_ciphers = { 0, NULL };
+     *     conf->ssl_trusted_certificate = { 0, NULL };
+     *     conf->ssl_crl = { 0, NULL };
      */
 
     conf->upstream.store = NGX_CONF_UNSET;
@@ -2441,8 +2489,12 @@ ngx_http_proxy_create_loc_conf(ngx_conf_t *cf)
     conf->upstream.pass_headers = NGX_CONF_UNSET_PTR;
 
     conf->upstream.intercept_errors = NGX_CONF_UNSET;
+
 #if (NGX_HTTP_SSL)
     conf->upstream.ssl_session_reuse = NGX_CONF_UNSET;
+    conf->upstream.ssl_server_name = NGX_CONF_UNSET;
+    conf->upstream.ssl_verify = NGX_CONF_UNSET;
+    conf->ssl_verify_depth = NGX_CONF_UNSET_UINT;
 #endif
 
     /* "proxy_cyclic_temp_file" is disabled */
@@ -2714,6 +2766,7 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                               prev->upstream.intercept_errors, 0);
 
 #if (NGX_HTTP_SSL)
+
     ngx_conf_merge_value(conf->upstream.ssl_session_reuse,
                               prev->upstream.ssl_session_reuse, 1);
 
@@ -2725,9 +2778,24 @@ ngx_http_proxy_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_str_value(conf->ssl_ciphers, prev->ssl_ciphers,
                              "DEFAULT");
 
+    if (conf->upstream.ssl_name == NULL) {
+        conf->upstream.ssl_name = prev->upstream.ssl_name;
+    }
+
+    ngx_conf_merge_value(conf->upstream.ssl_server_name,
+                              prev->upstream.ssl_server_name, 0);
+    ngx_conf_merge_value(conf->upstream.ssl_verify,
+                              prev->upstream.ssl_verify, 0);
+    ngx_conf_merge_uint_value(conf->ssl_verify_depth,
+                              prev->ssl_verify_depth, 1);
+    ngx_conf_merge_str_value(conf->ssl_trusted_certificate,
+                              prev->ssl_trusted_certificate, "");
+    ngx_conf_merge_str_value(conf->ssl_crl, prev->ssl_crl, "");
+
     if (conf->ssl && ngx_http_proxy_set_ssl(cf, conf) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
+
 #endif
 
     ngx_conf_merge_value(conf->redirect, prev->redirect, 1);
@@ -3774,6 +3842,14 @@ ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)
         return NGX_ERROR;
     }
 
+    cln = ngx_pool_cleanup_add(cf->pool, 0);
+    if (cln == NULL) {
+        return NGX_ERROR;
+    }
+
+    cln->handler = ngx_ssl_cleanup_ctx;
+    cln->data = plcf->upstream.ssl;
+
     if (SSL_CTX_set_cipher_list(plcf->upstream.ssl->ctx,
                                 (const char *) plcf->ssl_ciphers.data)
         == 0)
@@ -3784,13 +3860,25 @@ ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)
         return NGX_ERROR;
     }
 
-    cln = ngx_pool_cleanup_add(cf->pool, 0);
-    if (cln == NULL) {
-        return NGX_ERROR;
-    }
+    if (plcf->upstream.ssl_verify) {
+        if (plcf->ssl_trusted_certificate.len == 0) {
+            ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
+                      "no proxy_ssl_trusted_certificate for proxy_ssl_verify");
+            return NGX_ERROR;
+        }
 
-    cln->handler = ngx_ssl_cleanup_ctx;
-    cln->data = plcf->upstream.ssl;
+        if (ngx_ssl_trusted_certificate(cf, plcf->upstream.ssl,
+                                        &plcf->ssl_trusted_certificate,
+                                        plcf->ssl_verify_depth)
+            != NGX_OK)
+        {
+            return NGX_ERROR;
+        }
+
+        if (ngx_ssl_crl(cf, plcf->upstream.ssl, &plcf->ssl_crl) != NGX_OK) {
+            return NGX_ERROR;
+        }
+    }
 
     return NGX_OK;
 }

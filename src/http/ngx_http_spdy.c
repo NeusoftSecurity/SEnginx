@@ -943,7 +943,7 @@ ngx_http_spdy_state_syn_stream(ngx_http_spdy_connection_t *sc, u_char *pos,
     if (sc->processing >= sscf->concurrent_streams) {
 
         ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
-                      "spdy concurrent streams excessed %ui", sc->processing);
+                      "spdy concurrent streams exceeded %ui", sc->processing);
 
         if (ngx_http_spdy_send_rst_stream(sc, sid, NGX_SPDY_REFUSED_STREAM,
                                           prio)
@@ -1412,8 +1412,6 @@ ngx_http_spdy_state_data(ngx_http_spdy_connection_t *sc, u_char *pos,
 {
     ngx_http_spdy_stream_t  *stream;
 
-    stream = sc->stream;
-
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
                    "spdy DATA frame");
 
@@ -1421,7 +1419,7 @@ ngx_http_spdy_state_data(ngx_http_spdy_connection_t *sc, u_char *pos,
         ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
                       "client violated connection flow control: length of "
                       "received DATA frame %uz, while available window %uz",
-                      stream->id, sc->length, sc->recv_window);
+                      sc->length, sc->recv_window);
 
         return ngx_http_spdy_state_protocol_error(sc);
     }
@@ -1440,6 +1438,8 @@ ngx_http_spdy_state_data(ngx_http_spdy_connection_t *sc, u_char *pos,
 
         sc->recv_window = NGX_SPDY_MAX_WINDOW;
     }
+
+    stream = sc->stream;
 
     if (stream == NULL) {
         return ngx_http_spdy_state_skip(sc, pos, end);

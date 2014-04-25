@@ -587,6 +587,9 @@ struct ngx_http_request_s {
 #endif
     ngx_resolver_ctx_t               *rm_resolve_ctx;
     ngx_resolver_ctx_t               *wl_resolve_ctx;
+#if (NGX_HTTP_STATISTICS)
+    ngx_uint_t                        stats_valid;
+#endif
 };
 
 

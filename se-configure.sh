@@ -58,6 +58,7 @@ fi
     --add-module=${NEU_DIR}/ngx_http_ip_blacklist \
     --add-module=${NEU_DIR}/ngx_http_ip_behavior \
     --add-module=${NEU_DIR}/ngx_http_whitelist \
+    --add-module=${NEU_DIR}/ngx_http_statistics \
     --add-module=${TRD_DIR}/ngx_cache_purge-1.3
 
 get_line_num()

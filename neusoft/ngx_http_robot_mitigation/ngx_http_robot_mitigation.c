@@ -1194,6 +1194,15 @@ ngx_http_rm_request_handler(ngx_http_request_t *r)
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "robot mitgation failed, re-challenge");
 
+#if (NGX_HTTP_STATISTICS)
+    ngx_http_core_srv_conf_t        *cscf;
+
+    cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+
+    ngx_http_stats_server_inc(cscf->stats,
+         NGX_HTTP_STATS_TYPE_ATTACK, NGX_HTTP_STATS_ATTACK_RM);
+#endif
+
 #if NGX_HTTP_IP_BLACKLIST
 #if (NGX_HTTP_X_FORWARDED_FOR)
         if (r->headers_in.x_forwarded_for.nelts > 0) {

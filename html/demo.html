@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SEnginx Statistics</title>
+
+    <style>
+    body {
+        background:  white;
+        color:       black;
+        font-family: Helvetica, Arial, sans-serif;
+    }
+
+    h1 {
+        margin: .5em 0 0 0;
+    }
+
+    h2 {
+        margin: .8em 0 .3em 0;
+    }
+
+    h3 {
+        margin: .5em 0 .3em 0;
+    }
+
+    table {
+        font-size: .8em;
+        margin: .5em 0;
+        border-collapse: collapse;
+        border-bottom: 1px #DED solid;
+    }
+
+    table.plain {
+        border: none;
+    }
+
+    thead th {
+        font-size: 1em;
+        background: #DED;
+        padding: .1em .3em;
+        border: .2em solid #FFF;
+    }
+
+    tbody tr.odd {
+        background: #F5F5F5;
+    }
+
+    tbody th {
+        text-align: left;
+    }
+
+    tbody td {
+        height: 1.2em;
+        text-align: right;
+    }
+
+    #upstreams table {
+        width: 100%;
+    }
+
+    #upstreams tbody th {
+        font-weight: normal;
+    }
+
+    .tooltip {
+        text-align: left;
+        border-bottom: 1px black dotted;
+        display: inline;
+        position: relative;
+        cursor: help;
+    }
+
+    .tooltip:hover:after {
+        background: #333;
+        background: rgba(0,0,0,.8);
+        bottom: 26px;
+        color: #fff;
+        content: attr(title);
+        left: 20%;
+        padding: 5px 15px;
+        position: absolute;
+        z-index: 98;
+        width: 14em;
+    }
+
+    .tooltip:hover:before{
+        border: solid;
+        border-color: #333 transparent;
+        border-width: 6px 6px 0 6px;
+        bottom: 20px;
+        content: "";
+        left: 50%;
+        position: absolute;
+        z-index: 99;
+    }
+    </style>
+
+</head>
+<body>
+
+    <h1>
+        <img src="./senginx_logo.png" />
+    </h1>
+
+    <div id="monitor"></div>
+
+    <script>
+
+    var ngxStatusURI = "/stats", ngxUpdateInterval = 1000;
+    var monitor = document.getElementById('monitor');
+
+    function template(stats) {
+        // TODO: show what you got from stats ...
+    };
+
+    function ngxGetData() {
+        var request = new XMLHttpRequest;
+
+        request.onload = function() {
+            if (this.status != 200) {
+                // TODO error notification
+                return;
+            }
+
+            monitor.innerHTML = template(JSON.parse(this.responseText));
+        }
+
+        request.open('GET', ngxStatusURI);
+        request.send();
+    };
+
+    ngxGetData();
+    setInterval(ngxGetData, ngxUpdateInterval);
+
+    </script>
+
+</body>
+</html>

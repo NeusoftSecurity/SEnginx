@@ -13,6 +13,10 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
+#if (NGX_HTTP_STATISTICS)
+#include <ngx_http_statistics.h>
+#endif
+
 
 #define NGX_HTTP_GZIP_PROXIED_OFF       0x0002
 #define NGX_HTTP_GZIP_PROXIED_EXPIRED   0x0004
@@ -216,6 +220,10 @@ typedef struct {
 #endif
 
     ngx_http_core_loc_conf_t  **named_locations;
+
+#if (NGX_HTTP_STATISTICS)
+    ngx_http_statistics_server_t *stats;
+#endif
 } ngx_http_core_srv_conf_t;
 
 

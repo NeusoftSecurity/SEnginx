@@ -11,7 +11,7 @@ use strict;
 
 use base qw/ Exporter /;
 
-our @EXPORT = qw/ log_in log_out http http_get http_head http_post http_post_multipart http_get_with_header /;
+our @EXPORT = qw/ log_in log_out http http_get http_head http_post http_post_multipart http_get_with_header http_get_with_host /;
 our @EXPORT_OK = qw/ http_gzip_request http_gzip_like /;
 our %EXPORT_TAGS = (
 	gzip => [ qw/ http_gzip_request http_gzip_like / ]
@@ -421,6 +421,15 @@ sub http_get_with_header($;%) {
 GET $url HTTP/1.0
 Host: localhost
 $header
+
+EOF
+}
+
+sub http_get_with_host($;%) {
+	my ($url, $host, %extra) = @_;
+	return http(<<EOF, %extra);
+GET $url HTTP/1.0
+Host: $host
 
 EOF
 }

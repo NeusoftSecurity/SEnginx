@@ -9,6 +9,9 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
+#if (NGX_HTTP_STATISTICS)
+#include <ngx_http_statistics.h>
+#endif
 
 typedef struct {
     u_char    *name;
@@ -88,6 +91,11 @@ static char *ngx_http_disable_symlinks(ngx_conf_t *cf, ngx_command_t *cmd,
 
 static char *ngx_http_core_lowat_check(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_core_pool_size(ngx_conf_t *cf, void *post, void *data);
+
+static ngx_int_t
+ngx_http_core_init_process(ngx_cycle_t *cycle);
+static void
+ngx_http_core_exit_process(ngx_cycle_t *cycle);
 
 static ngx_conf_post_t  ngx_http_core_lowat_post =
     { ngx_http_core_lowat_check };
@@ -824,10 +832,18 @@ ngx_module_t  ngx_http_core_module = {
     NGX_HTTP_MODULE,                       /* module type */
     NULL,                                  /* init master */
     NULL,                                  /* init module */
+#if (NGX_HTTP_STATISTICS)
+    ngx_http_core_init_process,            /* init process */
+#else
     NULL,                                  /* init process */
+#endif
     NULL,                                  /* init thread */
     NULL,                                  /* exit thread */
+#if (NGX_HTTP_STATISTICS)
+    ngx_http_core_exit_process,            /* exit process */
+#else
     NULL,                                  /* exit process */
+#endif
     NULL,                                  /* exit master */
     NGX_MODULE_V1_PADDING
 };
@@ -3965,6 +3981,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     return NGX_CONF_OK;
 }
 
+
 static char *
 ngx_http_core_virtual_server_name(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -5278,3 +5295,57 @@ ngx_http_core_pool_size(ngx_conf_t *cf, void *post, void *data)
 
     return NGX_CONF_OK;
 }
+
+#if (NGX_HTTP_STATISTICS)
+static ngx_int_t
+ngx_http_core_init_process(ngx_cycle_t *cycle)
+{
+    ngx_http_core_main_conf_t   *cmcf;
+    ngx_http_core_srv_conf_t   **cscfp;
+    ngx_uint_t                   i;
+
+    cmcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_core_module);
+
+    cscfp = cmcf->servers.elts;
+
+    for (i = 0; i < cmcf->servers.nelts; i++) {
+        /* must specify virtual server name to use statistics */
+        if (cscfp[i]->virtual_server_name.len == 0) {
+            continue;
+        }
+
+        cscfp[i]->stats = ngx_http_statistics_server_add(cycle,
+                             &cscfp[i]->virtual_server_name);
+
+        fprintf(stderr, "in http core init process: stats: %p\n", cscfp[i]->stats);
+        if (cscfp[i]->stats == NULL) {
+            return NGX_ERROR;
+        }
+    }
+
+    return NGX_OK;
+}
+
+
+static void
+ngx_http_core_exit_process(ngx_cycle_t *cycle)
+{
+    ngx_http_core_main_conf_t   *cmcf;
+    ngx_http_core_srv_conf_t   **cscfp;
+    ngx_uint_t                   i;
+
+    cmcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_core_module);
+
+    cscfp = cmcf->servers.elts;
+
+    for (i = 0; i < cmcf->servers.nelts; i++) {
+        fprintf(stderr, "in http core exit process: stats: %p\n", cscfp[i]->stats);
+        if (cscfp[i]->stats == NULL) {
+            continue;
+        }
+
+        ngx_http_statistics_server_del(cycle,
+                                       &cscfp[i]->virtual_server_name);
+    }
+}
+#endif

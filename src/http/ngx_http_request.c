@@ -495,6 +495,16 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         return;
     }
 
+#if (NGX_HTTP_STATISTICS)
+    ngx_http_stats_server_inc(cscf->stats,
+         NGX_HTTP_STATS_TYPE_TRAFFIC,
+         NGX_HTTP_STATS_TRAFFIC_CUR_REQ);
+
+    ngx_http_stats_server_inc(cscf->stats,
+         NGX_HTTP_STATS_TYPE_TRAFFIC,
+         NGX_HTTP_STATS_TRAFFIC_REQ);
+#endif
+
     rev->handler = ngx_http_process_request_line;
     ngx_http_process_request_line(rev);
 }
@@ -3444,6 +3454,18 @@ ngx_http_free_request(ngx_http_request_t *r, ngx_int_t rc)
         ngx_log_error(NGX_LOG_ALERT, log, 0, "http request already closed");
         return;
     }
+
+#if (NGX_HTTP_STATISTICS)
+    ngx_http_core_srv_conf_t  *cscf;
+
+    cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+
+    ngx_http_stats_server_dec(cscf->stats,
+         NGX_HTTP_STATS_TYPE_TRAFFIC,
+         NGX_HTTP_STATS_TRAFFIC_CUR_REQ);
+
+    /* TODO: add count for response code */
+#endif
 
     cln = r->cleanup;
     r->cleanup = NULL;

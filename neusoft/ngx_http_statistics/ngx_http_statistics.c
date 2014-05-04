@@ -492,7 +492,7 @@ ngx_http_statistics_server_del(ngx_cycle_t *cycle, ngx_str_t *name)
             &ctx->sh->server_tree, name, hash);
 
     if (server != NULL) {
-        /* find a server node */
+        /* found a server node */
         fprintf(stderr, "server->ref: %ld\n", server->ref);
         server->ref--;
 
@@ -509,17 +509,82 @@ ngx_http_statistics_server_del(ngx_cycle_t *cycle, ngx_str_t *name)
 
 
 void
-ngx_http_statistics_inc()
+ngx_http_stats_server_inc(ngx_http_statistics_server_t *server,
+        ngx_uint_t type, ngx_uint_t slot)
 {
+    ngx_uint_t *slots;
+
+    if (server == NULL) {
+        return;
+    }
+
+    switch (type) {
+        case NGX_HTTP_STATS_TYPE_ATTACK:
+            slots = server->attacks;
+            break;
+        case NGX_HTTP_STATS_TYPE_TRAFFIC:
+            slots = server->traffic;
+            break;
+        default:
+            /* invalid type */
+            return;
+    }
+
+    ngx_atomic_fetch_add(&slots[slot], 1);
+
+    fprintf(stderr, "server inc: %lu\n", slots[slot]);
 }
 
 
 void
-ngx_http_statistics_add()
+ngx_http_stats_server_add(ngx_http_statistics_server_t *server,
+        ngx_uint_t type, ngx_uint_t slot, ngx_int_t add)
 {
+    ngx_uint_t *slots;
+
+    if (server == NULL) {
+        return;
+    }
+
+    switch (type) {
+        case NGX_HTTP_STATS_TYPE_ATTACK:
+            slots = server->attacks;
+            break;
+        case NGX_HTTP_STATS_TYPE_TRAFFIC:
+            slots = server->traffic;
+            break;
+        default:
+            /* invalid type */
+            return;
+    }
+
+    ngx_atomic_fetch_add(&slots[slot], add);
 }
 
+
 void
-ngx_http_statistics_dec()
+ngx_http_stats_server_dec(ngx_http_statistics_server_t *server,
+        ngx_uint_t type, ngx_uint_t slot)
 {
+    ngx_uint_t *slots;
+
+    if (server == NULL) {
+        return;
+    }
+
+    switch (type) {
+        case NGX_HTTP_STATS_TYPE_ATTACK:
+            slots = server->attacks;
+            break;
+        case NGX_HTTP_STATS_TYPE_TRAFFIC:
+            slots = server->traffic;
+            break;
+        default:
+            /* invalid type */
+            return;
+    }
+
+    ngx_atomic_fetch_add(&slots[slot], -1);
+
+    fprintf(stderr, "server dec: %lu\n", slots[slot]);
 }

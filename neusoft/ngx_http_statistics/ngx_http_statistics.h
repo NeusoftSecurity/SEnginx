@@ -10,18 +10,8 @@
 #include <ngx_http.h>
 
 
-#define NGX_HTTP_STATS_TYPE_SERVER      1
-#define NGX_HTTP_STATS_TYPE_UPSTREAM    2
-
 #define NGX_HTTP_STATS_TYPE_ATTACK      0
-#define NGX_HTTP_STATS_TYPE_CUR_REQ     1
-#define NGX_HTTP_STATS_TYPE_REQ         2
-#define NGX_HTTP_STATS_TYPE_RES_2xx     3
-#define NGX_HTTP_STATS_TYPE_RES_3xx     4
-#define NGX_HTTP_STATS_TYPE_RES_4xx     5
-#define NGX_HTTP_STATS_TYPE_RES_5xx     6
-#define NGX_HTTP_STATS_TYPE_SENT        7
-#define NGX_HTTP_STATS_TYPE_RECVD       8
+#define NGX_HTTP_STATS_TYPE_TRAFFIC     1
 
 
 enum ngx_http_statistics_attack_types {
@@ -38,6 +28,21 @@ enum ngx_http_statistics_attack_types {
 };
 
 
+enum ngx_http_statistics_traffic_types {
+
+    NGX_HTTP_STATS_TRAFFIC_CUR_REQ,
+    NGX_HTTP_STATS_TRAFFIC_REQ,
+    NGX_HTTP_STATS_TRAFFIC_RES_2xx,
+    NGX_HTTP_STATS_TRAFFIC_RES_3xx,
+    NGX_HTTP_STATS_TRAFFIC_RES_4xx,
+    NGX_HTTP_STATS_TRAFFIC_RES_5xx,
+    NGX_HTTP_STATS_TRAFFIC_SENT,
+    NGX_HTTP_STATS_TRAFFIC_RECVD,
+
+    NGX_HTTP_STATS_TRAFFIC_MAX
+};
+
+
 typedef struct {
     ngx_rbtree_node_t                node;
 
@@ -49,17 +54,7 @@ typedef struct {
     ngx_uint_t                       attacks[NGX_HTTP_STATS_ATTACK_MAX];
 
     /* request & response */
-    ngx_uint_t                       current_requests;
-    ngx_uint_t                       requests;
-
-    ngx_uint_t                       response_2xx;
-    ngx_uint_t                       response_3xx;
-    ngx_uint_t                       response_4xx;
-    ngx_uint_t                       response_5xx;
-
-    /* traffic */
-    ngx_uint_t                       sent;
-    ngx_uint_t                       recvd;
+    ngx_uint_t                       traffic[NGX_HTTP_STATS_TRAFFIC_MAX];
 
     ngx_int_t                        ref;
 } ngx_http_statistics_server_t;
@@ -114,4 +109,13 @@ extern ngx_http_statistics_server_t *
 ngx_http_statistics_server_add(ngx_cycle_t *cycle, ngx_str_t *name);
 extern void 
 ngx_http_statistics_server_del(ngx_cycle_t *cycle, ngx_str_t *name);
+extern void
+ngx_http_stats_server_inc(ngx_http_statistics_server_t *server,
+        ngx_uint_t type, ngx_uint_t slot);
+extern void
+ngx_http_stats_server_add(ngx_http_statistics_server_t *server,
+        ngx_uint_t type, ngx_uint_t slot, ngx_int_t add);
+extern void
+ngx_http_stats_server_dec(ngx_http_statistics_server_t *server,
+        ngx_uint_t type, ngx_uint_t slot);
 #endif

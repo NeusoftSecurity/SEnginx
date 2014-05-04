@@ -22,6 +22,9 @@ enum ngx_http_statistics_attack_types {
     NGX_HTTP_STATS_ATTACK_DIR_TRAVERSAL,
     NGX_HTTP_STATS_ATTACK_EVADING,
     NGX_HTTP_STATS_ATTACK_FILE_UPLOAD,
+    NGX_HTTP_STATS_ATTACK_CP,
+    NGX_HTTP_STATS_ATTACK_WD,
+    NGX_HTTP_STATS_ATTACK_RM,
     NGX_HTTP_STATS_ATTACK_OTHER,
 
     NGX_HTTP_STATS_ATTACK_MAX
@@ -51,10 +54,11 @@ typedef struct {
 
     ngx_queue_t                      queue;
 
-    ngx_uint_t                       attacks[NGX_HTTP_STATS_ATTACK_MAX];
-
     /* request & response */
     ngx_uint_t                       traffic[NGX_HTTP_STATS_TRAFFIC_MAX];
+
+    /* attacks detected by naxsi, modsecurity ... */
+    ngx_uint_t                       attacks[NGX_HTTP_STATS_ATTACK_MAX];
 
     ngx_int_t                        ref;
 } ngx_http_statistics_server_t;

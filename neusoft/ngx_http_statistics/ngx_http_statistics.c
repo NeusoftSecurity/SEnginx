@@ -278,18 +278,40 @@ ngx_http_statistics_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
+/*
+ * Output in JSON format:
+ *
+ * [
+ *  {
+ *   "name":"server1",
+ *   "traffic":{"cur_req":10,"req":100,"res_2xx":50,"res_3xx":20,"res_4xx":15,
+ *              "res_5xx":15,"sent":1453,"recvd":3541},
+ *   "attack":{"sql":10,"xss":10,"rfi":5,"dt":2,"evade":1,"fu":1,"cp":1,"wd":3,
+ *             "rm":50,"other":0}
+ *  },
+ *  {
+ *   "name":"server2",
+ *   "traffic":{"cur_req":10,"req":100,"res_2xx":50,"res_3xx":20,"res_4xx":15,
+ *              "res_5xx":15,"sent":1453,"recvd":3541},
+ *   "attack":{"sql":10,"xss":10,"rfi":5,"dt":2,"evade":1,"fu":1,"cp":1,"wd":3,
+ *             "rm":50,"other":0}
+ *  },
+ *  ...
+ * ]
+ *
+ */
 static ngx_int_t
 ngx_http_statistics_content_handler(ngx_http_request_t *r)
 {
-    return NGX_HTTP_NOT_FOUND;
-#if 0
-    ngx_int_t                           rc, j = 0;
+    ngx_int_t                           rc;
     ngx_buf_t                          *b;
     ngx_chain_t                         out;
-    ngx_http_statistics_main_conf_t    *smcf;
+    ngx_http_statistics_conf_t         *smcf;
     ngx_http_statistics_server_t       *server;
     ngx_queue_t                        *node;
     ngx_http_statistics_ctx_t          *ctx;
+    ngx_http_core_main_conf_t          *cmcf;
+    ngx_uint_t                          i = 0;
 
 
     smcf = ngx_http_get_module_main_conf(r, ngx_http_statistics_module);
@@ -298,65 +320,101 @@ ngx_http_statistics_content_handler(ngx_http_request_t *r)
         return NGX_HTTP_NOT_FOUND;
     }
 
+    if (r->method != NGX_HTTP_GET) {
+        return NGX_HTTP_NOT_ALLOWED;
+    }
+
+    rc = ngx_http_discard_request_body(r);
+
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
+
     ctx = statistics_shm_zone->data;
     ngx_shmtx_lock(&ctx->shpool->mutex);
 
-    if (ngx_queue_empty(&statistics->garbage)) {
-        ngx_shmtx_unlock(&statistics->shpool->mutex);
+    if (ngx_queue_empty(&ctx->sh->server_queue)) {
+        ngx_shmtx_unlock(&ctx->shpool->mutex);
 
-        memcpy(test->data, empty, strlen(empty));
-        test->len = strlen(empty);
-
-        goto empty;
+        return NGX_HTTP_NOT_FOUND;
     }
 
-    for (node = ngx_queue_head(&statistics->garbage);
-            node != ngx_queue_sentinel(&statistics->garbage);
-            node = ngx_queue_next(node)) {
-        bn = ngx_queue_data(node, ngx_http_ip_statistics_t, queue);
-
-        if (bn->statistics) {
-            memset(tmp, 0, NGX_HTTP_IP_BLACKLIST_ADDR_LEN);
-            memcpy(tmp,
-                    bn->addr,
-                    bn->len < NGX_HTTP_IP_BLACKLIST_ADDR_LEN ? bn->len :
-                    NGX_HTTP_IP_BLACKLIST_ADDR_LEN - 1);
-
-            j = sprintf((char *)(test->data + test->len),
-                    "addr: %s, timeout: %d, "
-                    "timed out: %d, statistics: %d, ref: %d <br>",
-                    tmp, (int)(bn->timeout - ngx_time()),
-                    bn->timed, bn->statistics, (int)bn->ref);
-
-            test->len += j;
-            total++;
-        }
-    }
-
-    sprintf((char *)(test->data + 7), "%u", (unsigned int)total);
-
-    ngx_shmtx_unlock(&statistics->shpool->mutex);
-
-    b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+    b = ngx_create_temp_buf(r->pool, cmcf->servers.nelts * 1024);
     if (b == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                "Failed to allocate response buffer.");
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
+
+    b->last = ngx_sprintf(b->last, "[");
+
+    for (node = ngx_queue_head(&ctx->sh->server_queue);
+            node != ngx_queue_sentinel(&ctx->sh->server_queue);
+            node = ngx_queue_next(node)) {
+        server = ngx_queue_data(node, ngx_http_statistics_server_t, queue);
+
+        if (i != 0) {
+            b->last = ngx_sprintf(b->last, ",\n");
+        }
+
+        b->last = ngx_sprintf(b->last,
+                "{\"name\":\"%V\","
+                "\"traffic\":{\"cur_req\":%ui,"
+                "\"req\":%ui,"
+                "\"res_2xx\":%ui,"
+                "\"res_3xx\":%ui,"
+                "\"res_4xx\":%ui,"
+                "\"res_5xx\":%ui,"
+                "\"sent\":%ui,"
+                "\"recvd\":%ui},"
+                "\"attack\":{\"sql\":%ui,"
+                "\"xss\":%ui,"
+                "\"rfi\":%ui,"
+                "\"dt\":%ui,"
+                "\"evade\":%ui,"
+                "\"uf\":%ui,"
+                "\"cp\":%ui,"
+                "\"wd\":%ui,"
+                "\"rm\":%ui,"
+                "\"other\":%ui}}",
+                &server->name,
+                server->traffic[NGX_HTTP_STATS_TRAFFIC_CUR_REQ],
+                server->traffic[NGX_HTTP_STATS_TRAFFIC_REQ],
+                server->traffic[NGX_HTTP_STATS_TRAFFIC_RES_2xx],
+                server->traffic[NGX_HTTP_STATS_TRAFFIC_RES_3xx],
+                server->traffic[NGX_HTTP_STATS_TRAFFIC_RES_4xx],
+                server->traffic[NGX_HTTP_STATS_TRAFFIC_RES_5xx],
+                server->traffic[NGX_HTTP_STATS_TRAFFIC_SENT],
+                server->traffic[NGX_HTTP_STATS_TRAFFIC_RECVD],
+                server->attacks[NGX_HTTP_STATS_ATTACK_SQL_INJECTION],
+                server->attacks[NGX_HTTP_STATS_ATTACK_XSS],
+                server->attacks[NGX_HTTP_STATS_ATTACK_RFI],
+                server->attacks[NGX_HTTP_STATS_ATTACK_DIR_TRAVERSAL],
+                server->attacks[NGX_HTTP_STATS_ATTACK_EVADING],
+                server->attacks[NGX_HTTP_STATS_ATTACK_FILE_UPLOAD],
+                server->attacks[NGX_HTTP_STATS_ATTACK_CP],
+                server->attacks[NGX_HTTP_STATS_ATTACK_WD],
+                server->attacks[NGX_HTTP_STATS_ATTACK_RM],
+                server->attacks[NGX_HTTP_STATS_ATTACK_OTHER]
+                );
+
+        i = 1;
+    }
+
+    b->last = ngx_sprintf(b->last, "]");
+
+    ngx_shmtx_unlock(&ctx->shpool->mutex);
 
     out.buf = b;
     out.next = NULL;
 
-    b->pos = test->data;
-    b->last = test->data + test->len;
-
     b->memory = 1;
     b->last_buf = 1;
 
-    r->headers_out.content_type.len = sizeof("text/html") - 1;
-    r->headers_out.content_type.data = (u_char *) "text/html";
+    r->headers_out.content_type.len = sizeof("application/json") - 1;
+    r->headers_out.content_type.data = (u_char *) "application/json";
     r->headers_out.status = NGX_HTTP_OK;
-    r->headers_out.content_length_n = test->len;
+    r->headers_out.content_length_n = b->last - b->pos;
 
     rc = ngx_http_send_header(r);
 
@@ -365,7 +423,6 @@ ngx_http_statistics_content_handler(ngx_http_request_t *r)
     }
 
     return ngx_http_output_filter(r, &out);
-#endif
 }
 
 

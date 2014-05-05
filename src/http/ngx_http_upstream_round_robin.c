@@ -26,6 +26,18 @@ static void ngx_http_upstream_empty_save_session(ngx_peer_connection_t *pc,
 #endif
 
 
+static ngx_int_t
+ngx_http_upstream_reinit_round_robin(ngx_http_request_t *r, ngx_pool_t *pool,
+    ngx_http_upstream_srv_conf_t *us, void *data)
+{
+    if (us->peer.init(r, us) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
 ngx_int_t
 ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     ngx_http_upstream_srv_conf_t *us)
@@ -39,6 +51,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
 
 
     us->peer.init = ngx_http_upstream_init_round_robin_peer;
+    us->peer.reinit_upstream = ngx_http_upstream_reinit_round_robin;
 
     if (us->servers) {
         server = us->servers->elts;

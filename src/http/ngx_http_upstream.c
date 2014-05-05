@@ -1812,6 +1812,8 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
                 if (rrp->dyn_peers->stale && rrp->dyn_peers->ref == 0) {
                     ngx_http_upstream_dyn_free_peers(ngx_cycle->pool,
                             rrp->dyn_peers);
+
+                    rrp->dyn_peers = NULL;
                 }
             }
 

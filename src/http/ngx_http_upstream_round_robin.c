@@ -389,6 +389,7 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
             return NGX_ERROR;
         }
 
+        rrp->dyn_peers = NULL;
         r->upstream->peer.data = rrp;
     }
 

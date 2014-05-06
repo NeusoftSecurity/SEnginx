@@ -73,17 +73,7 @@ typedef struct {
     ngx_queue_t                      queue;
 
     /* request & response */
-    ngx_uint_t                       current_requests;
-    ngx_uint_t                       requests;
-
-    ngx_uint_t                       response_2xx;
-    ngx_uint_t                       response_3xx;
-    ngx_uint_t                       response_4xx;
-    ngx_uint_t                       response_5xx;
-
-    /* traffic */
-    ngx_uint_t                       sent;
-    ngx_uint_t                       recvd;
+    ngx_uint_t                       traffic[NGX_HTTP_STATS_TRAFFIC_MAX];
 
     ngx_int_t                        ref;
 } ngx_http_statistics_upstream_server_t;

@@ -63,6 +63,15 @@ static void ngx_http_ssl_handshake(ngx_event_t *rev);
 static void ngx_http_ssl_handshake_handler(ngx_connection_t *c);
 #endif
 
+#if (NGX_HTTP_STATISTICS)
+void
+ngx_http_request_response_stats(ngx_http_request_t *r,
+     ngx_http_statistics_server_t *server);
+void
+ngx_http_request_length_stats(ngx_http_request_t *r,
+     ngx_http_statistics_server_t *server);
+#endif
+
 
 static char *ngx_http_client_errors[] = {
 
@@ -3464,7 +3473,8 @@ ngx_http_free_request(ngx_http_request_t *r, ngx_int_t rc)
          NGX_HTTP_STATS_TYPE_TRAFFIC,
          NGX_HTTP_STATS_TRAFFIC_CUR_REQ);
 
-    /* TODO: add count for response code */
+    ngx_http_request_response_stats(r, cscf->stats);
+    ngx_http_request_length_stats(r, cscf->stats);
 #endif
 
     cln = r->cleanup;
@@ -3691,3 +3701,57 @@ ngx_http_log_error_handler(ngx_http_request_t *r, ngx_http_request_t *sr,
 
     return buf;
 }
+
+
+#if (NGX_HTTP_STATISTICS)
+void
+ngx_http_request_response_stats(ngx_http_request_t *r,
+     ngx_http_statistics_server_t *server)
+{
+    ngx_int_t     code;
+    ngx_uint_t    slot = NGX_HTTP_STATS_TRAFFIC_RES_2xx;
+
+    if (r->err_status) {
+        code = r->err_status;
+
+    } else if (r->headers_out.status) {
+        code = r->headers_out.status;
+
+    } else if (r->http_version == NGX_HTTP_VERSION_9) {
+        code = 9;
+
+    } else {
+        code = 0;
+    }
+
+    if ((code >= 200 && code < 300)
+        || code == 0) {
+        slot = NGX_HTTP_STATS_TRAFFIC_RES_2xx;
+    } else if (code >= 300 && code < 400) {
+        slot = NGX_HTTP_STATS_TRAFFIC_RES_3xx;
+    } else if (code >= 400 && code < 500) {
+        slot = NGX_HTTP_STATS_TRAFFIC_RES_4xx;
+    } else if (code >= 500 && code < 600) {
+        slot = NGX_HTTP_STATS_TRAFFIC_RES_5xx;
+    }
+
+    ngx_http_stats_server_inc(server, NGX_HTTP_STATS_TYPE_TRAFFIC, slot);
+}
+
+
+void
+ngx_http_request_length_stats(ngx_http_request_t *r,
+     ngx_http_statistics_server_t *server)
+{
+    ngx_int_t  sent, recvd;
+
+    sent = r->connection->sent;
+    recvd = r->request_length;
+
+    ngx_http_stats_server_add(server, NGX_HTTP_STATS_TYPE_TRAFFIC,
+         NGX_HTTP_STATS_TRAFFIC_SENT, sent);
+
+    ngx_http_stats_server_add(server, NGX_HTTP_STATS_TYPE_TRAFFIC,
+         NGX_HTTP_STATS_TRAFFIC_RECVD, recvd);
+}
+#endif

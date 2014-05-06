@@ -588,8 +588,6 @@ ngx_http_stats_server_inc(ngx_http_statistics_server_t *server,
     }
 
     ngx_atomic_fetch_add(&slots[slot], 1);
-
-    fprintf(stderr, "server inc: %lu\n", slots[slot]);
 }
 
 
@@ -642,6 +640,4 @@ ngx_http_stats_server_dec(ngx_http_statistics_server_t *server,
     }
 
     ngx_atomic_fetch_add(&slots[slot], -1);
-
-    fprintf(stderr, "server dec: %lu\n", slots[slot]);
 }

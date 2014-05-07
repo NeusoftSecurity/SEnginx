@@ -23,6 +23,8 @@ typedef struct {
 
 
 typedef struct {
+    ngx_http_upstream_rr_peer_data_t   rrp;
+
     ngx_http_upstream_keepalive_srv_conf_t  *conf;
 
     ngx_http_upstream_t               *upstream;
@@ -189,6 +191,7 @@ ngx_http_upstream_init_keepalive_peer(ngx_http_request_t *r,
     kp->data = r->upstream->peer.data;
     kp->original_get_peer = r->upstream->peer.get;
     kp->original_free_peer = r->upstream->peer.free;
+    kp->rrp = *(ngx_http_upstream_rr_peer_data_t *)r->upstream->peer.data;
 
     r->upstream->peer.data = kp;
     r->upstream->peer.get = ngx_http_upstream_get_keepalive_peer;

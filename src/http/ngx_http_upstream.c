@@ -1813,6 +1813,8 @@ ngx_http_upstream_dyn_resolve_handler(ngx_resolver_ctx_t *ctx)
                     ngx_http_upstream_dyn_free_peers(ngx_cycle->pool,
                             rrp->dyn_peers);
                 }
+
+                rrp->dyn_peers = NULL;
             }
 
             if (uscf->peer.reinit_upstream) {
@@ -4310,7 +4312,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
 
         rrp = u->peer.data;
 
-        if (rrp->dyn_peers) {
+        if (rrp && rrp->dyn_peers) {
             rrp->dyn_peers->ref--;
 
             if (rrp->dyn_peers->ref < 0) {

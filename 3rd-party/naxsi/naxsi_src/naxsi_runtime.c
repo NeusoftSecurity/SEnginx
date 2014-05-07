@@ -796,6 +796,10 @@ ngx_int_t ngx_http_nx_log(ngx_http_request_ctx_t *ctx,
   ngx_http_dummy_loc_conf_t	*cf;
   ngx_http_matched_rule_t	*mr;
   char		 tmp_zone[30];
+#if (NGX_HTTP_STATISTICS)
+  ngx_uint_t     slot;
+  ngx_http_core_srv_conf_t  *cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+#endif
   
   cf = ngx_http_get_module_loc_conf(r, ngx_http_naxsi_module);
   
@@ -837,6 +841,25 @@ ngx_int_t ngx_http_nx_log(ngx_http_request_ctx_t *ctx,
   for (i = 0; ctx->special_scores && i < ctx->special_scores->nelts; i++) {
     sc = ctx->special_scores->elts;
     if (sc[i].sc_score != 0) {
+#if (NGX_HTTP_STATISTICS)
+        if (!ngx_strcmp(sc[i].sc_tag->data, "$SQL")) {
+            slot = NGX_HTTP_STATS_ATTACK_SQL_INJECTION;
+        } else if (!ngx_strcmp(sc[i].sc_tag->data, "$XSS")) {
+            slot = NGX_HTTP_STATS_ATTACK_XSS;
+        } else if (!ngx_strcmp(sc[i].sc_tag->data, "$RFI")) {
+            slot = NGX_HTTP_STATS_ATTACK_RFI;
+        } else if (!ngx_strcmp(sc[i].sc_tag->data, "$TRAVERSAL")) {
+            slot = NGX_HTTP_STATS_ATTACK_DIR_TRAVERSAL;
+        } else if (!ngx_strcmp(sc[i].sc_tag->data, "$EVADE")) {
+            slot = NGX_HTTP_STATS_ATTACK_EVADING;
+        } else if (!ngx_strcmp(sc[i].sc_tag->data, "$UPLOAD")) {
+            slot = NGX_HTTP_STATS_ATTACK_FILE_UPLOAD;
+        } else {
+            slot = NGX_HTTP_STATS_ATTACK_OTHER;
+        }
+
+        ngx_http_stats_server_inc(cscf->stats, NGX_HTTP_STATS_TYPE_ATTACK, slot);
+#endif
       sub = snprintf(0, 0, fmt_score, i, sc[i].sc_tag->len, sc[i].sc_tag->data, i, sc[i].sc_score);
       if (sub >= sz_left)
 	{

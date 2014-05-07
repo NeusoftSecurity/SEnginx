@@ -5317,7 +5317,9 @@ ngx_http_core_init_process(ngx_cycle_t *cycle)
         cscfp[i]->stats = ngx_http_statistics_server_add(cycle,
                              &cscfp[i]->virtual_server_name);
 
-        fprintf(stderr, "in http core init process: stats: %p\n", cscfp[i]->stats);
+        ngx_log_error(NGX_LOG_DEBUG, cycle->log, 0,
+             "in http core init process, stats: %p", cscfp[i]->stats);
+
         if (cscfp[i]->stats == NULL) {
             return NGX_ERROR;
         }
@@ -5339,7 +5341,10 @@ ngx_http_core_exit_process(ngx_cycle_t *cycle)
     cscfp = cmcf->servers.elts;
 
     for (i = 0; i < cmcf->servers.nelts; i++) {
-        fprintf(stderr, "in http core exit process: stats: %p\n", cscfp[i]->stats);
+
+        ngx_log_error(NGX_LOG_DEBUG, cycle->log, 0,
+             "in http core exit process, stats: %p", cscfp[i]->stats);
+
         if (cscfp[i]->stats == NULL) {
             continue;
         }

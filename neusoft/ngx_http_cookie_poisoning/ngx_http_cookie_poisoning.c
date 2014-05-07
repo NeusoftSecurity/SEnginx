@@ -637,6 +637,15 @@ ngx_http_cp_do_action(ngx_http_request_t *r,
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "cookie poisoning do action: %d", cplcf->action);
 
+#if (NGX_HTTP_STATISTICS)
+    ngx_http_core_srv_conf_t        *cscf;
+
+    cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
+
+    ngx_http_stats_server_inc(cscf->stats,
+         NGX_HTTP_STATS_TYPE_ATTACK, NGX_HTTP_STATS_ATTACK_CP);
+#endif
+
     if (cplcf->log_enabled) {
         ngx_http_cp_send_log(r, cookie_name, cookie_value);
     }

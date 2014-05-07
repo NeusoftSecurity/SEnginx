@@ -96,13 +96,7 @@ ngx_http_statistics_lookup(ngx_rbtree_t *tree, ngx_str_t *name,
         }
 
         /* hash == node->key */
-        fprintf(stderr, "hash == node->key\n");
-
         node_name = (ngx_str_t *) ((char *)node + sizeof(ngx_rbtree_node_t));
-
-        fprintf(stderr, "hash == node->key, node_name: %p\n", node_name);
-        fprintf(stderr, "hash == node->key, node_name->len: %lu\n", node_name->len);
-        fprintf(stderr, "hash == node->key, name->len: %lu\n", name->len);
 
         rc = ngx_memn2cmp(name->data, node_name->data,
                 name->len, node_name->len);
@@ -480,15 +474,20 @@ ngx_http_statistics_server_add(ngx_cycle_t *cycle, ngx_str_t *name)
     ngx_shmtx_lock(&ctx->shpool->mutex);
 
     hash = ngx_crc32_short(name->data, name->len);
-        fprintf(stderr, "server add: hash: %u\n", hash);
+    ngx_log_error(NGX_LOG_DEBUG, cycle->log, 0,
+         "stats server add, hash: %ui", hash);
 
     server = (ngx_http_statistics_server_t *) ngx_http_statistics_lookup(
             &ctx->sh->server_tree, name, hash);
 
-        fprintf(stderr, "server add: server: %p\n", server);
+    ngx_log_error(NGX_LOG_DEBUG, cycle->log, 0,
+         "stats server add, server: %p", server);
+
     if (server == NULL) {
         /* create a new server node */
-        fprintf(stderr, "create new node\n");
+        ngx_log_error(NGX_LOG_DEBUG, cycle->log, 0,
+             "create new node");
+
         server = ngx_slab_alloc_locked(ctx->shpool,
                 sizeof(ngx_http_statistics_server_t));
         if (server == NULL) {
@@ -550,7 +549,9 @@ ngx_http_statistics_server_del(ngx_cycle_t *cycle, ngx_str_t *name)
 
     if (server != NULL) {
         /* found a server node */
-        fprintf(stderr, "server->ref: %ld\n", server->ref);
+        ngx_log_error(NGX_LOG_DEBUG, cycle->log, 0,
+             "server->ref: %i", server->ref);
+
         server->ref--;
 
         if (server->ref == 0) {

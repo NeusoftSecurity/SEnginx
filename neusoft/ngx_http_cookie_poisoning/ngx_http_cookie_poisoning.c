@@ -628,7 +628,6 @@ ngx_http_cp_do_action(ngx_http_request_t *r,
         ngx_str_t *cookie_value)
 {
     ngx_http_cp_loc_conf_t           *cplcf;
-    ngx_uint_t                        i;
     ngx_http_ns_action_t             *action;
     u_char                           *cp_name = (u_char *)"cookie_poisoning";
 
@@ -641,14 +640,6 @@ ngx_http_cp_do_action(ngx_http_request_t *r,
         ngx_http_cp_send_log(r, cookie_name, cookie_value);
     }
 
-    if (cplcf->action == NGX_HTTP_NS_ACTION_REMOVE_COOKIE) {
-        for (i = 0; i < cookie_value->len; i++) {
-            cookie_value->data[i] = ' ';
-        }
-
-        return NGX_OK;
-    }
-
     action = ngx_pcalloc(r->pool, sizeof(ngx_http_ns_action_t));
     if (action == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -658,6 +649,7 @@ ngx_http_cp_do_action(ngx_http_request_t *r,
     action->session_name = cp_name;
     action->get_bl_count = ngx_http_cp_get_bl_count;
     action->bl_max = cplcf->bl_times;
+    action->cookie = cookie_value;
 
     if (cplcf->error_page.data != NULL) {
         action->has_redirect = 1;

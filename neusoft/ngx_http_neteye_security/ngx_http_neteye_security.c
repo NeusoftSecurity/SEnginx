@@ -845,8 +845,6 @@ ngx_int_t
 ngx_http_ns_do_action(ngx_http_request_t *r,
         ngx_http_ns_action_t *action)
 {
-    ngx_uint_t                         i;
-
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "neteye security do action: %d", (int)action->action);
 
@@ -864,9 +862,8 @@ ngx_http_ns_do_action(ngx_http_request_t *r,
 #endif
             return NGX_ERROR;
         case NGX_HTTP_NS_ACTION_REMOVE_COOKIE:
-            for (i = 0; i < action->cookie->len; i++) {
-                action->cookie->data[i] = ' ';
-            }
+
+            memset(action->cookie->data, ' ', action->cookie->len);
 
             return NGX_OK;
     }

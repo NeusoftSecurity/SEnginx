@@ -47,7 +47,9 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     ngx_uint_t                     dyn_resolve = 0;
     ngx_http_upstream_server_t    *server;
     ngx_http_upstream_rr_peers_t  *peers, *backup;
+#if (NGX_HAVE_INET6)
     u_char                         addr6[NGX_INET6_ADDRSTRLEN];
+#endif
 
 
     us->peer.init = ngx_http_upstream_init_round_robin_peer;

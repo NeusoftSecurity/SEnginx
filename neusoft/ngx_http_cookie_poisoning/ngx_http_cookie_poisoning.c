@@ -228,6 +228,12 @@ ngx_http_cp_create_loc_conf(ngx_conf_t *cf)
 static char *
 ngx_http_cp_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
+    ngx_http_cp_loc_conf_t  *prev = parent;
+    ngx_http_cp_loc_conf_t  *conf = child;
+
+    ngx_conf_merge_value(conf->enabled, prev->enabled, 0);
+    ngx_conf_merge_value(conf->log_enabled, prev->log_enabled, 0);
+
     return NGX_CONF_OK;
 }
 

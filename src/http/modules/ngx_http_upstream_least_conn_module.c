@@ -391,7 +391,7 @@ ngx_http_upstream_get_least_conn_peer(ngx_peer_connection_t *pc, void *data)
     pc->socklen = best->socklen;
     pc->name = &best->name;
     pc->host = &best->host;
-    pc->dyn_resolve = peer->dyn_resolve;
+    pc->dyn_resolve = best->dyn_resolve;
 
     lcp->rrp.current = p;
 

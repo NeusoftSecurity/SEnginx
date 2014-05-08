@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>SEnginx Statistics</title>
 
-    <style>
+    <style type="text/css">
     body {
         background:  white;
         color:       black;
@@ -94,44 +95,86 @@
     }
     </style>
 
+    <script src="./jquery-1.10.2.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+var prevResult = null;
+function refreshMonitor() {
+    $.ajax({
+        type: "GET",
+        dataType: "json",
+        url: "/stats",
+        complete: function() {
+            setTimeout(refreshMonitor, 1000);
+        },
+        error: function() {
+            prevResult = null;
+        },
+        success: function(result) {
+            var secElapsed = (prevResult == null) ? 0 : (result.timestamp - prevResult.timestamp)/1000;
+            var servers = result.servers;
+            var tbl_traffic = $("<table></table>");
+            var head_traffic = $("<thead><tr><th>name</th><th>current request</th><th>total request</th><th>req/s</th><th>2xx</th><th>3xx</th><th>4xx</th><th>5xx</th><th>total response</th><th>sent</th><th>recvd</th><th>sent/s</th><th>recvd/s</th></tr></thead>");
+            var body_traffic = $("<tbody></tbody>");
+            for (var i = 0; i < servers.length; ++i) {
+                var row = $("<tr></tr>");
+                var cur_traffic = servers[i].traffic;
+                row.append($("<td></td>").text(servers[i].name));
+                row.append($("<td></td>").text(cur_traffic.cur_req));
+                row.append($("<td></td>").text(cur_traffic.req));
+                var reqPerSec = (prevResult == null ? NaN : ((cur_traffic.req - prevResult.servers[i].traffic.req) / secElapsed).toFixed(3));
+                row.append($("<td></td>").text(reqPerSec >= 0 ? reqPerSec : NaN));
+                row.append($("<td></td>").text(cur_traffic.res_2xx));
+                row.append($("<td></td>").text(cur_traffic.res_3xx));
+                row.append($("<td></td>").text(cur_traffic.res_4xx));
+                row.append($("<td></td>").text(cur_traffic.res_5xx));
+                row.append($("<td></td>").text(cur_traffic.res_2xx + cur_traffic.res_3xx + cur_traffic.res_3xx + cur_traffic.res_3xx));
+                row.append($("<td></td>").text(cur_traffic.sent));
+                row.append($("<td></td>").text(cur_traffic.recvd));
+                var sentPerSec = (prevResult == null ? NaN : ((cur_traffic.sent - prevResult.servers[i].traffic.sent) / secElapsed).toFixed(3));
+                row.append($("<td></td>").text(sentPerSec >= 0 ? sentPerSec : NaN));
+                var recvdPerSec = (prevResult == null ? NaN : ((cur_traffic.recvd - prevResult.servers[i].traffic.recvd) / secElapsed).toFixed(3));
+                row.append($("<td></td>").text(recvdPerSec >= 0 ? recvdPerSec : NaN));
+                body_traffic.append(row);
+            }
+            tbl_traffic.append(head_traffic);
+            tbl_traffic.append(body_traffic);
+
+            var tbl_attack = $("<table></table>");
+            var head_attack = $("<thead><tr><th>name</th><th>sql injection</th><th>cross site scripting</th><th>remote file inclusion</th><th>directory traversal</th><th>evading tricks</th><th>file upload</th><th>cookie poisoning</th><th>web defacement</th><th>robot mitigation challenges</th><th>other threats</th></tr></thead>");
+            var body_attack = $("<tbody></tbody>");
+            for (var i = 0; i < servers.length; ++i) {
+                var row = $("<tr></tr>");
+                var cur_attack = servers[i].attack;
+                row.append($("<td></td>").text(servers[i].name));
+                row.append($("<td></td>").text(cur_attack.sql));
+                row.append($("<td></td>").text(cur_attack.xss));
+                row.append($("<td></td>").text(cur_attack.rfi));
+                row.append($("<td></td>").text(cur_attack.dt));
+                row.append($("<td></td>").text(cur_attack.evade));
+                row.append($("<td></td>").text(cur_attack.fu));
+                row.append($("<td></td>").text(cur_attack.cp));
+                row.append($("<td></td>").text(cur_attack.wd));
+                row.append($("<td></td>").text(cur_attack.rm));
+                row.append($("<td></td>").text(cur_attack.other));
+                body_attack.append(row);
+            }
+            tbl_attack.append(head_attack);
+            tbl_attack.append(body_attack);
+
+            $("#monitor").empty().append(tbl_traffic).append(tbl_attack);
+            prevResult = result;
+        }
+    });
+}
+$(refreshMonitor);
+    </script>
+
 </head>
 <body>
-
     <h1>
         <img src="./senginx_logo.png" />
     </h1>
 
     <div id="monitor"></div>
-
-    <script>
-
-    var ngxStatusURI = "/stats", ngxUpdateInterval = 1000;
-    var monitor = document.getElementById('monitor');
-
-    function template(stats) {
-        // TODO: show what you got from stats ...
-    };
-
-    function ngxGetData() {
-        var request = new XMLHttpRequest;
-
-        request.onload = function() {
-            if (this.status != 200) {
-                // TODO error notification
-                return;
-            }
-
-            monitor.innerHTML = template(JSON.parse(this.responseText));
-        }
-
-        request.open('GET', ngxStatusURI);
-        request.send();
-    };
-
-    ngxGetData();
-    setInterval(ngxGetData, ngxUpdateInterval);
-
-    </script>
-
 </body>
 </html>

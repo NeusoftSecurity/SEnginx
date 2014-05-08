@@ -36,7 +36,7 @@
 
     thead th {
         font-size: 1em;
-        background: #DED;
+        background: #00a0ff;
         padding: .1em .3em;
         border: .2em solid #FFF;
     }
@@ -62,37 +62,6 @@
         font-weight: normal;
     }
 
-    .tooltip {
-        text-align: left;
-        border-bottom: 1px black dotted;
-        display: inline;
-        position: relative;
-        cursor: help;
-    }
-
-    .tooltip:hover:after {
-        background: #333;
-        background: rgba(0,0,0,.8);
-        bottom: 26px;
-        color: #fff;
-        content: attr(title);
-        left: 20%;
-        padding: 5px 15px;
-        position: absolute;
-        z-index: 98;
-        width: 14em;
-    }
-
-    .tooltip:hover:before{
-        border: solid;
-        border-color: #333 transparent;
-        border-width: 6px 6px 0 6px;
-        bottom: 20px;
-        content: "";
-        left: 50%;
-        position: absolute;
-        z-index: 99;
-    }
     </style>
 
     <script type="text/javascript"><%= IO.read("jquery-1.10.2.min.js") %></script>
@@ -113,7 +82,11 @@ function refreshMonitor() {
             var secElapsed = (prevResult == null) ? 0 : (result.timestamp - prevResult.timestamp)/1000;
             var servers = result.servers;
             var tbl_traffic = $("<table></table>");
-            var head_traffic = $("<thead><tr><th>name</th><th>current request</th><th>total request</th><th>req/s</th><th>2xx</th><th>3xx</th><th>4xx</th><th>5xx</th><th>total response</th><th>sent</th><th>recvd</th><th>sent/s</th><th>recvd/s</th></tr></thead>");
+            var head_traffic = $("<thead>"
+              +"<tr><th colspan='0'>Traffic</th></tr><tr>"
+              +"<tr><th></th><th colspan='3'>Request</th><th colspan='5'>Response</th><th colspan='4'>Traffic</th></tr><tr>"
+              +"<th>Server</th><th>Current Request</th><th>Total Request</th><th>Req/s</th><th>2xx</th><th>3xx</th><th>4xx</th><th>5xx</th><th>Total Response</th><th>Sent</th><th>Recvd</th><th>Sent/s</th><th>Recvd/s</th></tr>"
+              +"</thead>");
             var body_traffic = $("<tbody></tbody>");
             for (var i = 0; i < servers.length; ++i) {
                 var row = $("<tr></tr>");
@@ -134,13 +107,16 @@ function refreshMonitor() {
                 row.append($("<td></td>").text(sentPerSec >= 0 ? sentPerSec : NaN));
                 var recvdPerSec = (prevResult == null ? NaN : ((cur_traffic.recvd - prevResult.servers[i].traffic.recvd) / secElapsed).toFixed(3));
                 row.append($("<td></td>").text(recvdPerSec >= 0 ? recvdPerSec : NaN));
+                if (i % 2 == 1) {
+                  row.addClass("odd");
+                }
                 body_traffic.append(row);
             }
             tbl_traffic.append(head_traffic);
             tbl_traffic.append(body_traffic);
 
             var tbl_attack = $("<table></table>");
-            var head_attack = $("<thead><tr><th>name</th><th>sql injection</th><th>cross site scripting</th><th>remote file inclusion</th><th>directory traversal</th><th>evading tricks</th><th>file upload</th><th>cookie poisoning</th><th>web defacement</th><th>robot mitigation challenges</th><th>other threats</th></tr></thead>");
+            var head_attack = $("<thead><tr><th colspan='0'>Attack</th></tr><tr><tr><th>Server</th><th>Sql Injection</th><th>Cross Site Scripting</th><th>Remote File Inclusion</th><th>Directory Traversal</th><th>Evading Tricks</th><th>File Upload</th><th>Cookie Poisoning</th><th>Web Defacement</th><th>Robot Mitigation Challenges</th><th>Other Threats</th></tr></thead>");
             var body_attack = $("<tbody></tbody>");
             for (var i = 0; i < servers.length; ++i) {
                 var row = $("<tr></tr>");
@@ -156,6 +132,9 @@ function refreshMonitor() {
                 row.append($("<td></td>").text(cur_attack.wd));
                 row.append($("<td></td>").text(cur_attack.rm));
                 row.append($("<td></td>").text(cur_attack.other));
+                if (i % 2 == 1) {
+                  row.addClass("odd");
+                }
                 body_attack.append(row);
             }
             tbl_attack.append(head_attack);

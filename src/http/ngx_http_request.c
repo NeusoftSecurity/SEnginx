@@ -504,16 +504,6 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         return;
     }
 
-#if (NGX_HTTP_STATISTICS)
-    ngx_http_stats_server_inc(cscf->stats,
-         NGX_HTTP_STATS_TYPE_TRAFFIC,
-         NGX_HTTP_STATS_TRAFFIC_CUR_REQ);
-
-    ngx_http_stats_server_inc(cscf->stats,
-         NGX_HTTP_STATS_TYPE_TRAFFIC,
-         NGX_HTTP_STATS_TRAFFIC_REQ);
-#endif
-
     rev->handler = ngx_http_process_request_line;
     ngx_http_process_request_line(rev);
 }
@@ -641,6 +631,16 @@ ngx_http_create_request(ngx_connection_t *c)
 #if (NGX_HTTP_IP_BEHAVIOR)
     r->insensitive_percent = -1;
     r->bad_response_percent = -1;
+#endif
+
+#if (NGX_HTTP_STATISTICS)
+    ngx_http_stats_server_inc(cscf->stats,
+         NGX_HTTP_STATS_TYPE_TRAFFIC,
+         NGX_HTTP_STATS_TRAFFIC_CUR_REQ);
+
+    ngx_http_stats_server_inc(cscf->stats,
+         NGX_HTTP_STATS_TYPE_TRAFFIC,
+         NGX_HTTP_STATS_TRAFFIC_REQ);
 #endif
 
     return r;

@@ -642,3 +642,15 @@ ngx_http_stats_server_dec(ngx_http_statistics_server_t *server,
 
     ngx_atomic_fetch_add(&slots[slot], -1);
 }
+
+
+ngx_int_t
+ngx_http_stats_enabled(ngx_cycle_t *cycle)
+{
+    ngx_http_statistics_conf_t  *smcf;
+
+    smcf = ngx_http_cycle_get_module_main_conf(cycle,
+               ngx_http_statistics_module);
+
+    return smcf->enabled;
+}

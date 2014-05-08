@@ -112,4 +112,6 @@ ngx_http_stats_server_add(ngx_http_statistics_server_t *server,
 extern void
 ngx_http_stats_server_dec(ngx_http_statistics_server_t *server,
         ngx_uint_t type, ngx_uint_t slot);
+extern ngx_int_t
+ngx_http_stats_enabled(ngx_cycle_t *cycle);
 #endif

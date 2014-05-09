@@ -72,9 +72,9 @@ function formatSizeUnits(bytes){
     if      (bytes>=Math.pow(k,3))    {bytes=(bytes/Math.pow(k,3)).toFixed(2)+' GB';}
     else if (bytes>=Math.pow(k,2))    {bytes=(bytes/Math.pow(k,2)).toFixed(2)+' MB';}
     else if (bytes>=k)                {bytes=(bytes/k).toFixed(2)+' KB';}
-    else if (bytes>1)                 {bytes=bytes.toFixed(2)+' bytes';}
-    else if (bytes>0)                 {bytes=bytes.toFixed(2)+' byte';}
-    else                              {bytes='0 byte';}
+    else if (bytes>1)                 {bytes=bytes.toFixed(2)+' B';}
+    else if (bytes>0)                 {bytes=bytes.toFixed(2)+' B';}
+    else                              {bytes='0 B';}
     return bytes;
 }
 var prevResult = null;

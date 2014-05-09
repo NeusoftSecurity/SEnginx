@@ -1938,6 +1938,8 @@ ngx_http_process_request(ngx_http_request_t *r)
     ngx_http_stats_server_inc(cscf->stats,
          NGX_HTTP_STATS_TYPE_TRAFFIC,
          NGX_HTTP_STATS_TRAFFIC_REQ);
+
+    r->stats_valid = 1;
 #endif
 
     ngx_http_handler(r);
@@ -3473,12 +3475,14 @@ ngx_http_free_request(ngx_http_request_t *r, ngx_int_t rc)
 
     cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
-    ngx_http_stats_server_dec(cscf->stats,
-         NGX_HTTP_STATS_TYPE_TRAFFIC,
-         NGX_HTTP_STATS_TRAFFIC_CUR_REQ);
+    if (r->stats_valid) {
+        ngx_http_stats_server_dec(cscf->stats,
+                NGX_HTTP_STATS_TYPE_TRAFFIC,
+                NGX_HTTP_STATS_TRAFFIC_CUR_REQ);
 
-    ngx_http_request_response_stats(r, cscf->stats);
-    ngx_http_request_length_stats(r, cscf->stats);
+        ngx_http_request_response_stats(r, cscf->stats);
+        ngx_http_request_length_stats(r, cscf->stats);
+    }
 #endif
 
     cln = r->cleanup;

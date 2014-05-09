@@ -372,7 +372,7 @@ ngx_http_statistics_content_handler(ngx_http_request_t *r)
                 "\"rfi\":%ui,"
                 "\"dt\":%ui,"
                 "\"evade\":%ui,"
-                "\"uf\":%ui,"
+                "\"fu\":%ui,"
                 "\"cp\":%ui,"
                 "\"wd\":%ui,"
                 "\"rm\":%ui,"

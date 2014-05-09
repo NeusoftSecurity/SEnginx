@@ -275,7 +275,9 @@ ngx_http_statistics_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 /*
  * Output in JSON format:
  *
- * [
+ * {
+ * "timestamp":123455678,
+ * "servers":[
  *  {
  *   "name":"server1",
  *   "traffic":{"cur_req":10,"req":100,"res_2xx":50,"res_3xx":20,"res_4xx":15,
@@ -292,6 +294,7 @@ ngx_http_statistics_zone(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
  *  },
  *  ...
  * ]
+ * }
  *
  */
 static ngx_int_t
@@ -335,12 +338,15 @@ ngx_http_statistics_content_handler(ngx_http_request_t *r)
         return NGX_HTTP_NOT_FOUND;
     }
 
-    b = ngx_create_temp_buf(r->pool, cmcf->servers.nelts * 1024);
+    b = ngx_create_temp_buf(r->pool, cmcf->servers.nelts * 4096);
     if (b == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    b->last = ngx_sprintf(b->last, "[");
+    b->last = ngx_sprintf(b->last, "{\"timestamp\":%ui,",
+            ngx_cached_time->sec * 1000 + ngx_cached_time->msec);
+
+    b->last = ngx_sprintf(b->last, "\"servers\":[");
 
     for (node = ngx_queue_head(&ctx->sh->server_queue);
             node != ngx_queue_sentinel(&ctx->sh->server_queue);
@@ -395,7 +401,7 @@ ngx_http_statistics_content_handler(ngx_http_request_t *r)
         i = 1;
     }
 
-    b->last = ngx_sprintf(b->last, "]");
+    b->last = ngx_sprintf(b->last, "]}");
 
     ngx_shmtx_unlock(&ctx->shpool->mutex);
 
@@ -641,4 +647,16 @@ ngx_http_stats_server_dec(ngx_http_statistics_server_t *server,
     }
 
     ngx_atomic_fetch_add(&slots[slot], -1);
+}
+
+
+ngx_int_t
+ngx_http_stats_enabled(ngx_cycle_t *cycle)
+{
+    ngx_http_statistics_conf_t  *smcf;
+
+    smcf = ngx_http_cycle_get_module_main_conf(cycle,
+               ngx_http_statistics_module);
+
+    return smcf->enabled;
 }

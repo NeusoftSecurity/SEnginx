@@ -5304,6 +5304,10 @@ ngx_http_core_init_process(ngx_cycle_t *cycle)
     ngx_http_core_srv_conf_t   **cscfp;
     ngx_uint_t                   i;
 
+    if (!ngx_http_stats_enabled(cycle)) {
+        return NGX_OK;
+    }
+
     cmcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_core_module);
 
     cscfp = cmcf->servers.elts;
@@ -5335,6 +5339,10 @@ ngx_http_core_exit_process(ngx_cycle_t *cycle)
     ngx_http_core_main_conf_t   *cmcf;
     ngx_http_core_srv_conf_t   **cscfp;
     ngx_uint_t                   i;
+
+    if (!ngx_http_stats_enabled(cycle)) {
+        return;
+    }
 
     cmcf = ngx_http_cycle_get_module_main_conf(cycle, ngx_http_core_module);
 

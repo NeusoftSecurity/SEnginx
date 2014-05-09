@@ -115,7 +115,7 @@ function refreshMonitor() {
                 row.append($("<td></td>").text(cur_traffic.res_3xx));
                 row.append($("<td></td>").text(cur_traffic.res_4xx));
                 row.append($("<td></td>").text(cur_traffic.res_5xx));
-                row.append($("<td></td>").text(cur_traffic.res_2xx + cur_traffic.res_3xx + cur_traffic.res_3xx + cur_traffic.res_3xx));
+                row.append($("<td></td>").text(cur_traffic.res_2xx + cur_traffic.res_3xx + cur_traffic.res_4xx + cur_traffic.res_5xx));
                 row.append($("<td></td>").text(formatSizeUnits(cur_traffic.sent)));
                 row.append($("<td></td>").text(formatSizeUnits(cur_traffic.recvd)));
                 var sentPerSec = (prevResult == null ? NaN : (cur_traffic.sent - prevResult.servers[i].traffic.sent) / secElapsed);

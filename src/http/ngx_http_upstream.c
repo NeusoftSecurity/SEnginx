@@ -22,6 +22,11 @@ static ngx_int_t ngx_http_upstream_cache_status(ngx_http_request_t *r,
 static ngx_int_t ngx_http_upstream_cache_last_modified(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 #endif
+#if (NGX_HTTP_CACHE_EXTEND)
+ngx_int_t
+ngx_http_upstream_test_content_type(ngx_http_request_t *r,
+     ngx_http_upstream_t *u);
+#endif
 
 static void ngx_http_upstream_init_request(ngx_http_request_t *r);
 static void ngx_http_upstream_resolve_handler(ngx_resolver_ctx_t *ctx);
@@ -3184,7 +3189,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
     default: /* NGX_OK */
 
 #if (NGX_HTTP_CACHE_EXTEND)
-        if (ngx_http_proxy_test_content_type(r) != NGX_OK) {
+        if (ngx_http_upstream_test_content_type(r, u) != NGX_OK) {
             u->cacheable = 0;
             break;
         }
@@ -6273,3 +6278,31 @@ ngx_http_upstream_init_main_conf(ngx_conf_t *cf, void *conf)
 
     return NGX_CONF_OK;
 }
+
+
+#if (NGX_HTTP_CACHE_EXTEND)
+ngx_int_t
+ngx_http_upstream_test_content_type(ngx_http_request_t *r,
+     ngx_http_upstream_t *u)
+{
+    if (u->conf->cache_types_enabled == 0) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "cache extend: disabled, caching");
+
+        return NGX_OK;
+    }
+
+    if (ngx_http_test_content_type(r, &u->conf->types) == NULL) {
+
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                "cache extend: not match content types, skip caching");
+
+        return NGX_ERROR;
+    }
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+            "cache extend: match content types, caching");
+
+    return NGX_OK;
+}
+#endif

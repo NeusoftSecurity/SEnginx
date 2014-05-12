@@ -484,6 +484,15 @@ static ngx_command_t  ngx_http_fastcgi_commands[] = {
       offsetof(ngx_http_fastcgi_loc_conf_t, keep_conn),
       NULL },
 
+#if (NGX_HTTP_CACHE_EXTEND)
+    { ngx_string("fastcgi_cache_types"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
+      ngx_http_types_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_fastcgi_loc_conf_t, upstream.types_keys),
+      &ngx_http_html_default_types[0] },
+#endif
+
       ngx_null_command
 };
 
@@ -2645,6 +2654,24 @@ ngx_http_fastcgi_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     if (ngx_http_fastcgi_merge_params(cf, conf, prev) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
+
+#if (NGX_HTTP_CACHE_EXTEND)
+    if (conf->upstream.types_keys != NULL
+        || prev->upstream.types_keys != NULL) {
+
+        if (ngx_http_merge_types(cf, &conf->upstream.types_keys,
+                                 &conf->upstream.types,
+                                 &prev->upstream.types_keys,
+                                 &prev->upstream.types,
+                                 &ngx_http_html_default_types[1])
+            != NGX_OK)
+        {
+            return NGX_CONF_ERROR;
+        }
+
+        conf->upstream.cache_types_enabled = 1;
+    }
+#endif
 
     return NGX_CONF_OK;
 }

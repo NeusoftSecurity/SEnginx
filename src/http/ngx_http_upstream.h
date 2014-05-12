@@ -225,11 +225,17 @@ typedef struct {
     signed                           store:2;
     unsigned                         intercept_404:1;
     unsigned                         change_buffering:1;
+    unsigned                         cache_types_enabled:1;
 
 #if (NGX_HTTP_SSL)
     ngx_ssl_t                       *ssl;
     ngx_flag_t                       ssl_session_reuse;
     ngx_uint_t                       ssl_verify;
+#endif
+
+#if (NGX_HTTP_CACHE_EXTEND)
+    ngx_array_t                     *types_keys;
+    ngx_hash_t                       types;
 #endif
 
     ngx_uint_t                       dyn_resolve;

@@ -38,6 +38,7 @@ Features
     * NetEye Security Layer
 * Managment
     * Syslog Support
+    * Statistics for Traffic and Attacks
 
 Installation
 ------------

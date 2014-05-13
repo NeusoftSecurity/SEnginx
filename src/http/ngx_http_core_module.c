@@ -2396,7 +2396,7 @@ equal:
 }
 
 
-ngx_uint_t
+static ngx_uint_t
 ngx_http_gzip_quantity(u_char *p, u_char *last)
 {
     u_char      c;

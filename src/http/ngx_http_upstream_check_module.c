@@ -3085,3 +3085,18 @@ ngx_http_upstream_check_init_process(ngx_cycle_t *cycle)
 {
     return ngx_http_upstream_check_add_timers(cycle);
 }
+
+
+ngx_uint_t
+ngx_http_upstream_check_is_set(ngx_http_upstream_srv_conf_t *us)
+{
+    ngx_http_upstream_check_srv_conf_t   *ucscf;
+
+    ucscf = ngx_http_conf_upstream_srv_conf(us, ngx_http_upstream_check_module);
+
+    if (ucscf->check_type_conf == NGX_CONF_UNSET_PTR) {
+        return 0;
+    }
+
+    return 1;
+}

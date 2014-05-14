@@ -22,13 +22,14 @@ done
 
 if [ $# -ne 0 ]; then
     NGX_ARGS=`echo $* | sed "s/$MOD_SECURITY_CONFIG//"`
-    NGX_ARGS=`echo $* | sed "s/$NGX_LUA_CONFIG//"`
+    NGX_ARGS=`echo $NGX_ARGS | sed "s/$NGX_LUA_CONFIG//"`
 else
     unset NGX_ARGS
 fi
 
 if [ ! -z $HAVE_MOD_SECURITY ]; then
     cd $MOD_SECURITY_DIR
+    ./autogen.sh
     ./configure --enable-standalone-module
     make
     cd -

@@ -7,7 +7,7 @@
 %global  senginx_webroot       %{senginx_datadir}/html
 
 Name:              senginx
-Version:           1.5.13
+Version:           1.6.0
 Release:           0%{?dist}
 
 Summary:           SEnginx puts multiple third-party load-balancing/security modules into nginx.
@@ -107,7 +107,10 @@ fi
 %dir %{senginx_confdir}/conf.d
 
 %changelog
-* Tue Apr 03 2014 Changes with senginx 1.5.13
-  Feature: support proxying to a client-verification enabled https server, and can also support server verification in proxy module.
-  Feature: Lua language is integrated into SEnginx.
-  Change: change the behavior when a DNS server is not responsible when doing upstream dynamic DNS query.
+* Wed May 14 2014 Changes with senginx 1.6.0
+    Feature: upgrade to original nginx 1.6.0.
+    Feature: enhancement to dynamic resolve functionality.
+    Feature: ngx_http_statistics module that supports monitoring traffic and attacks.
+    Feature: add a demo html page to demonstrate ngx_http_statistics module, thanks to Yu Qing.
+    Feature: upgrade Mod Security to 2.8.0.
+    Bugfix: in cookie poisoning module.

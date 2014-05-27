@@ -103,9 +103,9 @@ static u_char *ngx_http_spdy_state_syn_stream(ngx_http_spdy_connection_t *sc,
     u_char *pos, u_char *end);
 static u_char *ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc,
     u_char *pos, u_char *end);
-static u_char *ngx_http_spdy_state_headers_error(ngx_http_spdy_connection_t *sc,
-    u_char *pos, u_char *end);
 static u_char *ngx_http_spdy_state_headers_skip(ngx_http_spdy_connection_t *sc,
+    u_char *pos, u_char *end);
+static u_char *ngx_http_spdy_state_headers_error(ngx_http_spdy_connection_t *sc,
     u_char *pos, u_char *end);
 static u_char *ngx_http_spdy_state_window_update(ngx_http_spdy_connection_t *sc,
     u_char *pos, u_char *end);
@@ -125,6 +125,9 @@ static u_char *ngx_http_spdy_state_complete(ngx_http_spdy_connection_t *sc,
     u_char *pos, u_char *end);
 static u_char *ngx_http_spdy_state_save(ngx_http_spdy_connection_t *sc,
     u_char *pos, u_char *end, ngx_http_spdy_handler_pt handler);
+
+static u_char *ngx_http_spdy_state_inflate_error(
+    ngx_http_spdy_connection_t *sc, int rc);
 static u_char *ngx_http_spdy_state_protocol_error(
     ngx_http_spdy_connection_t *sc);
 static u_char *ngx_http_spdy_state_internal_error(
@@ -392,8 +395,7 @@ ngx_http_spdy_init(ngx_event_t *rev)
     c = rev->data;
     hc = c->data;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "init spdy request");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "init spdy request");
 
     c->log->action = "processing SPDY";
 
@@ -421,12 +423,8 @@ ngx_http_spdy_init(ngx_event_t *rev)
 
     sc->init_window = NGX_SPDY_INIT_STREAM_WINDOW;
 
-    sc->handler = ngx_http_spdy_state_head;
-
-    if (hc->proxy_protocol) {
-        c->log->action = "reading PROXY protocol";
-        sc->handler = ngx_http_spdy_proxy_protocol;
-    }
+    sc->handler = hc->proxy_protocol ? ngx_http_spdy_proxy_protocol
+                                     : ngx_http_spdy_state_head;
 
     sc->zstream_in.zalloc = ngx_http_spdy_zalloc;
     sc->zstream_in.zfree = ngx_http_spdy_zfree;
@@ -557,7 +555,7 @@ ngx_http_spdy_read_handler(ngx_event_t *rev)
 
         if (n == 0 && (sc->incomplete || sc->processing)) {
             ngx_log_error(NGX_LOG_INFO, c->log, 0,
-                          "client closed prematurely connection");
+                          "client prematurely closed connection");
         }
 
         if (n == 0 || n == NGX_ERROR) {
@@ -645,7 +643,7 @@ ngx_http_spdy_write_handler(ngx_event_t *wev)
         stream->handled = 0;
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                       "spdy run stream %ui", stream->id);
+                       "run spdy stream %ui", stream->id);
 
         wev = stream->request->connection->write;
         wev->handler(wev);
@@ -820,13 +818,18 @@ static u_char *
 ngx_http_spdy_proxy_protocol(ngx_http_spdy_connection_t *sc, u_char *pos,
     u_char *end)
 {
+    ngx_log_t  *log;
+
+    log = sc->connection->log;
+    log->action = "reading PROXY protocol";
+
     pos = ngx_proxy_protocol_parse(sc->connection, pos, end);
+
+    log->action = "processing SPDY";
 
     if (pos == NULL) {
         return ngx_http_spdy_state_protocol_error(sc);
     }
-
-    sc->connection->log->action = "processing SPDY";
 
     return ngx_http_spdy_state_complete(sc, pos, end);
 }
@@ -856,7 +859,7 @@ ngx_http_spdy_state_head(ngx_http_spdy_connection_t *sc, u_char *pos,
     pos += sizeof(uint32_t);
 
     ngx_log_debug3(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
-                   "spdy process frame head:%08XD f:%Xd l:%uz",
+                   "process spdy frame head:%08XD f:%Xd l:%uz",
                    head, sc->flags, sc->length);
 
     if (ngx_spdy_ctl_frame_check(head)) {
@@ -868,6 +871,8 @@ ngx_http_spdy_state_head(ngx_http_spdy_connection_t *sc, u_char *pos,
             return ngx_http_spdy_state_syn_stream(sc, pos, end);
 
         case NGX_SPDY_SYN_REPLY:
+            ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
+                          "client sent unexpected SYN_REPLY frame");
             return ngx_http_spdy_state_protocol_error(sc);
 
         case NGX_SPDY_RST_STREAM:
@@ -883,6 +888,8 @@ ngx_http_spdy_state_head(ngx_http_spdy_connection_t *sc, u_char *pos,
             return ngx_http_spdy_state_skip(sc, pos, end); /* TODO */
 
         case NGX_SPDY_HEADERS:
+            ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
+                          "client sent unexpected HEADERS frame");
             return ngx_http_spdy_state_protocol_error(sc);
 
         case NGX_SPDY_WINDOW_UPDATE:
@@ -900,10 +907,8 @@ ngx_http_spdy_state_head(ngx_http_spdy_connection_t *sc, u_char *pos,
         return ngx_http_spdy_state_data(sc, pos, end);
     }
 
-
-    /* TODO version & type check */
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
-                   "spdy unknown frame");
+    ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
+                  "client sent invalid frame");
 
     return ngx_http_spdy_state_protocol_error(sc);
 }
@@ -923,7 +928,10 @@ ngx_http_spdy_state_syn_stream(ngx_http_spdy_connection_t *sc, u_char *pos,
     }
 
     if (sc->length <= NGX_SPDY_SYN_STREAM_SIZE) {
-        /* TODO logging */
+        ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
+                      "client sent SYN_STREAM frame with incorrect length %uz",
+                      sc->length);
+
         return ngx_http_spdy_state_protocol_error(sc);
     }
 
@@ -964,7 +972,7 @@ ngx_http_spdy_state_syn_stream(ngx_http_spdy_connection_t *sc, u_char *pos,
     if (sc->processing >= sscf->concurrent_streams) {
 
         ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
-                      "spdy concurrent streams exceeded %ui", sc->processing);
+                      "concurrent streams exceeded %ui", sc->processing);
 
         if (ngx_http_spdy_send_rst_stream(sc, sid, NGX_SPDY_REFUSED_STREAM,
                                           prio)
@@ -1001,7 +1009,6 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
     size_t               size;
     ngx_buf_t           *buf;
     ngx_int_t            rc;
-    ngx_uint_t           complete;
     ngx_http_request_t  *r;
 
     size = end - pos;
@@ -1011,18 +1018,14 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
                                         ngx_http_spdy_state_headers);
     }
 
-    if (size >= sc->length) {
+    if (size > sc->length) {
         size = sc->length;
-        complete = 1;
-
-    } else {
-        complete = 0;
     }
 
     r = sc->stream->request;
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "spdy process HEADERS %uz of %uz", size, sc->length);
+                   "process spdy header block %uz of %uz", size, sc->length);
 
     buf = r->header_in;
 
@@ -1038,11 +1041,21 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
     if (z == Z_NEED_DICT) {
         z = inflateSetDictionary(&sc->zstream_in, ngx_http_spdy_dict,
                                  sizeof(ngx_http_spdy_dict));
+
         if (z != Z_OK) {
-            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                          "spdy inflateSetDictionary() failed: %d", z);
-            ngx_http_spdy_close_stream(sc->stream, 0);
-            return ngx_http_spdy_state_protocol_error(sc);
+            if (z == Z_DATA_ERROR) {
+                ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                              "client sent SYN_STREAM frame with header "
+                              "block encoded using wrong dictionary: %ul",
+                              (u_long) sc->zstream_in.adler);
+
+                return ngx_http_spdy_state_protocol_error(sc);
+            }
+
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                          "inflateSetDictionary() failed: %d", z);
+
+            return ngx_http_spdy_state_internal_error(sc);
         }
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -1053,10 +1066,7 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
     }
 
     if (z != Z_OK) {
-        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                      "spdy inflate() failed: %d", z);
-        ngx_http_spdy_close_stream(sc->stream, 0);
-        return ngx_http_spdy_state_protocol_error(sc);
+        return ngx_http_spdy_state_inflate_error(sc, z);
     }
 
     ngx_log_debug5(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -1074,12 +1084,11 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
 
         if (buf->last - buf->pos < NGX_SPDY_NV_NUM_SIZE) {
 
-            if (complete) {
-                ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                              "client sent SYN_STREAM frame "
-                              "with invalid HEADERS block");
-                ngx_http_spdy_close_stream(sc->stream, NGX_HTTP_BAD_REQUEST);
-                return ngx_http_spdy_state_protocol_error(sc);
+            if (sc->length == 0) {
+                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                               "premature end of spdy header block");
+
+                return ngx_http_spdy_state_headers_error(sc, pos, end);
             }
 
             return ngx_http_spdy_state_save(sc, pos, end,
@@ -1091,7 +1100,7 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
         buf->pos += NGX_SPDY_NV_NUM_SIZE;
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "spdy HEADERS block consists of %ui entries",
+                       "spdy header block has %ui entries",
                        sc->entries);
 
         if (ngx_list_init(&r->headers_in.headers, r->pool, 20,
@@ -1100,7 +1109,7 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
         {
             ngx_http_spdy_close_stream(sc->stream,
                                        NGX_HTTP_INTERNAL_SERVER_ERROR);
-            return ngx_http_spdy_state_headers_error(sc, pos, end);
+            return ngx_http_spdy_state_headers_skip(sc, pos, end);
         }
 
         if (ngx_array_init(&r->headers_in.cookies, r->pool, 2,
@@ -1109,7 +1118,7 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
         {
             ngx_http_spdy_close_stream(sc->stream,
                                        NGX_HTTP_INTERNAL_SERVER_ERROR);
-            return ngx_http_spdy_state_headers_error(sc, pos, end);
+            return ngx_http_spdy_state_headers_skip(sc, pos, end);
         }
     }
 
@@ -1132,16 +1141,15 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
                 rc = ngx_http_spdy_alloc_large_header_buffer(r);
 
                 if (rc == NGX_DECLINED) {
-                    /* TODO logging */
                     ngx_http_finalize_request(r,
                                             NGX_HTTP_REQUEST_HEADER_TOO_LARGE);
-                    return ngx_http_spdy_state_headers_error(sc, pos, end);
+                    return ngx_http_spdy_state_headers_skip(sc, pos, end);
                 }
 
                 if (rc != NGX_OK) {
                     ngx_http_spdy_close_stream(sc->stream,
                                                NGX_HTTP_INTERNAL_SERVER_ERROR);
-                    return ngx_http_spdy_state_headers_error(sc, pos, end);
+                    return ngx_http_spdy_state_headers_skip(sc, pos, end);
                 }
 
                 /* null-terminate the last processed header name or value */
@@ -1157,10 +1165,7 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
                 z = inflate(&sc->zstream_in, Z_NO_FLUSH);
 
                 if (z != Z_OK) {
-                    ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                                  "spdy inflate() failed: %d", z);
-                    ngx_http_spdy_close_stream(sc->stream, 0);
-                    return ngx_http_spdy_state_protocol_error(sc);
+                    return ngx_http_spdy_state_inflate_error(sc, z);
                 }
 
                 sc->length -= sc->zstream_in.next_in - pos;
@@ -1171,33 +1176,22 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
                 continue;
             }
 
-            if (complete) {
-                /* TODO: improve error message */
+            if (sc->length == 0) {
                 ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                               "spdy again while last chunk");
-                ngx_http_spdy_close_stream(sc->stream, 0);
-                return ngx_http_spdy_state_protocol_error(sc);
+                               "premature end of spdy header block");
+
+                return ngx_http_spdy_state_headers_error(sc, pos, end);
             }
 
             return ngx_http_spdy_state_save(sc, pos, end,
                                             ngx_http_spdy_state_headers);
 
-        case NGX_HTTP_PARSE_INVALID_REQUEST:
-
-            /* TODO: improve error message */
-            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                          "client sent invalid header line");
-
+        case NGX_HTTP_PARSE_INVALID_HEADER:
             ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+            return ngx_http_spdy_state_headers_skip(sc, pos, end);
 
+        default: /* NGX_ERROR */
             return ngx_http_spdy_state_headers_error(sc, pos, end);
-
-        default: /* NGX_HTTP_PARSE_INVALID_HEADER */
-
-            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                          "client sent invalid HEADERS spdy frame");
-            ngx_http_spdy_close_stream(sc->stream, NGX_HTTP_BAD_REQUEST);
-            return ngx_http_spdy_state_protocol_error(sc);
         }
 
         /* a header line has been parsed successfully */
@@ -1206,29 +1200,27 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
 
         if (rc != NGX_OK) {
             if (rc == NGX_HTTP_PARSE_INVALID_HEADER) {
-                ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                              "client sent invalid HEADERS spdy frame");
-                ngx_http_spdy_close_stream(sc->stream, NGX_HTTP_BAD_REQUEST);
-                return ngx_http_spdy_state_protocol_error(sc);
-            }
-
-            if (rc == NGX_HTTP_PARSE_INVALID_REQUEST) {
                 ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+                return ngx_http_spdy_state_headers_skip(sc, pos, end);
             }
 
-            return ngx_http_spdy_state_headers_error(sc, pos, end);
+            if (rc != NGX_ABORT) {
+                ngx_http_spdy_close_stream(sc->stream,
+                                           NGX_HTTP_INTERNAL_SERVER_ERROR);
+            }
+
+            return ngx_http_spdy_state_headers_skip(sc, pos, end);
         }
     }
 
     if (buf->pos != buf->last || sc->zstream_in.avail_in) {
-        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                      "client sent SYN_STREAM frame "
-                      "with invalid HEADERS block");
-        ngx_http_spdy_close_stream(sc->stream, NGX_HTTP_BAD_REQUEST);
-        return ngx_http_spdy_state_protocol_error(sc);
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "incorrect number of spdy header block entries");
+
+        return ngx_http_spdy_state_headers_error(sc, pos, end);
     }
 
-    if (!complete) {
+    if (sc->length) {
         return ngx_http_spdy_state_save(sc, pos, end,
                                         ngx_http_spdy_state_headers);
     }
@@ -1239,18 +1231,6 @@ ngx_http_spdy_state_headers(ngx_http_spdy_connection_t *sc, u_char *pos,
     ngx_http_spdy_run_request(r);
 
     return ngx_http_spdy_state_complete(sc, pos, end);
-}
-
-
-static u_char *
-ngx_http_spdy_state_headers_error(ngx_http_spdy_connection_t *sc, u_char *pos,
-    u_char *end)
-{
-    if (sc->connection->error) {
-        return ngx_http_spdy_state_internal_error(sc);
-    }
-
-    return ngx_http_spdy_state_headers_skip(sc, pos, end);
 }
 
 
@@ -1273,6 +1253,9 @@ ngx_http_spdy_state_headers_skip(ngx_http_spdy_connection_t *sc, u_char *pos,
                                         ngx_http_spdy_state_headers_skip);
     }
 
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
+                   "spdy header block skip %uz of %uz", size, sc->length);
+
     sc->zstream_in.next_in = pos;
     sc->zstream_in.avail_in = (size < sc->length) ? size : sc->length;
 
@@ -1282,12 +1265,8 @@ ngx_http_spdy_state_headers_skip(ngx_http_spdy_connection_t *sc, u_char *pos,
 
         n = inflate(&sc->zstream_in, Z_NO_FLUSH);
 
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
-                       "spdy inflate(): %d", n);
-
         if (n != Z_OK) {
-            /* TODO: logging */
-            return ngx_http_spdy_state_protocol_error(sc);
+            return ngx_http_spdy_state_inflate_error(sc, n);
         }
     }
 
@@ -1300,6 +1279,33 @@ ngx_http_spdy_state_headers_skip(ngx_http_spdy_connection_t *sc, u_char *pos,
     }
 
     return ngx_http_spdy_state_complete(sc, pos, end);
+}
+
+
+static u_char *
+ngx_http_spdy_state_headers_error(ngx_http_spdy_connection_t *sc, u_char *pos,
+    u_char *end)
+{
+    ngx_http_spdy_stream_t  *stream;
+
+    stream = sc->stream;
+
+    ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
+                  "client sent SYN_STREAM frame for stream %ui "
+                  "with invalid header block", stream->id);
+
+    if (ngx_http_spdy_send_rst_stream(sc, stream->id, NGX_SPDY_PROTOCOL_ERROR,
+                                      stream->priority)
+        != NGX_OK)
+    {
+        return ngx_http_spdy_state_internal_error(sc);
+    }
+
+    stream->out_closed = 1;
+
+    ngx_http_spdy_close_stream(stream, NGX_HTTP_BAD_REQUEST);
+
+    return ngx_http_spdy_state_headers_skip(sc, pos, end);
 }
 
 
@@ -1352,7 +1358,7 @@ ngx_http_spdy_state_window_update(ngx_http_spdy_connection_t *sc, u_char *pos,
             ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
                           "client violated flow control for stream %ui: "
                           "received WINDOW_UPDATE frame with delta %uz "
-                          "that is not allowed for window %z",
+                          "not allowed for window %z",
                           sid, delta, stream->send_window);
 
             if (ngx_http_spdy_terminate_stream(sc, stream,
@@ -1385,7 +1391,7 @@ ngx_http_spdy_state_window_update(ngx_http_spdy_connection_t *sc, u_char *pos,
             ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
                           "client violated connection flow control: "
                           "received WINDOW_UPDATE frame with delta %uz "
-                          "that is not allowed for window %uz",
+                          "not allowed for window %uz",
                           delta, sc->send_window);
 
             return ngx_http_spdy_state_protocol_error(sc);
@@ -1428,8 +1434,8 @@ ngx_http_spdy_state_data(ngx_http_spdy_connection_t *sc, u_char *pos,
 
     if (sc->length > sc->recv_window) {
         ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
-                      "client violated connection flow control: length of "
-                      "received DATA frame %uz, while available window %uz",
+                      "client violated connection flow control: "
+                      "received DATA frame length %uz, available window %uz",
                       sc->length, sc->recv_window);
 
         return ngx_http_spdy_state_protocol_error(sc);
@@ -1453,13 +1459,16 @@ ngx_http_spdy_state_data(ngx_http_spdy_connection_t *sc, u_char *pos,
     stream = sc->stream;
 
     if (stream == NULL) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
+                       "unknown spdy stream");
+
         return ngx_http_spdy_state_skip(sc, pos, end);
     }
 
     if (sc->length > stream->recv_window) {
         ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
-                      "client violated flow control for stream %ui: length of "
-                      "received DATA frame %uz, while available window %uz",
+                      "client violated flow control for stream %ui: "
+                      "received DATA frame length %uz, available window %uz",
                       stream->id, sc->length, stream->recv_window);
 
         if (ngx_http_spdy_terminate_stream(sc, stream,
@@ -1489,7 +1498,7 @@ ngx_http_spdy_state_data(ngx_http_spdy_connection_t *sc, u_char *pos,
 
     if (stream->in_closed) {
         ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
-                      "client sent DATA frame for half closed stream %ui",
+                      "client sent DATA frame for half-closed stream %ui",
                       stream->id);
 
         if (ngx_http_spdy_terminate_stream(sc, stream,
@@ -1532,7 +1541,10 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
             stream->in_closed = 1;
         }
 
-        /* TODO log and accounting */
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
+                       "skipping spdy DATA frame, reason: %d",
+                       stream->skip_data);
+
         return ngx_http_spdy_state_skip(sc, pos, end);
     }
 
@@ -1561,7 +1573,10 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
         if (r->headers_in.content_length_n != -1
             && r->headers_in.content_length_n < rb->rest)
         {
-            /* TODO logging */
+            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                          "client intended to send body data "
+                          "larger than declared");
+
             stream->skip_data = NGX_SPDY_DATA_ERROR;
             goto error;
 
@@ -1572,9 +1587,8 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
                 && clcf->client_max_body_size < rb->rest)
             {
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                              "client intended to send too large chunked "
-                              "body: %O bytes",
-                              rb->rest);
+                              "client intended to send "
+                              "too large chunked body: %O bytes", rb->rest);
 
                 stream->skip_data = NGX_SPDY_DATA_ERROR;
                 goto error;
@@ -1626,7 +1640,7 @@ ngx_http_spdy_state_read_data(ngx_http_spdy_connection_t *sc, u_char *pos,
         } else if (r->headers_in.content_length_n != rb->rest) {
             ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
                           "client prematurely closed stream: "
-                          "%O of %O bytes of request body received",
+                          "only %O out of %O bytes of request body received",
                           rb->rest, r->headers_in.content_length_n);
 
             stream->skip_data = NGX_SPDY_DATA_ERROR;
@@ -1705,9 +1719,11 @@ ngx_http_spdy_state_rst_stream(ngx_http_spdy_connection_t *sc, u_char *pos,
                    "spdy RST_STREAM sid:%ui st:%ui", sid, status);
 
     stream = ngx_http_spdy_get_stream_by_id(sc, sid);
+
     if (stream == NULL) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
-                       "unknown stream, probably it has been closed already");
+                       "unknown spdy stream");
+
         return ngx_http_spdy_state_complete(sc, pos, end);
     }
 
@@ -1726,7 +1742,7 @@ ngx_http_spdy_state_rst_stream(ngx_http_spdy_connection_t *sc, u_char *pos,
 
     case NGX_SPDY_INTERNAL_ERROR:
         ngx_log_error(NGX_LOG_INFO, fc->log, 0,
-                      "client terminated stream %ui because of internal error",
+                      "client terminated stream %ui due to internal error",
                       sid);
         break;
 
@@ -1758,7 +1774,10 @@ ngx_http_spdy_state_ping(ngx_http_spdy_connection_t *sc, u_char *pos,
     }
 
     if (sc->length != NGX_SPDY_PING_SIZE) {
-        /* TODO logging */
+        ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
+                      "client sent PING frame with incorrect length %uz",
+                      sc->length);
+
         return ngx_http_spdy_state_protocol_error(sc);
     }
 
@@ -1798,6 +1817,9 @@ ngx_http_spdy_state_skip(ngx_http_spdy_connection_t *sc, u_char *pos,
 
     size = end - pos;
 
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
+                   "spdy frame skip %uz of %uz", size, sc->length);
+
     if (size < sc->length) {
         sc->length -= size;
         return ngx_http_spdy_state_save(sc, end, end,
@@ -1827,13 +1849,16 @@ ngx_http_spdy_state_settings(ngx_http_spdy_connection_t *sc, u_char *pos,
         sc->length -= NGX_SPDY_SETTINGS_NUM_SIZE;
 
         if (sc->length < sc->entries * NGX_SPDY_SETTINGS_PAIR_SIZE) {
-            /* TODO logging */
+            ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
+                          "client sent SETTINGS frame with incorrect "
+                          "length %uz or number of entries %ui",
+                          sc->length, sc->entries);
+
             return ngx_http_spdy_state_protocol_error(sc);
         }
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
-                       "spdy SETTINGS frame consists of %ui entries",
-                       sc->entries);
+                       "spdy SETTINGS frame has %ui entries", sc->entries);
     }
 
     while (sc->entries) {
@@ -1893,7 +1918,20 @@ static u_char *
 ngx_http_spdy_state_complete(ngx_http_spdy_connection_t *sc, u_char *pos,
     u_char *end)
 {
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
+                   "spdy frame complete pos:%p end:%p", pos, end);
+
+    if (pos > end) {
+        ngx_log_error(NGX_LOG_ALERT, sc->connection->log, 0,
+                      "receive buffer overrun");
+
+        ngx_debug_point();
+        return ngx_http_spdy_state_internal_error(sc);
+    }
+
     sc->handler = ngx_http_spdy_state_head;
+    sc->stream = NULL;
+
     return pos;
 }
 
@@ -1904,12 +1942,17 @@ ngx_http_spdy_state_save(ngx_http_spdy_connection_t *sc,
 {
     size_t  size;
 
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
+                   "spdy frame state save pos:%p end:%p handler:%p",
+                   pos, end, handler);
+
     size = end - pos;
 
     if (size > NGX_SPDY_STATE_BUFFER_SIZE) {
         ngx_log_error(NGX_LOG_ALERT, sc->connection->log, 0,
-                      "spdy state buffer overflow: "
-                      "%uz bytes required", size);
+                      "state buffer overflow: %uz bytes required", size);
+
+        ngx_debug_point();
         return ngx_http_spdy_state_internal_error(sc);
     }
 
@@ -1924,13 +1967,36 @@ ngx_http_spdy_state_save(ngx_http_spdy_connection_t *sc,
 
 
 static u_char *
+ngx_http_spdy_state_inflate_error(ngx_http_spdy_connection_t *sc, int rc)
+{
+    if (rc == Z_DATA_ERROR || rc == Z_STREAM_END) {
+        ngx_log_error(NGX_LOG_INFO, sc->connection->log, 0,
+                      "client sent SYN_STREAM frame with "
+                      "corrupted header block, inflate() failed: %d", rc);
+
+        return ngx_http_spdy_state_protocol_error(sc);
+    }
+
+    ngx_log_error(NGX_LOG_ERR, sc->connection->log, 0,
+                  "inflate() failed: %d", rc);
+
+    return ngx_http_spdy_state_internal_error(sc);
+}
+
+
+static u_char *
 ngx_http_spdy_state_protocol_error(ngx_http_spdy_connection_t *sc)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
                    "spdy state protocol error");
 
-    /* TODO */
+    if (sc->stream) {
+        sc->stream->out_closed = 1;
+        ngx_http_spdy_close_stream(sc->stream, NGX_HTTP_BAD_REQUEST);
+    }
+
     ngx_http_spdy_finalize_connection(sc, NGX_HTTP_CLIENT_CLOSED_REQUEST);
+
     return NULL;
 }
 
@@ -1941,8 +2007,13 @@ ngx_http_spdy_state_internal_error(ngx_http_spdy_connection_t *sc)
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
                    "spdy state internal error");
 
-    /* TODO */
+    if (sc->stream) {
+        sc->stream->out_closed = 1;
+        ngx_http_spdy_close_stream(sc->stream, NGX_HTTP_INTERNAL_SERVER_ERROR);
+    }
+
     ngx_http_spdy_finalize_connection(sc, NGX_HTTP_INTERNAL_SERVER_ERROR);
+
     return NULL;
 }
 
@@ -1956,7 +2027,7 @@ ngx_http_spdy_send_window_update(ngx_http_spdy_connection_t *sc, ngx_uint_t sid,
     ngx_http_spdy_out_frame_t  *frame;
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
-                   "spdy write WINDOW_UPDATE sid:%ui delta:%ui", sid, delta);
+                   "spdy send WINDOW_UPDATE sid:%ui delta:%ui", sid, delta);
 
     frame = ngx_http_spdy_get_ctl_frame(sc, NGX_SPDY_WINDOW_UPDATE_SIZE,
                                         NGX_SPDY_HIGHEST_PRIORITY);
@@ -1995,7 +2066,7 @@ ngx_http_spdy_send_rst_stream(ngx_http_spdy_connection_t *sc, ngx_uint_t sid,
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
-                   "spdy write RST_STREAM sid:%ui st:%ui", sid, status);
+                   "spdy send RST_STREAM sid:%ui st:%ui", sid, status);
 
     frame = ngx_http_spdy_get_ctl_frame(sc, NGX_SPDY_RST_STREAM_SIZE,
                                         priority);
@@ -2030,7 +2101,7 @@ ngx_http_spdy_send_goaway(ngx_http_spdy_connection_t *sc)
     ngx_http_spdy_out_frame_t  *frame;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
-                   "spdy create GOAWAY sid:%ui", sc->last_sid);
+                   "spdy send GOAWAY sid:%ui", sc->last_sid);
 
     frame = ngx_http_spdy_get_ctl_frame(sc, NGX_SPDY_GOAWAY_SIZE,
                                         NGX_SPDY_HIGHEST_PRIORITY);
@@ -2066,7 +2137,7 @@ ngx_http_spdy_send_settings(ngx_http_spdy_connection_t *sc)
     ngx_http_spdy_out_frame_t  *frame;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, sc->connection->log, 0,
-                   "spdy create SETTINGS frame");
+                   "spdy send SETTINGS frame");
 
     frame = ngx_palloc(sc->pool, sizeof(ngx_http_spdy_out_frame_t));
     if (frame == NULL) {
@@ -2188,7 +2259,7 @@ ngx_http_spdy_get_ctl_frame(ngx_http_spdy_connection_t *sc, size_t length,
 #if (NGX_DEBUG)
     if (length > NGX_SPDY_CTL_FRAME_BUFFER_SIZE - NGX_SPDY_FRAME_HEADER_SIZE) {
         ngx_log_error(NGX_LOG_ALERT, sc->pool->log, 0,
-                      "requested control frame is too big: %uz", length);
+                      "requested control frame is too large: %uz", length);
         return NULL;
     }
 
@@ -2406,7 +2477,7 @@ ngx_http_spdy_parse_header(ngx_http_request_t *r)
         r->lowcase_index = ngx_spdy_frame_parse_uint32(p);
 
         if (r->lowcase_index == 0) {
-            return NGX_HTTP_PARSE_INVALID_HEADER;
+            return NGX_ERROR;
         }
 
         /* null-terminate the previous header value */
@@ -2456,11 +2527,15 @@ ngx_http_spdy_parse_header(ngx_http_request_t *r)
             case LF:
             case CR:
             case ':':
-                return NGX_HTTP_PARSE_INVALID_REQUEST;
+                ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                              "client sent invalid header name: \"%*s\"",
+                              r->lowcase_index, r->header_name_start);
+
+                return NGX_HTTP_PARSE_INVALID_HEADER;
             }
 
             if (ch >= 'A' && ch <= 'Z') {
-                return NGX_HTTP_PARSE_INVALID_HEADER;
+                return NGX_ERROR;
             }
 
             r->invalid_header = 1;
@@ -2513,6 +2588,15 @@ ngx_http_spdy_parse_header(ngx_http_request_t *r)
             }
 
             if (ch == CR || ch == LF) {
+                ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                              "client sent header \"%*s\" with "
+                              "invalid value: \"%*s\\%c...\"",
+                              r->header_name_end - r->header_name_start,
+                              r->header_name_start,
+                              p - r->header_start,
+                              r->header_start,
+                              ch == CR ? 'r' : 'n');
+
                 return NGX_HTTP_PARSE_INVALID_HEADER;
             }
 
@@ -2537,7 +2621,7 @@ ngx_http_spdy_parse_header(ngx_http_request_t *r)
 static ngx_int_t
 ngx_http_spdy_alloc_large_header_buffer(ngx_http_request_t *r)
 {
-    u_char                    *old, *new;
+    u_char                    *old, *new, *p;
     size_t                     rest;
     ngx_buf_t                 *buf;
     ngx_http_spdy_stream_t    *stream;
@@ -2553,12 +2637,30 @@ ngx_http_spdy_alloc_large_header_buffer(ngx_http_request_t *r)
     if (stream->header_buffers
         == (ngx_uint_t) cscf->large_client_header_buffers.num)
     {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent too large request");
+
         return NGX_DECLINED;
     }
 
     rest = r->header_in->last - r->header_in->pos;
 
+    /*
+     * equality is prohibited since one more byte is needed
+     * for null-termination
+     */
     if (rest >= cscf->large_client_header_buffers.size) {
+        p = r->header_in->pos;
+
+        if (rest > NGX_MAX_ERROR_STR - 300) {
+            rest = NGX_MAX_ERROR_STR - 300;
+            p[rest++] = '.'; p[rest++] = '.'; p[rest++] = '.';
+        }
+
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent too long header name or value: \"%*s\"",
+                      rest, p);
+
         return NGX_DECLINED;
     }
 
@@ -2568,7 +2670,7 @@ ngx_http_spdy_alloc_large_header_buffer(ngx_http_request_t *r)
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "spdy large header alloc: %p %z",
+                   "spdy large header alloc: %p %uz",
                    buf->pos, buf->end - buf->last);
 
     old = r->header_in->pos;
@@ -2623,13 +2725,16 @@ ngx_http_spdy_handle_request_header(ngx_http_request_t *r)
             return sh->handler(r);
         }
 
-        return NGX_HTTP_PARSE_INVALID_REQUEST;
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent invalid header name: \":%*s\"",
+                      r->header_end - r->header_name_start,
+                      r->header_name_start);
+
+        return NGX_HTTP_PARSE_INVALID_HEADER;
     }
 
     h = ngx_list_push(&r->headers_in.headers);
     if (h == NULL) {
-        ngx_http_spdy_close_stream(r->spdy_stream,
-                                   NGX_HTTP_INTERNAL_SERVER_ERROR);
         return NGX_ERROR;
     }
 
@@ -2695,6 +2800,9 @@ ngx_http_spdy_parse_method(ngx_http_request_t *r)
     }, *test;
 
     if (r->method_name.len) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent duplicate :method header");
+
         return NGX_HTTP_PARSE_INVALID_HEADER;
     }
 
@@ -2732,8 +2840,10 @@ ngx_http_spdy_parse_method(ngx_http_request_t *r)
     do {
         if ((*p < 'A' || *p > 'Z') && *p != '_') {
             ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                          "client sent invalid method");
-            return NGX_HTTP_PARSE_INVALID_REQUEST;
+                          "client sent invalid method: \"%V\"",
+                          &r->method_name);
+
+            return NGX_HTTP_PARSE_INVALID_HEADER;
         }
 
         p++;
@@ -2748,6 +2858,9 @@ static ngx_int_t
 ngx_http_spdy_parse_scheme(ngx_http_request_t *r)
 {
     if (r->schema_start) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent duplicate :schema header");
+
         return NGX_HTTP_PARSE_INVALID_HEADER;
     }
 
@@ -2764,13 +2877,14 @@ ngx_http_spdy_parse_host(ngx_http_request_t *r)
     ngx_table_elt_t  *h;
 
     if (r->headers_in.host) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent duplicate :host header");
+
         return NGX_HTTP_PARSE_INVALID_HEADER;
     }
 
     h = ngx_list_push(&r->headers_in.headers);
     if (h == NULL) {
-        ngx_http_spdy_close_stream(r->spdy_stream,
-                                   NGX_HTTP_INTERNAL_SERVER_ERROR);
         return NGX_ERROR;
     }
 
@@ -2794,6 +2908,9 @@ static ngx_int_t
 ngx_http_spdy_parse_path(ngx_http_request_t *r)
 {
     if (r->unparsed_uri.len) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent duplicate :path header");
+
         return NGX_HTTP_PARSE_INVALID_HEADER;
     }
 
@@ -2801,11 +2918,19 @@ ngx_http_spdy_parse_path(ngx_http_request_t *r)
     r->uri_end = r->header_end;
 
     if (ngx_http_parse_uri(r) != NGX_OK) {
-        return NGX_HTTP_PARSE_INVALID_REQUEST;
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent invalid URI: \"%*s\"",
+                      r->uri_end - r->uri_start, r->uri_start);
+
+        return NGX_HTTP_PARSE_INVALID_HEADER;
     }
 
     if (ngx_http_process_request_uri(r) != NGX_OK) {
-        return NGX_ERROR;
+        /*
+         * request has been finalized already
+         * in ngx_http_process_request_uri()
+         */
+        return NGX_ABORT;
     }
 
     return NGX_OK;
@@ -2818,19 +2943,22 @@ ngx_http_spdy_parse_version(ngx_http_request_t *r)
     u_char  *p, ch;
 
     if (r->http_protocol.len) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent duplicate :version header");
+
         return NGX_HTTP_PARSE_INVALID_HEADER;
     }
 
     p = r->header_start;
 
     if (r->header_end - p < 8 || !(ngx_str5cmp(p, 'H', 'T', 'T', 'P', '/'))) {
-        return NGX_HTTP_PARSE_INVALID_REQUEST;
+        goto invalid;
     }
 
     ch = *(p + 5);
 
     if (ch < '1' || ch > '9') {
-        return NGX_HTTP_PARSE_INVALID_REQUEST;
+        goto invalid;
     }
 
     r->http_major = ch - '0';
@@ -2844,20 +2972,20 @@ ngx_http_spdy_parse_version(ngx_http_request_t *r)
         }
 
         if (ch < '0' || ch > '9') {
-            return NGX_HTTP_PARSE_INVALID_REQUEST;
+            goto invalid;
         }
 
         r->http_major = r->http_major * 10 + ch - '0';
     }
 
     if (*p != '.') {
-        return NGX_HTTP_PARSE_INVALID_REQUEST;
+        goto invalid;
     }
 
     ch = *(p + 1);
 
     if (ch < '0' || ch > '9') {
-        return NGX_HTTP_PARSE_INVALID_REQUEST;
+        goto invalid;
     }
 
     r->http_minor = ch - '0';
@@ -2867,7 +2995,7 @@ ngx_http_spdy_parse_version(ngx_http_request_t *r)
         ch = *p;
 
         if (ch < '0' || ch > '9') {
-            return NGX_HTTP_PARSE_INVALID_REQUEST;
+            goto invalid;
         }
 
         r->http_minor = r->http_minor * 10 + ch - '0';
@@ -2878,6 +3006,14 @@ ngx_http_spdy_parse_version(ngx_http_request_t *r)
     r->http_version = r->http_major * 1000 + r->http_minor;
 
     return NGX_OK;
+
+invalid:
+
+    ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                  "client sent invalid http version: \"%*s\"",
+                  r->header_end - r->header_start, r->header_start);
+
+    return NGX_HTTP_PARSE_INVALID_HEADER;
 }
 
 
@@ -2900,7 +3036,8 @@ ngx_http_spdy_construct_request_line(ngx_http_request_t *r)
 
     p = ngx_pnalloc(r->pool, r->request_line.len + 1);
     if (p == NULL) {
-        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+        ngx_http_spdy_close_stream(r->spdy_stream,
+                                   NGX_HTTP_INTERNAL_SERVER_ERROR);
         return NGX_ERROR;
     }
 
@@ -2964,7 +3101,7 @@ ngx_http_spdy_run_request(ngx_http_request_t *r)
         }
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http header: \"%V: %V\"", &h[i].key, &h[i].value);
+                       "spdy http header: \"%V: %V\"", &h[i].key, &h[i].value);
     }
 
     r->http_state = NGX_HTTP_PROCESS_REQUEST_STATE;
@@ -3226,7 +3363,7 @@ ngx_http_spdy_close_stream(ngx_http_spdy_stream_t *stream, ngx_int_t rc)
 
     if (ev->active || ev->disabled) {
         ngx_log_error(NGX_LOG_ALERT, sc->connection->log, 0,
-                      "spdy fake read event was activated");
+                      "fake read event was activated");
     }
 
     if (ev->timer_set) {
@@ -3241,7 +3378,7 @@ ngx_http_spdy_close_stream(ngx_http_spdy_stream_t *stream, ngx_int_t rc)
 
     if (ev->active || ev->disabled) {
         ngx_log_error(NGX_LOG_ALERT, sc->connection->log, 0,
-                      "spdy fake write event was activated");
+                      "fake write event was activated");
     }
 
     if (ev->timer_set) {

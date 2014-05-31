@@ -6,6 +6,10 @@
 
 #include "ngx_http_ip_behavior.h"
 
+#if (NGX_HTTP_NETEYE_SECURITY)
+#include <ngx_http_neteye_security.h>
+#endif
+
 
 static ngx_int_t ngx_http_ip_behavior_lookup(ngx_http_request_t *r,
     ngx_uint_t hash, ngx_http_ip_behavior_ctx_t *ctx,
@@ -707,6 +711,10 @@ ngx_http_ip_behavior_sensitive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static ngx_int_t
 ngx_http_ip_behavior_init(ngx_conf_t *cf)
 {
+#if (NGX_HTTP_NETEYE_SECURITY)
+    return ngx_http_neteye_security_request_register(
+           NGX_HTTP_NETEYE_IP_BEHAVIOR, ngx_http_ip_behavior_handler);
+#else
     ngx_http_handler_pt        *h;
     ngx_http_core_main_conf_t  *cmcf;
 
@@ -720,6 +728,7 @@ ngx_http_ip_behavior_init(ngx_conf_t *cf)
     *h = ngx_http_ip_behavior_handler;
 
     return NGX_OK;
+#endif
 }
 
 

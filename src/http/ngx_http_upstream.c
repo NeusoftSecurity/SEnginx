@@ -1915,7 +1915,7 @@ failed:
 
         case NGX_HTTP_UPSTREAM_DYN_RESOLVE_SHUTDOWN:
             ngx_http_upstream_finalize_request(r, u, NGX_HTTP_BAD_GATEWAY);
-            return NGX_DONE;
+            return NGX_STOP;
 
         default:
 
@@ -1989,7 +1989,7 @@ failed:
         return NGX_DECLINED;
     }
 
-    return NGX_DONE;
+    return NGX_STOP;
 }
 
 
@@ -2024,7 +2024,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     if (u->conf->dyn_resolve) {
         rc = ngx_http_upstream_connect_and_resolve_peer(&u->peer, r);
 
-        if (rc == NGX_DONE) {
+        if (rc == NGX_STOP) {
             return;
         }
     } else {

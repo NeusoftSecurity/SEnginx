@@ -27,7 +27,7 @@ use Net::DNS::Nameserver;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy/)->plan(7);
+my $t = Test::Nginx->new()->has(qw/http proxy/)->plan(10);
 my @server_addrs = ("127.0.0.1", "127.0.0.2", "127.0.0.3", "127.0.0.4");
 my @domain_addrs = ("127.0.0.2", "127.0.0.3");
 
@@ -54,6 +54,24 @@ http {
         server 127.0.0.4:8081 backup;
     }
 
+    upstream backend-ka {
+        server senginx.test:8082;
+
+        keepalive 8;
+    }
+
+    server {
+        listen       127.0.0.2:8082;
+        listen       127.0.0.3:8082;
+        server_name  localhost;
+
+        keepalive_timeout 5s;
+
+        location /keepalive {
+            return 200 "OK \$connection \$server_addr";
+        }
+    }
+
     server {
         listen       127.0.0.1:8080;
         server_name  localhost;
@@ -76,6 +94,13 @@ http {
 
         location /shutdown {
             proxy_pass http://backend dynamic_resolve dynamic_fallback=shutdown;
+        }
+
+        location /keepalive {
+            proxy_http_version 1.1;
+            proxy_set_header Connection keepalive;
+
+            proxy_pass http://backend-ka dynamic_resolve;
         }
     }
 }
@@ -100,6 +125,24 @@ like(http_get('/'), qr/127\.0\.0\.2/,
     'http server should be 127.0.0.2, using rr method');
 like(http_get('/'), qr/127\.0\.0\.3/,
     'http server should be 127.0.0.3, using rr method');
+
+# wait for dns cache to expire
+sleep(2);
+
+my $response = http_get('/keepalive');
+my $conn;
+
+like($response, qr/OK \d+ 127\.0\.0\.2/,
+    'first request to keepalived server, hit 127.0.0.2');
+
+$conn = $1 if ($response =~ /OK (\d+) 127\.0\.0\.2/);
+
+like(http_get('/keepalive'), qr/OK \d+ 127\.0\.0\.3/,
+    'second request to keepalived server, should hit 127.0.0.3, no keepalive');
+
+like(http_get('/keepalive'), qr/OK $conn 127\.0\.0\.2/,
+    'third request to keepalived server, hit 127.0.0.2,
+    should contain the same $conn');
 
 # kill dns daemon
 kill $^O eq 'MSWin32' ? 9 : 'TERM', $dns_pid;

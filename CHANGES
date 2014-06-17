@@ -1,4 +1,24 @@
 
+Changes with nginx 1.7.2                                         17 Jun 2014
+
+    *) Feature: the "hash" directive inside the "upstream" block.
+
+    *) Feature: defragmentation of free shared memory blocks.
+       Thanks to Wandenberg Peixoto and Yichun Zhang.
+
+    *) Bugfix: a segmentation fault might occur in a worker process if the
+       default value of the "access_log" directive was used; the bug had
+       appeared in 1.7.0.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: trailing slash was mistakenly removed from the last parameter
+       of the "try_files" directive.
+
+    *) Bugfix: nginx could not be built on OS X in some cases.
+
+    *) Bugfix: in the ngx_http_spdy_module.
+
+
 Changes with nginx 1.7.1                                         27 May 2014
 
     *) Feature: the "$upstream_cookie_..." variables.

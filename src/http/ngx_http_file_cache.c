@@ -498,6 +498,12 @@ ngx_http_file_cache_read(ngx_http_request_t *r, ngx_http_cache_t *c)
 
     h = (ngx_http_file_cache_header_t *) c->buf->pos;
 
+    if (h->version != NGX_HTTP_CACHE_VERSION) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "cache file \"%s\" version mismatch", c->file.name.data);
+        return NGX_DECLINED;
+    }
+
     if (h->crc32 != c->crc32) {
         ngx_log_error(NGX_LOG_CRIT, r->connection->log, 0,
                       "cache file \"%s\" has md5 collision", c->file.name.data);
@@ -519,6 +525,8 @@ ngx_http_file_cache_read(ngx_http_request_t *r, ngx_http_cache_t *c)
     c->valid_msec = h->valid_msec;
     c->header_start = h->header_start;
     c->body_start = h->body_start;
+    c->etag.len = h->etag_len;
+    c->etag.data = h->etag;
 
     r->cached = 1;
 
@@ -678,8 +686,8 @@ ngx_http_file_cache_exists(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
         goto done;
     }
 
-    fcn = ngx_slab_alloc_locked(cache->shpool,
-                                sizeof(ngx_http_file_cache_node_t));
+    fcn = ngx_slab_calloc_locked(cache->shpool,
+                                 sizeof(ngx_http_file_cache_node_t));
     if (fcn == NULL) {
         ngx_shmtx_unlock(&cache->shpool->mutex);
 
@@ -687,8 +695,8 @@ ngx_http_file_cache_exists(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
 
         ngx_shmtx_lock(&cache->shpool->mutex);
 
-        fcn = ngx_slab_alloc_locked(cache->shpool,
-                                    sizeof(ngx_http_file_cache_node_t));
+        fcn = ngx_slab_calloc_locked(cache->shpool,
+                                     sizeof(ngx_http_file_cache_node_t));
         if (fcn == NULL) {
             rc = NGX_ERROR;
             goto failed;
@@ -704,8 +712,6 @@ ngx_http_file_cache_exists(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
 
     fcn->uses = 1;
     fcn->count = 1;
-    fcn->updating = 0;
-    fcn->deleting = 0;
 
 renew:
 
@@ -877,6 +883,7 @@ ngx_http_file_cache_set_header(ngx_http_request_t *r, u_char *buf)
 
     ngx_memzero(h, sizeof(ngx_http_file_cache_header_t));
 
+    h->version = NGX_HTTP_CACHE_VERSION;
     h->valid_sec = c->valid_sec;
     h->last_modified = c->last_modified;
     h->date = c->date;
@@ -884,6 +891,11 @@ ngx_http_file_cache_set_header(ngx_http_request_t *r, u_char *buf)
     h->valid_msec = (u_short) c->valid_msec;
     h->header_start = (u_short) c->header_start;
     h->body_start = (u_short) c->body_start;
+
+    if (c->etag.len <= NGX_HTTP_CACHE_ETAG_LEN) {
+        h->etag_len = (u_char) c->etag.len;
+        ngx_memcpy(h->etag, c->etag.data, c->etag.len);
+    }
 
     p = buf + sizeof(ngx_http_file_cache_header_t);
 
@@ -1044,7 +1056,8 @@ ngx_http_file_cache_update_header(ngx_http_request_t *r)
         goto done;
     }
 
-    if (h.last_modified != c->last_modified
+    if (h.version != NGX_HTTP_CACHE_VERSION
+        || h.last_modified != c->last_modified
         || h.crc32 != c->crc32
         || h.header_start != c->header_start
         || h.body_start != c->body_start)
@@ -1062,6 +1075,7 @@ ngx_http_file_cache_update_header(ngx_http_request_t *r)
 
     ngx_memzero(&h, sizeof(ngx_http_file_cache_header_t));
 
+    h.version = NGX_HTTP_CACHE_VERSION;
     h.valid_sec = c->valid_sec;
     h.last_modified = c->last_modified;
     h.date = c->date;
@@ -1069,6 +1083,11 @@ ngx_http_file_cache_update_header(ngx_http_request_t *r)
     h.valid_msec = (u_short) c->valid_msec;
     h.header_start = (u_short) c->header_start;
     h.body_start = (u_short) c->body_start;
+
+    if (c->etag.len <= NGX_HTTP_CACHE_ETAG_LEN) {
+        h.etag_len = (u_char) c->etag.len;
+        ngx_memcpy(h.etag, c->etag.data, c->etag.len);
+    }
 
     (void) ngx_write_file(&file, (u_char *) &h,
                           sizeof(ngx_http_file_cache_header_t), 0);
@@ -1618,8 +1637,8 @@ ngx_http_file_cache_add(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
 
     if (fcn == NULL) {
 
-        fcn = ngx_slab_alloc_locked(cache->shpool,
-                                    sizeof(ngx_http_file_cache_node_t));
+        fcn = ngx_slab_calloc_locked(cache->shpool,
+                                     sizeof(ngx_http_file_cache_node_t));
         if (fcn == NULL) {
             ngx_shmtx_unlock(&cache->shpool->mutex);
             return NGX_ERROR;
@@ -1633,15 +1652,7 @@ ngx_http_file_cache_add(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
         ngx_rbtree_insert(&cache->sh->rbtree, &fcn->node);
 
         fcn->uses = 1;
-        fcn->count = 0;
-        fcn->valid_msec = 0;
-        fcn->error = 0;
         fcn->exists = 1;
-        fcn->updating = 0;
-        fcn->deleting = 0;
-        fcn->uniq = 0;
-        fcn->valid_sec = 0;
-        fcn->body_start = 0;
         fcn->fs_size = c->fs_size;
 
         cache->sh->size += c->fs_size;

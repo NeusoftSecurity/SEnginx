@@ -1,4 +1,27 @@
 
+Changes with nginx 1.7.3                                         08 Jul 2014
+
+    *) Feature: weak entity tags are now preserved on response
+       modifications, and strong ones are changed to weak.
+
+    *) Feature: cache revalidation now uses If-None-Match header if
+       possible.
+
+    *) Feature: the "ssl_password_file" directive.
+
+    *) Bugfix: the If-None-Match request header line was ignored if there
+       was no Last-Modified header in a response returned from cache.
+
+    *) Bugfix: "peer closed connection in SSL handshake" messages were
+       logged at "info" level instead of "error" while connecting to
+       backends.
+
+    *) Bugfix: in the ngx_http_dav_module module in nginx/Windows.
+
+    *) Bugfix: SPDY connections might be closed prematurely if caching was
+       used.
+
+
 Changes with nginx 1.7.2                                         17 Jun 2014
 
     *) Feature: the "hash" directive inside the "upstream" block.

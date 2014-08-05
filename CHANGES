@@ -1,4 +1,41 @@
 
+Changes with nginx 1.7.4                                         05 Aug 2014
+
+    *) Security: pipelined commands were not discarded after STARTTLS
+       command in SMTP proxy (CVE-2014-3556); the bug had appeared in 1.5.6.
+       Thanks to Chris Boulton.
+
+    *) Change: URI escaping now uses uppercase hexadecimal digits.
+       Thanks to Piotr Sikora.
+
+    *) Feature: now nginx can be build with BoringSSL and LibreSSL.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: requests might hang if resolver was used and a DNS server
+       returned a malformed response; the bug had appeared in 1.5.8.
+
+    *) Bugfix: in the ngx_http_spdy_module.
+       Thanks to Piotr Sikora.
+
+    *) Bugfix: the $uri variable might contain garbage when returning errors
+       with code 400.
+       Thanks to Sergey Bobrov.
+
+    *) Bugfix: in error handling in the "proxy_store" directive and the
+       ngx_http_dav_module.
+       Thanks to Feng Gu.
+
+    *) Bugfix: a segmentation fault might occur if logging of errors to
+       syslog was used; the bug had appeared in 1.7.1.
+
+    *) Bugfix: the $geoip_latitude, $geoip_longitude, $geoip_dma_code, and
+       $geoip_area_code variables might not work.
+       Thanks to Yichun Zhang.
+
+    *) Bugfix: in memory allocation error handling.
+       Thanks to Tatsuhiko Kubo and Piotr Sikora.
+
+
 Changes with nginx 1.7.3                                         08 Jul 2014
 
     *) Feature: weak entity tags are now preserved on response

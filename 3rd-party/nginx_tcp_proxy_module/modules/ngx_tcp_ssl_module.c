@@ -325,7 +325,7 @@ ngx_tcp_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
     }
 #else
     if (ngx_ssl_certificate(cf, &conf->ssl, &conf->certificate,
-                            &conf->certificate_key)
+                            &conf->certificate_key, NULL)
         != NGX_OK)
     {
         return NGX_CONF_ERROR;

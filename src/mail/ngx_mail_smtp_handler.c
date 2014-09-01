@@ -679,6 +679,11 @@ ngx_mail_smtp_mail(ngx_mail_session_t *s, ngx_connection_t *c)
         return NGX_OK;
     }
 
+    if (s->args.nelts == 0) {
+        ngx_str_set(&s->out, smtp_invalid_argument);
+        return NGX_OK;
+    }
+
     arg = s->args.elts;
     arg += s->args.nelts - 1;
 
@@ -710,6 +715,11 @@ ngx_mail_smtp_rcpt(ngx_mail_session_t *s, ngx_connection_t *c)
 
     if (s->smtp_from.len == 0) {
         ngx_str_set(&s->out, smtp_bad_sequence);
+        return NGX_OK;
+    }
+
+    if (s->args.nelts == 0) {
+        ngx_str_set(&s->out, smtp_invalid_argument);
         return NGX_OK;
     }
 
@@ -766,6 +776,9 @@ ngx_mail_smtp_starttls(ngx_mail_session_t *s, ngx_connection_t *c)
             ngx_str_null(&s->smtp_helo);
             ngx_str_null(&s->smtp_from);
             ngx_str_null(&s->smtp_to);
+
+            s->buffer->pos = s->buffer->start;
+            s->buffer->last = s->buffer->start;
 
             c->read->handler = ngx_mail_starttls_handler;
             return NGX_OK;

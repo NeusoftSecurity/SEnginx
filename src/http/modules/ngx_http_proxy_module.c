@@ -3960,7 +3960,7 @@ ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)
     if (plcf->ssl_certificate.len != 0
             && plcf->ssl_certificate_key.len != 0) {
         if (ngx_ssl_certificate(cf, plcf->upstream.ssl, &plcf->ssl_certificate,
-                                &plcf->ssl_certificate_key)
+                                &plcf->ssl_certificate_key, NULL)
             != NGX_OK)
         {
             return NGX_ERROR;

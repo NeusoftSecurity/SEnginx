@@ -1468,7 +1468,6 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
             goto failed;
         }
 
-        rn->naddrs6 = 0;
         qident = (rn->query6[0] << 8) + rn->query6[1];
 
         break;
@@ -1483,7 +1482,6 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
             goto failed;
         }
 
-        rn->naddrs = 0;
         qident = (rn->query[0] << 8) + rn->query[1];
     }
 
@@ -1508,6 +1506,8 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
 
         case NGX_RESOLVE_AAAA:
 
+            rn->naddrs6 = 0;
+
             if (rn->naddrs == (u_short) -1) {
                 goto next;
             }
@@ -1519,6 +1519,8 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
             break;
 
         default: /* NGX_RESOLVE_A */
+
+            rn->naddrs = 0;
 
             if (rn->naddrs6 == (u_short) -1) {
                 goto next;
@@ -1540,6 +1542,8 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
 
         case NGX_RESOLVE_AAAA:
 
+            rn->naddrs6 = 0;
+
             if (rn->naddrs == (u_short) -1) {
                 rn->code = (u_char) code;
                 goto next;
@@ -1548,6 +1552,8 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
             break;
 
         default: /* NGX_RESOLVE_A */
+
+            rn->naddrs = 0;
 
             if (rn->naddrs6 == (u_short) -1) {
                 rn->code = (u_char) code;
@@ -1815,6 +1821,25 @@ ngx_resolver_process_a(ngx_resolver_t *r, u_char *buf, size_t last,
 #endif
 
             i += len;
+        }
+    }
+
+    switch (qtype) {
+
+#if (NGX_HAVE_INET6)
+    case NGX_RESOLVE_AAAA:
+
+        if (rn->naddrs6 == (u_short) -1) {
+            rn->naddrs6 = 0;
+        }
+
+        break;
+#endif
+
+    default: /* NGX_RESOLVE_A */
+
+        if (rn->naddrs == (u_short) -1) {
+            rn->naddrs = 0;
         }
     }
 
@@ -2723,8 +2748,7 @@ done:
     }
 
     if (len == -1) {
-        name->len = 0;
-        name->data = NULL;
+        ngx_str_null(name);
         return NGX_OK;
     }
 

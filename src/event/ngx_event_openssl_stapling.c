@@ -11,7 +11,7 @@
 #include <ngx_event_connect.h>
 
 
-#ifdef SSL_CTRL_SET_TLSEXT_STATUS_REQ_CB
+#if (!defined OPENSSL_NO_OCSP && defined SSL_CTRL_SET_TLSEXT_STATUS_REQ_CB)
 
 
 typedef struct {
@@ -1194,6 +1194,8 @@ ngx_ssl_ocsp_create_request(ngx_ssl_ocsp_ctx_t *ctx)
 
     b->last = p;
     ctx->request = b;
+
+    OCSP_REQUEST_free(ocsp);
 
     return NGX_OK;
 

@@ -1489,9 +1489,6 @@ ngx_http_update_location_config(ngx_http_request_t *r)
 
     if (r == r->main) {
         ngx_http_set_connection_log(r->connection, clcf->error_log);
-#if (NGX_ENABLE_SYSLOG)
-        r->connection->log->priority = clcf->error_log->priority;
-#endif
     }
 
     if ((ngx_io.flags & NGX_IO_SENDFILE) && clcf->sendfile) {

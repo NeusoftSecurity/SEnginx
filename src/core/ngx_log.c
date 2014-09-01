@@ -10,16 +10,6 @@
 
 
 static char *ngx_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-#if (NGX_ENABLE_SYSLOG)
-static char *ngx_set_syslog(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-void log_exit(ngx_cycle_t *cycle);
-
-typedef struct{
-    ngx_str_t     name;
-    ngx_int_t     macro;
-} ngx_string_to_macro_t;
-#endif
- 
 static char *ngx_log_set_levels(ngx_conf_t *cf, ngx_log_t *log);
 static void ngx_log_insert(ngx_log_t *log, ngx_log_t *new_log);
 
@@ -32,15 +22,6 @@ static ngx_command_t  ngx_errlog_commands[] = {
      0,
      0,
      NULL},
-
-#if (NGX_ENABLE_SYSLOG)
-    {ngx_string("syslog"),
-     NGX_MAIN_CONF|NGX_CONF_TAKE12,
-     ngx_set_syslog,
-     0,
-     0,
-     NULL},
-#endif
 
     ngx_null_command
 };
@@ -64,12 +45,7 @@ ngx_module_t  ngx_errlog_module = {
     NULL,                                  /* init thread */
     NULL,                                  /* exit thread */
     NULL,                                  /* exit process */
-#if (NGX_ENABLE_SYSLOG)
-    log_exit,                              /* exit master */
-#else
-    NULL,
-#endif
-
+    NULL,                                  /* exit master */
     NGX_MODULE_V1_PADDING
 };
 
@@ -78,48 +54,6 @@ static ngx_log_t        ngx_log;
 static ngx_open_file_t  ngx_log_file;
 ngx_uint_t              ngx_use_stderr = 1;
 
-#if (NGX_ENABLE_SYSLOG)
-static ngx_string_to_macro_t ngx_syslog_facilities[] = {
-    {ngx_string("auth"),     LOG_AUTH},
-#if !(NGX_SOLARIS)
-    {ngx_string("authpriv"), LOG_AUTHPRIV},
-#endif
-    {ngx_string("cron"),     LOG_CRON},
-    {ngx_string("daemon"),   LOG_DAEMON},
-#if !(NGX_SOLARIS)
-    {ngx_string("ftp"),      LOG_FTP},
-#endif
-    {ngx_string("kern"),     LOG_KERN},
-    {ngx_string("local0"),   LOG_LOCAL0},
-    {ngx_string("local1"),   LOG_LOCAL1},
-    {ngx_string("local2"),   LOG_LOCAL2},
-    {ngx_string("local3"),   LOG_LOCAL3},
-    {ngx_string("local4"),   LOG_LOCAL4},
-    {ngx_string("local5"),   LOG_LOCAL5},
-    {ngx_string("local6"),   LOG_LOCAL6},
-    {ngx_string("local7"),   LOG_LOCAL7},
-    {ngx_string("lpr"),      LOG_LPR},
-    {ngx_string("mail"),     LOG_MAIL},
-    {ngx_string("news"),     LOG_NEWS},
-    {ngx_string("syslog"),   LOG_SYSLOG},
-    {ngx_string("user"),     LOG_USER},
-    {ngx_string("uucp"),     LOG_UUCP},
-    { ngx_null_string, 0}
-};
-
-static ngx_string_to_macro_t ngx_syslog_priorities[] = {
-    {ngx_string("emerg"), LOG_EMERG},
-    {ngx_string("alert"), LOG_ALERT},
-    {ngx_string("crit"),  LOG_CRIT},
-    {ngx_string("error"), LOG_ERR},
-    {ngx_string("err"),   LOG_ERR},
-    {ngx_string("warn"),  LOG_WARNING},
-    {ngx_string("notice"),LOG_NOTICE},
-    {ngx_string("info"),  LOG_INFO},
-    {ngx_string("debug"), LOG_DEBUG},
-    { ngx_null_string, 0}
-};
-#endif
 
 static ngx_str_t err_levels[] = {
     ngx_null_string,
@@ -157,9 +91,6 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     va_list      args;
 #endif
     u_char      *p, *last, *msg;
-#if (NGX_ENABLE_SYSLOG)
-    u_char *errstr_syslog;
-#endif
     u_char       errstr[NGX_MAX_ERROR_STR];
     ngx_uint_t   wrote_stderr, debug_connection;
 
@@ -169,10 +100,6 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
                ngx_cached_err_log_time.len);
 
     p = errstr + ngx_cached_err_log_time.len;
-
-#if (NGX_ENABLE_SYSLOG)
-    errstr_syslog = p;
-#endif
 
     p = ngx_slprintf(p, last, " [%V] ", &err_levels[level]);
 
@@ -221,19 +148,8 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
             break;
         }
 
-#if (NGX_ENABLE_SYSLOG)
-        if (log->file != NULL && log->file->name.len != 0) {
         (void) ngx_write_fd(log->file->fd, errstr, p - errstr);
-        }
 
-        /* Don't send the debug level info to syslog */
-        if (log->syslog_on && level < NGX_LOG_DEBUG) {
-        /* write to syslog */
-            syslog(log->priority, "%.*s", (int)(p - errstr_syslog), errstr_syslog);
-        }
-#else
-        (void) ngx_write_fd(log->file->fd, errstr, p - errstr);
-#endif
         if (log->file->fd == ngx_stderr) {
             wrote_stderr = 1;
         }
@@ -243,11 +159,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 
     if (!ngx_use_stderr
         || level > NGX_LOG_WARN
-#if (NGX_ENABLE_SYSLOG)
-        || (log && log->file != NULL && wrote_stderr))
-#else
         || wrote_stderr)
-#endif
     {
         return;
     }
@@ -463,13 +375,6 @@ ngx_log_open_default(ngx_cycle_t *cycle)
         }
 
         cycle->new_log.log_level = NGX_LOG_ERR;
-#if (NGX_ENABLE_SYSLOG)
-        cycle->new_log.facility = SYSLOG_FACILITY;
-        cycle->new_log.facility = ERR_SYSLOG_PRIORITY;
-        cycle->new_log.syslog_on = 0;
-        cycle->new_log.syslog_set = 0;
-#endif
-
     }
 
     return NGX_OK;
@@ -574,63 +479,12 @@ ngx_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
-#if (NGX_ENABLE_SYSLOG)
-ngx_int_t
-ngx_log_get_priority(ngx_conf_t *cf, ngx_str_t *priority)
-{
-    ngx_int_t  p = 0;
-    ngx_uint_t n, match = 0;
-
-    for (n = 0; ngx_syslog_priorities[n].name.len != 0; n++) {
-        if (ngx_strncmp(priority->data, ngx_syslog_priorities[n].name.data, 
-                    ngx_syslog_priorities[n].name.len) == 0) {
-            p = ngx_syslog_priorities[n].macro;
-            match = 1;
-        }
-    }
-
-    if (!match) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                "invalid syslog priority \"%V\"", priority);
-        return -1;
-    }
-
-    return p;
-}
-
-
-char *
-ngx_log_set_priority(ngx_conf_t *cf, ngx_str_t *priority, ngx_log_t *log)
-{
-    log->priority = ERR_SYSLOG_PRIORITY;
-
-    if (priority->len == 0) {
-        return NGX_CONF_OK;
-    }
-
-    log->priority = ngx_log_get_priority(cf, priority);
-    if (log->priority == (-1)) {
-        return NGX_CONF_ERROR;
-    }
-
-    return NGX_CONF_OK;
-}
-#endif
-
-
 char *
 ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
 {
     ngx_log_t  *new_log;
     ngx_str_t  *value, name;
-#if (NGX_ENABLE_SYSLOG)
-    u_char     *off = NULL;
-    ngx_str_t  priority;
 
-    ngx_str_null(&name);
-    ngx_str_null(&priority);
-#endif
- 
     if (*head != NULL && (*head)->log_level == 0) {
         new_log = *head;
 
@@ -648,45 +502,7 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
 
     value = cf->args->elts;
 
-#if (NGX_ENABLE_SYSLOG)
-    if (ngx_strncmp(value[1].data, "syslog", sizeof("syslog") - 1) == 0) {
-        if (!cf->cycle->new_log.syslog_set) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                    "You must set the syslog directive and enable it first.");
-            return NGX_CONF_ERROR;
-        }
-
-        new_log->syslog_on = 1;
-
-        if (value[1].data[sizeof("syslog") - 1] == ':') {
-            priority.len = value[1].len - sizeof("syslog");
-            priority.data = value[1].data + sizeof("syslog");
-
-            off = (u_char *)ngx_strchr(priority.data, (int) '|');
-            if (off != NULL) {
-                priority.len = off - priority.data;
-
-                off++;
-                name.len = value[1].data + value[1].len - off;
-                name.data = off;
-            }
-        }
-        else {
-            if (value[1].len > sizeof("syslog")) {
-                name.len = value[1].len - sizeof("syslog");
-                name.data = value[1].data + sizeof("syslog");
-            }
-        }
-
-        if (ngx_log_set_priority(cf, &priority, new_log)
-                == NGX_CONF_ERROR) {
-            return NGX_CONF_ERROR;
-        }
-    }
-    else if (ngx_strcmp(value[1].data, "stderr") == 0) {
-#else
     if (ngx_strcmp(value[1].data, "stderr") == 0) {
-#endif
         ngx_str_null(&name);
         cf->cycle->log_use_stderr = 1;
 
@@ -743,62 +559,3 @@ ngx_log_insert(ngx_log_t *log, ngx_log_t *new_log)
 
     log->next = new_log;
 }
-
-
-#if (NGX_ENABLE_SYSLOG)
-
-#define SYSLOG_IDENT_NAME "senginx"
-
-static char *
-ngx_set_syslog(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char       *program;
-    ngx_str_t  *value;
-    ngx_int_t   facility, match = 0;
-    ngx_uint_t  n;
-
-    value = cf->args->elts;
-
-    if (cf->cycle->new_log.syslog_set) {
-        return "is duplicate";
-    }
-
-    cf->cycle->new_log.syslog_set = 1;
-
-    for (n = 0; ngx_syslog_facilities[n].name.len != 0; n++) {
-        if (ngx_strncmp(value[1].data, ngx_syslog_facilities[n].name.data, 
-                    ngx_syslog_facilities[n].name.len) == 0) {
-            facility = ngx_syslog_facilities[n].macro;
-            match = 1;
-            break;
-        }
-    }
-
-    if (match) {
-        cf->cycle->new_log.facility = facility;
-        cf->cycle->new_log.priority = ERR_SYSLOG_PRIORITY;
-    }
-    else {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                "invalid syslog facility \"%V\"", &value[1]);
-        return NGX_CONF_ERROR;
-    }
-
-    program = SYSLOG_IDENT_NAME; 
-    if (cf->args->nelts > 2) {
-        program = (char *) value[2].data;
-    }
-
-    openlog(program, LOG_ODELAY, facility);
-
-    return NGX_CONF_OK;
-}
-
-
-void log_exit(ngx_cycle_t *cycle)
-{
-    if (cycle->new_log.syslog_set) {
-        closelog();
-    }
-}
-#endif

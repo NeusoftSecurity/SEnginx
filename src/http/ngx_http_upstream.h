@@ -97,6 +97,7 @@ typedef struct {
 } ngx_http_upstream_peer_t;
 
 typedef struct {
+    ngx_str_t                        name;
     ngx_addr_t                      *addrs;
     ngx_uint_t                       naddrs;
     ngx_uint_t                       weight;
@@ -287,9 +288,11 @@ typedef struct {
     ngx_table_elt_t                 *content_encoding;
 #endif
 
-    off_t                            content_length_n;
-
     ngx_array_t                      cache_control;
+    ngx_array_t                      cookies;
+
+    off_t                            content_length_n;
+    time_t                           last_modified_time;
 
     unsigned                         connection_close:1;
     unsigned                         chunked:1;
@@ -370,6 +373,10 @@ struct ngx_http_upstream_s {
     ngx_str_t                        schema;
     ngx_str_t                        uri;
 
+#if (NGX_HTTP_SSL)
+    ngx_str_t                        ssl_name;
+#endif
+
     ngx_http_cleanup_pt             *cleanup;
 
     unsigned                         store:1;
@@ -408,6 +415,8 @@ typedef struct {
 } ngx_http_upstream_dyn_need_t;
 
 
+ngx_int_t ngx_http_upstream_cookie_variable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 ngx_int_t ngx_http_upstream_header_variable(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 

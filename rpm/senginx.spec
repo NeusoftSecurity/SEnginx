@@ -7,7 +7,7 @@
 %global  senginx_webroot       %{senginx_datadir}/html
 
 Name:              senginx
-Version:           1.6.0
+Version:           1.6.1
 Release:           0%{?dist}
 
 Summary:           SEnginx puts multiple third-party load-balancing/security modules into nginx.
@@ -107,10 +107,7 @@ fi
 %dir %{senginx_confdir}/conf.d
 
 %changelog
-* Wed May 14 2014 Changes with senginx 1.6.0
-    Feature: upgrade to original nginx 1.6.0.
-    Feature: enhancement to dynamic resolve functionality.
-    Feature: ngx_http_statistics module that supports monitoring traffic and attacks.
-    Feature: add a demo html page to demonstrate ngx_http_statistics module, thanks to Yu Qing.
-    Feature: upgrade Mod Security to 2.8.0.
-    Bugfix: in cookie poisoning module.
+* Tue Sep 09 2014 Changes with senginx 1.6.1
+    Feature: upgrade to original nginx 1.7.4.
+    Change: Replace current syslog support with nginx's original one.
+    Bugfix: Issue #20 on github, a segmentation fault in dynamic resolve functionality.

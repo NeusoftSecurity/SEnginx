@@ -1,4 +1,13 @@
 
+Changes with senginx 1.6.1                                      09 Sep  2014
+
+    *) Feature: upgrade to original nginx 1.7.4.
+
+    *) Change: Replace current syslog support with nginx's original one.
+
+    *) Bugfix: Issue #20 on github, a segmentation fault in dynamic resolve functionality.
+
+
 Changes with senginx 1.6.0                                      14 May  2014
 
     *) Feature: upgrade to original nginx 1.6.0.

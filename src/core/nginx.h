@@ -10,7 +10,7 @@
 
 
 #define nginx_version      1006001
-#define NGINX_VERSION      "1.6.0"
+#define NGINX_VERSION      "1.6.1"
 #define NGINX_VER          "senginx/" NGINX_VERSION
 
 #ifdef NGX_BUILD

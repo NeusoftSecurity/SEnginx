@@ -78,6 +78,8 @@ install -p -d -m 0755 %{buildroot}%{senginx_confdir}/conf.d
 install -p -d -m 0755 %{buildroot}%{senginx_home_tmp}
 install -p -d -m 0755 %{buildroot}%{senginx_webroot}
 
+sed -i -e 's|%{buildroot}||g' '%{buildroot}/etc/senginx/naxsi/nx_util/nx_util.conf
+
 %pre
 
 %post

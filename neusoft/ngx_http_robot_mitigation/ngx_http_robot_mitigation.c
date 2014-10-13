@@ -256,6 +256,13 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
       0,
       NULL },
 
+    { ngx_string("robot_mitigation_secret"),
+      NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_rm_loc_conf_t, secret),
+      NULL },
+
     ngx_null_command
 };
 
@@ -731,7 +738,7 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
 {
     ngx_sha1_t                       sha1_state;
     u_char                           sha1_digest[20];
-    u_char                           hex_output[20 * 2 + 1], source[512];
+    u_char                           hex_output[20 * 2 + 1], *source;
     ngx_uint_t                       di, source_len = 0;
     /* XXX: only src addr is considered to form the cookie value */
 #if 0
@@ -741,11 +748,20 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
     ngx_int_t                        ret = 0;
 #endif
     ngx_uint_t                       port_time_len;
+    ngx_http_rm_loc_conf_t          *rlcf;
 
-    memset(source, 0, 512);
+
+    rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
+
+    source_len = r->connection->addr_text.len + rlcf->secret.len;
+    source = ngx_pcalloc(r->pool, source_len + 1 + 32);
+    if (source == NULL) {
+        return NGX_ERROR;
+    }
 
     memcpy(source, r->connection->addr_text.data, r->connection->addr_text.len);
-    source_len += r->connection->addr_text.len;
+    memcpy(source + r->connection->addr_text.len,
+           rlcf->secret.data, rlcf->secret.len);
 #if 0
     ret = getpeername(r->connection->fd, (struct sockaddr *)&sa, &peer_len);
     if (ret < 0) {
@@ -775,6 +791,9 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
     }
 
     source_len += port_time_len;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "cookie source: %s", source);
 
     ngx_sha1_init(&sha1_state);
     ngx_sha1_update(&sha1_state, source, source_len);
@@ -2553,6 +2572,7 @@ ngx_http_rm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
     ngx_http_rm_loc_conf_t *prev = parent;
     ngx_http_rm_loc_conf_t *conf = child;
+    ngx_str_t               secret = ngx_null_string;
 
     /* currently rm module only supports location level config,
      * "merge" here is only used for setting default values.
@@ -2569,6 +2589,19 @@ ngx_http_rm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->pass_ajax, prev->pass_ajax, 1);
     ngx_conf_merge_value(conf->wl_caseless, prev->wl_caseless, 0);
 
+    secret.data = ngx_pcalloc(cf->pool, 32);
+    if (secret.data == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    secret.len = (ngx_uint_t)sprintf((char *)secret.data, "%lu", ngx_random());
+    if (conf->secret.data == NULL) {
+        if (prev->secret.data) {
+            conf->secret = prev->secret;
+        } else {
+            conf->secret = secret;
+        }
+    }
 
     return NGX_CONF_OK;
 }

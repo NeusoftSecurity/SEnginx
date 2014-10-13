@@ -93,6 +93,7 @@ typedef struct {
     ngx_str_t                   cookie_name_c;
     ngx_str_t                   timeout_c;
     time_t                      timeout;
+    ngx_str_t                   secret;
 
     ngx_array_t                 *whitelist_items;
     ngx_array_t                 *ip_whitelist_items;

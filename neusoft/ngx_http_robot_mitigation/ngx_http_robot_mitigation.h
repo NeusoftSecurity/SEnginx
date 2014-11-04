@@ -94,6 +94,8 @@ typedef struct {
     ngx_str_t                   timeout_c;
     time_t                      timeout;
     ngx_str_t                   secret;
+    ngx_str_t                   hash_input;
+    ngx_http_complex_value_t    hash;
 
     ngx_array_t                 *whitelist_items;
     ngx_array_t                 *ip_whitelist_items;

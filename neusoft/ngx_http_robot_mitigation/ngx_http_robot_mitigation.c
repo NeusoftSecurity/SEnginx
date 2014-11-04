@@ -263,6 +263,13 @@ static ngx_command_t  ngx_http_robot_mitigation_commands[] = {
       offsetof(ngx_http_rm_loc_conf_t, secret),
       NULL },
 
+    { ngx_string("robot_mitigation_hash_input"),
+      NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_rm_loc_conf_t, hash_input),
+      NULL },
+
     ngx_null_command
 };
 
@@ -740,49 +747,26 @@ ngx_http_rm_generate_cookie(ngx_http_request_t *r, ngx_str_t *cookie,
     u_char                           sha1_digest[20];
     u_char                           hex_output[20 * 2 + 1], *source;
     ngx_uint_t                       di, source_len = 0;
-    /* XXX: only src addr is considered to form the cookie value */
-#if 0
-    u_char                           sa[NGX_SOCKADDRLEN];
-    struct sockaddr_in              *peer_addr;
-    socklen_t                        peer_len = NGX_SOCKADDRLEN;
-    ngx_int_t                        ret = 0;
-#endif
     ngx_uint_t                       port_time_len;
     ngx_http_rm_loc_conf_t          *rlcf;
+    ngx_str_t                        hash;
 
 
     rlcf = ngx_http_get_module_loc_conf(r, ngx_http_robot_mitigation_module);
 
-    source_len = r->connection->addr_text.len + rlcf->secret.len;
+    if (ngx_http_complex_value(r, &rlcf->hash, &hash) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    source_len = hash.len + rlcf->secret.len;
     source = ngx_pcalloc(r->pool, source_len + 1 + 32);
     if (source == NULL) {
         return NGX_ERROR;
     }
 
-    memcpy(source, r->connection->addr_text.data, r->connection->addr_text.len);
-    memcpy(source + r->connection->addr_text.len,
-           rlcf->secret.data, rlcf->secret.len);
-#if 0
-    ret = getpeername(r->connection->fd, (struct sockaddr *)&sa, &peer_len);
-    if (ret < 0) {
-        return NGX_ERROR;
-    }
+    memcpy(source, hash.data, hash.len);
+    memcpy(source + hash.len, rlcf->secret.data, rlcf->secret.len);
 
-    time = ngx_timeofday();
-    if (!time) {
-        return NGX_ERROR;
-    }
-
-    peer_addr = (struct sockaddr_in *)sa;
-    port_time_len = sprintf((char *)source + source_len, ":%u %ld.%lu",
-            peer_addr->sin_port, (ngx_int_t)ngx_time(), time->msec);
-
-    if (port_time_len <= 0) {
-        return NGX_ERROR;
-    }
-
-    source_len += port_time_len;
-#endif
     port_time_len = sprintf((char *)source + source_len, "@%ld",
                                         (unsigned long)timeout);
 
@@ -2573,6 +2557,7 @@ ngx_http_rm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_rm_loc_conf_t *prev = parent;
     ngx_http_rm_loc_conf_t *conf = child;
     ngx_str_t               secret = ngx_null_string;
+    ngx_http_compile_complex_value_t   ccv;
 
     /* currently rm module only supports location level config,
      * "merge" here is only used for setting default values.
@@ -2601,6 +2586,18 @@ ngx_http_rm_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         } else {
             conf->secret = secret;
         }
+    }
+
+    ngx_conf_merge_str_value(conf->hash_input, prev->hash_input, "$remote_addr");
+
+    ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+    ccv.cf = cf;
+    ccv.value = &conf->hash_input;
+    ccv.complex_value = &conf->hash;
+
+    if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
     }
 
     return NGX_CONF_OK;

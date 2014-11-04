@@ -3375,10 +3375,12 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (plcf->upstream.dyn_resolve == 1) {
         uscf = plcf->upstream.upstream;
 
+        uscf->no_check = 1;
+
         if (ngx_http_upstream_check_is_set(uscf)) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                 "dynamic resolve could not be enabled "
-                 "with upstream check also enabled");
+                               "dynamic resolve could not be enabled "
+                               "with upstream check also enabled");
             return NGX_CONF_ERROR;
         }
 

@@ -154,6 +154,7 @@ struct ngx_http_upstream_srv_conf_s {
     in_port_t                        port;
     in_port_t                        default_port;
     ngx_uint_t                       no_port;  /* unsigned no_port:1 */
+    ngx_uint_t                       no_check;
 };
 
 

@@ -2298,6 +2298,7 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_uint_t                           i, port, rise, fall, default_down;
     ngx_msec_t                           interval, timeout;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
+    ngx_http_upstream_srv_conf_t        *uscf;
 
     /* default values */
     port = 0;
@@ -2312,6 +2313,15 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ucscf = ngx_http_conf_get_module_srv_conf(cf,
                                               ngx_http_upstream_check_module);
     if (ucscf == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    uscf = ngx_http_conf_get_module_srv_conf(cf,
+                                             ngx_http_upstream_module);
+    if (uscf->no_check) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "dynamic resolve could not be enabled "
+                           "with upstream check also enabled");
         return NGX_CONF_ERROR;
     }
 
@@ -3091,6 +3101,10 @@ ngx_uint_t
 ngx_http_upstream_check_is_set(ngx_http_upstream_srv_conf_t *us)
 {
     ngx_http_upstream_check_srv_conf_t   *ucscf;
+
+    if (us->srv_conf == NULL) {
+        return 0;
+    }
 
     ucscf = ngx_http_conf_upstream_srv_conf(us, ngx_http_upstream_check_module);
 

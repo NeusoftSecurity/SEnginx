@@ -572,6 +572,10 @@ ngx_http_wl_match_item(ngx_http_request_t *r, ngx_http_wl_list_t *list)
                         return NGX_ERROR;
                     }
 
+                    if (rctx == NGX_NO_RESOLVER) {
+                        return NGX_DECLINED;
+                    }
+
                     rctx->addr.sockaddr = r->connection->sockaddr;
                     rctx->addr.socklen = r->connection->socklen;
                     rctx->handler = ngx_http_wl_resolve_addr_handler;

@@ -60,7 +60,9 @@ fi
     --add-module=${NEU_DIR}/ngx_http_ip_behavior \
     --add-module=${NEU_DIR}/ngx_http_whitelist \
     --add-module=${NEU_DIR}/ngx_http_statistics \
-    --add-module=${TRD_DIR}/ngx_cache_purge-1.3
+    --add-module=${TRD_DIR}/ngx_cache_purge-1.3 \
+    --add-module=${TRD_DIR}/srcache-nginx-module \
+    --add-module=${TRD_DIR}/memc-nginx-module
 
 get_line_num()
 {

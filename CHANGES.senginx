@@ -1,4 +1,19 @@
 
+Changes with senginx 1.6.2                                      07 Mar  2015
+
+    *) Feature: robot_mitigation_secret directive.
+
+    *) Feature: robot_mitigation_hash_input directive.
+
+    *) Feature: srcache and memc module are included by default.
+
+    *) Bugfix: Issue #6 on github, bugs in senginx.spec file.
+
+    *) Bugfix: coredump in ngx_http_proxy_module.
+
+    *) Bugfix: coredump in user-agent whitelist module.
+
+
 Changes with senginx 1.6.1                                      09 Sep  2014
 
     *) Feature: upgrade to original nginx 1.7.4.

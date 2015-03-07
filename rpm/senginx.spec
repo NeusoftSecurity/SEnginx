@@ -7,7 +7,7 @@
 %global  senginx_webroot       %{senginx_datadir}/html
 
 Name:              senginx
-Version:           1.6.1
+Version:           1.6.2
 Release:           0%{?dist}
 
 Summary:           SEnginx puts multiple third-party load-balancing/security modules into nginx.
@@ -109,7 +109,10 @@ fi
 %dir %{senginx_confdir}/conf.d
 
 %changelog
-* Tue Sep 09 2014 Changes with senginx 1.6.1
-    Feature: upgrade to original nginx 1.7.4.
-    Change: Replace current syslog support with nginx's original one.
-    Bugfix: Issue #20 on github, a segmentation fault in dynamic resolve functionality.
+* Sat Mar 07 2015 Changes with senginx 1.6.2
+    Feature: robot_mitigation_secret directive.
+    Feature: robot_mitigation_hash_input directive.
+    Feature: srcache and memc module are included by default.
+    Bugfix: Issue #6 on github, bugs in senginx.spec file.
+    Bugfix: coredump in ngx_http_proxy_module.
+    Bugfix: coredump in user-agent whitelist module.

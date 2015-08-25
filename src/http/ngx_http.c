@@ -551,6 +551,7 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
             checker = ngx_http_core_content_phase;
             break;
 
+#if (NGX_HTTP_NETEYE_SECURITY)
         case NGX_HTTP_NETEYE_SECURITY_PHASE:
             if (cmcf->phase_engine.neteye_security_index == (ngx_uint_t) -1) {
                 cmcf->phase_engine.neteye_security_index = n;
@@ -558,6 +559,7 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
             checker = ngx_http_core_generic_phase;
 
             break;
+#endif
 
         default:
             checker = ngx_http_core_generic_phase;

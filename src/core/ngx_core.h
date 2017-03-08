@@ -9,6 +9,9 @@
 #define _NGX_CORE_H_INCLUDED_
 
 
+#include <ngx_config.h>
+
+
 typedef struct ngx_module_s      ngx_module_t;
 typedef struct ngx_conf_s        ngx_conf_t;
 typedef struct ngx_cycle_s       ngx_cycle_t;
@@ -22,6 +25,10 @@ typedef struct ngx_event_s       ngx_event_t;
 typedef struct ngx_event_aio_s   ngx_event_aio_t;
 typedef struct ngx_connection_s  ngx_connection_t;
 
+#if (NGX_THREADS)
+typedef struct ngx_thread_task_s  ngx_thread_task_t;
+#endif
+
 typedef void (*ngx_event_handler_pt)(ngx_event_t *ev);
 typedef void (*ngx_connection_handler_pt)(ngx_connection_t *c);
 
@@ -33,7 +40,9 @@ typedef void (*ngx_connection_handler_pt)(ngx_connection_t *c);
 #define  NGX_DONE       -4
 #define  NGX_DECLINED   -5
 #define  NGX_ABORT      -6
+#if (NGX_DYNAMIC_RESOLVE)
 #define  NGX_STOP       -7
+#endif
 
 
 #include <ngx_errno.h>
@@ -47,7 +56,9 @@ typedef void (*ngx_connection_handler_pt)(ngx_connection_t *c);
 #include <ngx_shmem.h>
 #include <ngx_process.h>
 #include <ngx_user.h>
+#include <ngx_dlopen.h>
 #include <ngx_parse.h>
+#include <ngx_parse_time.h>
 #include <ngx_log.h>
 #include <ngx_alloc.h>
 #include <ngx_palloc.h>
@@ -65,6 +76,7 @@ typedef void (*ngx_connection_handler_pt)(ngx_connection_t *c);
 #endif
 #include <ngx_radix_tree.h>
 #include <ngx_times.h>
+#include <ngx_rwlock.h>
 #include <ngx_shmtx.h>
 #include <ngx_slab.h>
 #include <ngx_inet.h>
@@ -75,6 +87,7 @@ typedef void (*ngx_connection_handler_pt)(ngx_connection_t *c);
 #endif
 #include <ngx_process_cycle.h>
 #include <ngx_conf_file.h>
+#include <ngx_module.h>
 #include <ngx_open_file_cache.h>
 #include <ngx_os.h>
 #include <ngx_connection.h>

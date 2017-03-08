@@ -109,6 +109,14 @@ fi
 %dir %{senginx_confdir}/conf.d
 
 %changelog
+* Sat Mar 07 2015 Changes with senginx 1.7.0
+    Feature: upgrade to original nginx 1.10.2.
+    Change: replace tcp_proxy_module support with nginx's original stream module.
+    Change: upgrade lua-nginx-module to 0.10.7.
+    Change: upgrade ngx_cache_purge to 2.3.
+    Change: upgrade memc-nginx-module to 0.17.
+    Change: remove spdy support by original nginx.
+
 * Sat Mar 07 2015 Changes with senginx 1.6.2
     Feature: robot_mitigation_secret directive.
     Feature: robot_mitigation_hash_input directive.

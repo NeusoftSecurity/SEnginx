@@ -9,6 +9,9 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 #include <nginx.h>
+#if (NGX_HTTP_STATUS_PAGE)
+#include <ngx_http_status_page.h>
+#endif
 
 
 static ngx_int_t ngx_http_header_filter_init(ngx_conf_t *cf);
@@ -46,7 +49,7 @@ ngx_module_t  ngx_http_header_filter_module = {
 };
 
 
-static char ngx_http_server_string[] = "Server: nginx" CRLF;
+static char ngx_http_server_string[] = "Server: SEnginx" CRLF;
 static char ngx_http_server_full_string[] = "Server: " NGINX_VER CRLF;
 
 
@@ -95,17 +98,17 @@ static ngx_str_t ngx_http_status_lines[] = {
     ngx_string("414 Request-URI Too Large"),
     ngx_string("415 Unsupported Media Type"),
     ngx_string("416 Requested Range Not Satisfiable"),
+    ngx_null_string,  /* "417 Expectation Failed" */
+    ngx_null_string,  /* "418 unused" */
+    ngx_null_string,  /* "419 unused" */
+    ngx_null_string,  /* "420 unused" */
+    ngx_string("421 Misdirected Request"),
 
-    /* ngx_null_string, */  /* "417 Expectation Failed" */
-    /* ngx_null_string, */  /* "418 unused" */
-    /* ngx_null_string, */  /* "419 unused" */
-    /* ngx_null_string, */  /* "420 unused" */
-    /* ngx_null_string, */  /* "421 unused" */
     /* ngx_null_string, */  /* "422 Unprocessable Entity" */
     /* ngx_null_string, */  /* "423 Locked" */
     /* ngx_null_string, */  /* "424 Failed Dependency" */
 
-#define NGX_HTTP_LAST_4XX  417
+#define NGX_HTTP_LAST_4XX  422
 #define NGX_HTTP_OFF_5XX   (NGX_HTTP_LAST_4XX - 400 + NGX_HTTP_OFF_4XX)
 
     ngx_string("500 Internal Server Error"),
@@ -113,10 +116,10 @@ static ngx_str_t ngx_http_status_lines[] = {
     ngx_string("502 Bad Gateway"),
     ngx_string("503 Service Temporarily Unavailable"),
     ngx_string("504 Gateway Time-out"),
-
     ngx_null_string,        /* "505 HTTP Version Not Supported" */
     ngx_null_string,        /* "506 Variant Also Negotiates" */
     ngx_string("507 Insufficient Storage"),
+
     /* ngx_null_string, */  /* "508 unused" */
     /* ngx_null_string, */  /* "509 unused" */
     /* ngx_null_string, */  /* "510 Not Extended" */
@@ -147,10 +150,6 @@ ngx_http_header_out_t  ngx_http_headers_out[] = {
 };
 
 
-#if (NGX_HTTP_STATUS_PAGE)
-#include <ngx_http_status_page.h>
-#endif
-
 static ngx_int_t
 ngx_http_header_filter(ngx_http_request_t *r)
 {
@@ -172,8 +171,8 @@ ngx_http_header_filter(ngx_http_request_t *r)
     u_char                     addr[NGX_SOCKADDR_STRLEN];
 
 #if (NGX_HTTP_STATUS_PAGE)
-    if (r->header_sent 
-            && (ngx_http_status_page_test_old_header(r) == 0)) {
+    if (r->header_sent
+        && (ngx_http_status_page_test_old_header(r) == 0)) {
         return NGX_OK;
     }
 #else
@@ -222,7 +221,6 @@ ngx_http_header_filter(ngx_http_request_t *r)
     } else {
 
         status = r->headers_out.status;
-
 #if (NGX_HTTP_STATUS_PAGE)
         if (ngx_http_status_page_test_change_status(r)) {
             status = ngx_http_status_page_get_status(r);

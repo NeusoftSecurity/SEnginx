@@ -48,5 +48,4 @@ default:	build
 
 clean:
 	rm -rf Makefile $NGX_OBJS
-	rm -f neusoft/ngx_http_robot_mitigation/ngx_http_robot_mitigation_tpl.c
 END

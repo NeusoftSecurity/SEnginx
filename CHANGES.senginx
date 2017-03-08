@@ -1,4 +1,17 @@
 
+Changes with senginx 1.7.0                                      07 Mar  2017
+    *) Feature: upgrade to original nginx 1.10.2.
+
+    *) Change: replace tcp_proxy_module support with nginx's original stream module.
+
+    *) Change: upgrade lua-nginx-module to 0.10.7.
+
+    *) Change: upgrade ngx_cache_purge to 2.3.
+
+    *) Change: upgrade memc-nginx-module to 0.17.
+
+    *) Change: remove spdy support by original nginx.
+
 Changes with senginx 1.6.2                                      07 Mar  2015
 
     *) Feature: robot_mitigation_secret directive.

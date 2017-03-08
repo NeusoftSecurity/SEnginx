@@ -37,25 +37,24 @@ typedef struct {
     ngx_event_handler_pt       handler;
     char                      *name;
     ngx_msec_t                 delay;
-} ngx_session_manager_ctx_t;
+}ngx_session_manager_ctx_t;
 
 typedef struct {
     ngx_event_handler_pt       handler;
     char                      *name;
     ngx_msec_t                 delay;
-} ngx_ip_blacklist_manager_ctx_t;
-
+}ngx_ip_blacklist_manager_ctx_t;
 
 void ngx_master_process_cycle(ngx_cycle_t *cycle);
 void ngx_single_process_cycle(ngx_cycle_t *cycle);
 
 
 extern ngx_uint_t      ngx_process;
+extern ngx_uint_t      ngx_worker;
 extern ngx_pid_t       ngx_pid;
 extern ngx_pid_t       ngx_new_binary;
 extern ngx_uint_t      ngx_inherited;
 extern ngx_uint_t      ngx_daemonized;
-extern ngx_uint_t      ngx_threaded;
 extern ngx_uint_t      ngx_exiting;
 
 extern sig_atomic_t    ngx_reap;

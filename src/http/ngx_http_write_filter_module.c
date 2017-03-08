@@ -8,6 +8,9 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#if (NGX_HTTP_STATUS_PAGE)
+#include <ngx_http_status_page.h>
+#endif
 
 
 static ngx_int_t ngx_http_write_filter_init(ngx_conf_t *cf);
@@ -44,15 +47,11 @@ ngx_module_t  ngx_http_write_filter_module = {
 };
 
 
-#if (NGX_HTTP_STATUS_PAGE)
-#include <ngx_http_status_page.h>
-#endif
-
 ngx_int_t
 ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
     off_t                      size, sent, nsent, limit;
-    ngx_uint_t                 last, flush;
+    ngx_uint_t                 last, flush, sync;
     ngx_msec_t                 delay;
     ngx_chain_t               *cl, *ln, **ll, *chain;
     ngx_connection_t          *c;
@@ -66,9 +65,10 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     size = 0;
     flush = 0;
+    sync = 0;
     last = 0;
     ll = &r->out;
-  
+
 #if (NGX_HTTP_STATUS_PAGE)
     if (ngx_http_status_page_test_old_header(r)) {
         for (cl = r->out; cl; /* void */) {
@@ -89,7 +89,7 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         ngx_log_debug7(NGX_LOG_DEBUG_EVENT, c->log, 0,
                        "write old buf t:%d f:%d %p, pos %p, size: %z "
-                       "file: %O, size: %z",
+                       "file: %O, size: %O",
                        cl->buf->temporary, cl->buf->in_file,
                        cl->buf->start, cl->buf->pos,
                        cl->buf->last - cl->buf->pos,
@@ -120,6 +120,10 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         if (cl->buf->flush || cl->buf->recycled) {
             flush = 1;
+        }
+
+        if (cl->buf->sync) {
+            sync = 1;
         }
 
         if (cl->buf->last_buf) {
@@ -141,7 +145,7 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         ngx_log_debug7(NGX_LOG_DEBUG_EVENT, c->log, 0,
                        "write new buf t:%d f:%d %p, pos %p, size: %z "
-                       "file: %O, size: %z",
+                       "file: %O, size: %O",
                        cl->buf->temporary, cl->buf->in_file,
                        cl->buf->start, cl->buf->pos,
                        cl->buf->last - cl->buf->pos,
@@ -174,6 +178,10 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
             flush = 1;
         }
 
+        if (cl->buf->sync) {
+            sync = 1;
+        }
+
         if (cl->buf->last_buf) {
             last = 1;
         }
@@ -182,7 +190,7 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
     *ll = NULL;
 
     ngx_log_debug3(NGX_LOG_DEBUG_HTTP, c->log, 0,
-                   "http write filter: l:%d f:%d s:%O", last, flush, size);
+                   "http write filter: l:%ui f:%ui s:%O", last, flush, size);
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
@@ -205,7 +213,7 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
         && !(c->buffered & NGX_LOWLEVEL_BUFFERED)
         && !(last && c->need_last_buf))
     {
-        if (last || flush) {
+        if (last || flush || sync) {
             for (cl = r->out; cl; /* void */) {
                 ln = cl;
                 cl = cl->next;
@@ -236,8 +244,8 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         if (limit <= 0) {
             c->write->delayed = 1;
-            ngx_add_timer(c->write,
-                          (ngx_msec_t) (- limit * 1000 / r->limit_rate + 1));
+            delay = (ngx_msec_t) (- limit * 1000 / r->limit_rate + 1);
+            ngx_add_timer(c->write, delay);
 
             c->buffered |= NGX_HTTP_WRITE_BUFFERED;
 

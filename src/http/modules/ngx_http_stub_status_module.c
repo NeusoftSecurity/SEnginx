@@ -21,7 +21,7 @@ static char *ngx_http_set_stub_status(ngx_conf_t *cf, ngx_command_t *cmd,
 static ngx_command_t  ngx_http_status_commands[] = {
 
     { ngx_string("stub_status"),
-      NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS|NGX_CONF_TAKE1,
       ngx_http_set_stub_status,
       0,
       0,
@@ -89,7 +89,7 @@ ngx_http_stub_status_handler(ngx_http_request_t *r)
     ngx_chain_t        out;
     ngx_atomic_int_t   ap, hn, ac, rq, rd, wr, wa;
 
-    if (r->method != NGX_HTTP_GET && r->method != NGX_HTTP_HEAD) {
+    if (!(r->method & (NGX_HTTP_GET|NGX_HTTP_HEAD))) {
         return NGX_HTTP_NOT_ALLOWED;
     }
 

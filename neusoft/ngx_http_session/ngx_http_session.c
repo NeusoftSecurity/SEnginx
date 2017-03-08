@@ -241,7 +241,7 @@ __ngx_http_session_search(ngx_http_request_t *r, ngx_str_t *cookie)
 
     while (tmp) {
         if (!memcmp(tmp->id, cookie->data, cookie->len)
-                && !tmp->des > 0) {
+                && !tmp->des) {
             ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "session search ok, id: %s, addr: %p\n", tmp->id, tmp);
             return tmp;

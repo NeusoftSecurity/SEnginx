@@ -1647,9 +1647,9 @@ ngx_http_upstream_dyn_create_peers(ngx_http_upstream_t *u,
         return NULL;
     }
 
+    peerp = &peers->peer;
 
     if (!implicit) {
-        peerp = &peers->peer;
 
         old_peer = old_peers->peer;
         k = 0;

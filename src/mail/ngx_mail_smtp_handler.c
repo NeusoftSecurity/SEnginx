@@ -11,6 +11,7 @@
 #include <ngx_mail.h>
 #include <ngx_mail_smtp_module.h>
 
+
 static void ngx_mail_smtp_resolve_addr_handler(ngx_resolver_ctx_t *ctx);
 static void ngx_mail_smtp_resolve_name(ngx_event_t *rev);
 static void ngx_mail_smtp_resolve_name_handler(ngx_resolver_ctx_t *ctx);
@@ -41,7 +42,7 @@ static u_char  smtp_username[] = "334 VXNlcm5hbWU6" CRLF;
 static u_char  smtp_password[] = "334 UGFzc3dvcmQ6" CRLF;
 static u_char  smtp_invalid_command[] = "500 5.5.1 Invalid command" CRLF;
 static u_char  smtp_invalid_pipelining[] =
-   "503 5.5.0 Improper use of SMTP command pipelining" CRLF;
+    "503 5.5.0 Improper use of SMTP command pipelining" CRLF;
 static u_char  smtp_invalid_argument[] = "501 5.5.4 Invalid argument" CRLF;
 static u_char  smtp_auth_required[] = "530 5.7.1 Authentication required" CRLF;
 static u_char  smtp_bad_sequence[] = "503 5.5.1 Bad sequence of commands" CRLF;
@@ -495,7 +496,6 @@ ngx_mail_smtp_auth_state(ngx_event_t *rev)
 
     case NGX_DONE:
         ngx_mail_auth(s, c);
-
         return;
 
     case NGX_ERROR:

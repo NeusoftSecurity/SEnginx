@@ -243,8 +243,9 @@ static ngx_http_variable_t  ngx_http_core_variables[] = {
 
     { ngx_string("server_name"), NULL, ngx_http_variable_server_name, 0, 0, 0 },
 
-    { ngx_string("virtual_server_name"), NULL, ngx_http_variable_virtual_server_name, 0, 0, 0 },
-    
+    { ngx_string("virtual_server_name"), NULL,
+      ngx_http_variable_virtual_server_name, 0, 0, 0 },
+
     { ngx_string("request_method"), NULL,
       ngx_http_variable_request_method, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
@@ -579,7 +580,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
         return NULL;
     }
 
-    if (ngx_strncmp(name->data, "http_", 5) == 0) {
+    if (name->len >= 5 && ngx_strncmp(name->data, "http_", 5) == 0) {
 
         if (ngx_http_variable_unknown_header_in(r, vv, (uintptr_t) name)
             == NGX_OK)
@@ -590,7 +591,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
         return NULL;
     }
 
-    if (ngx_strncmp(name->data, "sent_http_", 10) == 0) {
+    if (name->len >= 10 && ngx_strncmp(name->data, "sent_http_", 10) == 0) {
 
         if (ngx_http_variable_unknown_header_out(r, vv, (uintptr_t) name)
             == NGX_OK)
@@ -601,7 +602,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
         return NULL;
     }
 
-    if (ngx_strncmp(name->data, "upstream_http_", 14) == 0) {
+    if (name->len >= 14 && ngx_strncmp(name->data, "upstream_http_", 14) == 0) {
 
         if (ngx_http_upstream_header_variable(r, vv, (uintptr_t) name)
             == NGX_OK)
@@ -612,7 +613,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
         return NULL;
     }
 
-    if (ngx_strncmp(name->data, "cookie_", 7) == 0) {
+    if (name->len >= 7 && ngx_strncmp(name->data, "cookie_", 7) == 0) {
 
         if (ngx_http_variable_cookie(r, vv, (uintptr_t) name) == NGX_OK) {
             return vv;
@@ -621,7 +622,9 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
         return NULL;
     }
 
-    if (ngx_strncmp(name->data, "upstream_cookie_", 16) == 0) {
+    if (name->len >= 16
+        && ngx_strncmp(name->data, "upstream_cookie_", 16) == 0)
+    {
 
         if (ngx_http_upstream_cookie_variable(r, vv, (uintptr_t) name)
             == NGX_OK)
@@ -632,7 +635,7 @@ ngx_http_get_variable(ngx_http_request_t *r, ngx_str_t *name, ngx_uint_t key)
         return NULL;
     }
 
-    if (ngx_strncmp(name->data, "arg_", 4) == 0) {
+    if (name->len >= 4 && ngx_strncmp(name->data, "arg_", 4) == 0) {
 
         if (ngx_http_variable_argument(r, vv, (uintptr_t) name) == NGX_OK) {
             return vv;
@@ -1084,6 +1087,10 @@ ngx_http_variable_content_length(ngx_http_request_t *r,
         v->valid = 1;
         v->no_cacheable = 0;
         v->not_found = 0;
+
+    } else if (r->reading_body) {
+        v->not_found = 1;
+        v->no_cacheable = 1;
 
     } else if (r->headers_in.content_length_n >= 0) {
         p = ngx_pnalloc(r->pool, NGX_OFF_T_LEN);
@@ -1568,6 +1575,7 @@ ngx_http_variable_server_name(ngx_http_request_t *r,
     return NGX_OK;
 }
 
+
 static ngx_int_t
 ngx_http_variable_virtual_server_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
@@ -1584,6 +1592,7 @@ ngx_http_variable_virtual_server_name(ngx_http_request_t *r,
 
     return NGX_OK;
 }
+
 
 static ngx_int_t
 ngx_http_variable_request_method(ngx_http_request_t *r,
@@ -2442,9 +2451,8 @@ ngx_http_regex_exec(ngx_http_request_t *r, ngx_http_regex_t *re, ngx_str_t *s)
 
         v = cmcf->variables.elts;
 
-        ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http regex set $%V to \"%*s\"",
-                       &v[index].name, vv->len, vv->data);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "http regex set $%V to \"%v\"", &v[index].name, vv);
         }
 #endif
     }
@@ -2531,8 +2539,7 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
 
             av = key[n].value;
 
-            if (av->get_handler
-                && v[i].name.len == key[n].key.len
+            if (v[i].name.len == key[n].key.len
                 && ngx_strncmp(v[i].name.data, key[n].key.data, v[i].name.len)
                    == 0)
             {
@@ -2544,25 +2551,35 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
 
                 av->index = i;
 
+                if (av->get_handler == NULL) {
+                    break;
+                }
+
                 goto next;
             }
         }
 
-        if (ngx_strncmp(v[i].name.data, "http_", 5) == 0) {
+        if (v[i].name.len >= 5
+            && ngx_strncmp(v[i].name.data, "http_", 5) == 0)
+        {
             v[i].get_handler = ngx_http_variable_unknown_header_in;
             v[i].data = (uintptr_t) &v[i].name;
 
             continue;
         }
 
-        if (ngx_strncmp(v[i].name.data, "sent_http_", 10) == 0) {
+        if (v[i].name.len >= 10
+            && ngx_strncmp(v[i].name.data, "sent_http_", 10) == 0)
+        {
             v[i].get_handler = ngx_http_variable_unknown_header_out;
             v[i].data = (uintptr_t) &v[i].name;
 
             continue;
         }
 
-        if (ngx_strncmp(v[i].name.data, "upstream_http_", 14) == 0) {
+        if (v[i].name.len >= 14
+            && ngx_strncmp(v[i].name.data, "upstream_http_", 14) == 0)
+        {
             v[i].get_handler = ngx_http_upstream_header_variable;
             v[i].data = (uintptr_t) &v[i].name;
             v[i].flags = NGX_HTTP_VAR_NOCACHEABLE;
@@ -2570,14 +2587,18 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
             continue;
         }
 
-        if (ngx_strncmp(v[i].name.data, "cookie_", 7) == 0) {
+        if (v[i].name.len >= 7
+            && ngx_strncmp(v[i].name.data, "cookie_", 7) == 0)
+        {
             v[i].get_handler = ngx_http_variable_cookie;
             v[i].data = (uintptr_t) &v[i].name;
 
             continue;
         }
 
-        if (ngx_strncmp(v[i].name.data, "upstream_cookie_", 16) == 0) {
+        if (v[i].name.len >= 16
+            && ngx_strncmp(v[i].name.data, "upstream_cookie_", 16) == 0)
+        {
             v[i].get_handler = ngx_http_upstream_cookie_variable;
             v[i].data = (uintptr_t) &v[i].name;
             v[i].flags = NGX_HTTP_VAR_NOCACHEABLE;
@@ -2585,7 +2606,9 @@ ngx_http_variables_init_vars(ngx_conf_t *cf)
             continue;
         }
 
-        if (ngx_strncmp(v[i].name.data, "arg_", 4) == 0) {
+        if (v[i].name.len >= 4
+            && ngx_strncmp(v[i].name.data, "arg_", 4) == 0)
+        {
             v[i].get_handler = ngx_http_variable_argument;
             v[i].data = (uintptr_t) &v[i].name;
             v[i].flags = NGX_HTTP_VAR_NOCACHEABLE;

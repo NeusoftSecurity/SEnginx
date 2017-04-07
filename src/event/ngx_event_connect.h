@@ -33,7 +33,6 @@ typedef void (*ngx_event_save_peer_session_pt)(ngx_peer_connection_t *pc,
     void *data);
 #endif
 
-#define NGX_INVALID_CHECK_INDEX (ngx_uint_t)(-1)
 
 struct ngx_peer_connection_s {
     ngx_connection_t                *connection;
@@ -41,12 +40,16 @@ struct ngx_peer_connection_s {
     struct sockaddr                 *sockaddr;
     socklen_t                        socklen;
     ngx_str_t                       *name;
+
+#if (NGX_DYNAMIC_RESOLVE || NGX_HTTP_UPSTREAM_FAIR)
     ngx_str_t                       *host;
+#endif
+#if (NGX_DYNAMIC_RESOLVE)
+    ngx_uint_t                       dyn_resolve;
+#endif
 
     ngx_uint_t                       tries;
-
-    ngx_uint_t                       check_index;
-    ngx_uint_t                       dyn_resolve;
+    ngx_msec_t                       start_time;
 
     ngx_event_get_peer_pt            get;
     ngx_event_free_peer_pt           free;
@@ -57,27 +60,28 @@ struct ngx_peer_connection_s {
     ngx_event_save_peer_session_pt   save_session;
 #endif
 
-#if (NGX_THREADS)
-    ngx_atomic_t                    *lock;
-#endif
-
     ngx_addr_t                      *local;
 
+    int                              type;
     int                              rcvbuf;
 
     ngx_log_t                       *log;
 
     unsigned                         cached:1;
 
-    unsigned                         resolved:2;
-
                                      /* ngx_connection_log_error_e */
     unsigned                         log_error:2;
+
+#if (NGX_DYNAMIC_RESOLVE)
+    unsigned                         resolved:2;
+#endif
 };
 
 
-ngx_int_t ngx_event_connect_peer(ngx_peer_connection_t *pc);
+#if (NGX_DYNAMIC_RESOLVE)
 ngx_int_t _ngx_event_connect_peer(ngx_peer_connection_t *pc);
+#endif
+ngx_int_t ngx_event_connect_peer(ngx_peer_connection_t *pc);
 ngx_int_t ngx_event_get_peer(ngx_peer_connection_t *pc, void *data);
 
 

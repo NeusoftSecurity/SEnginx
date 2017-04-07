@@ -23,7 +23,21 @@ typedef struct {
 
 
 typedef struct {
+    ngx_http_upstream_keepalive_srv_conf_t  *conf;
+
+    ngx_queue_t                        queue;
+    ngx_connection_t                  *connection;
+
+    socklen_t                          socklen;
+    u_char                             sockaddr[NGX_SOCKADDRLEN];
+
+} ngx_http_upstream_keepalive_cache_t;
+
+
+typedef struct {
+#if (NGX_DYNAMIC_RESOLVE)
     ngx_http_upstream_rr_peer_data_t   rrp;
+#endif
 
     ngx_http_upstream_keepalive_srv_conf_t  *conf;
 
@@ -42,18 +56,6 @@ typedef struct {
 } ngx_http_upstream_keepalive_peer_data_t;
 
 
-typedef struct {
-    ngx_http_upstream_keepalive_srv_conf_t  *conf;
-
-    ngx_queue_t                        queue;
-    ngx_connection_t                  *connection;
-
-    socklen_t                          socklen;
-    u_char                             sockaddr[NGX_SOCKADDRLEN];
-
-} ngx_http_upstream_keepalive_cache_t;
-
-
 static ngx_int_t ngx_http_upstream_init_keepalive_peer(ngx_http_request_t *r,
     ngx_http_upstream_srv_conf_t *us);
 static ngx_int_t ngx_http_upstream_get_keepalive_peer(ngx_peer_connection_t *pc,
@@ -64,7 +66,6 @@ static void ngx_http_upstream_free_keepalive_peer(ngx_peer_connection_t *pc,
 static void ngx_http_upstream_keepalive_dummy_handler(ngx_event_t *ev);
 static void ngx_http_upstream_keepalive_close_handler(ngx_event_t *ev);
 static void ngx_http_upstream_keepalive_close(ngx_connection_t *c);
-
 
 #if (NGX_HTTP_SSL)
 static ngx_int_t ngx_http_upstream_keepalive_set_session(
@@ -81,7 +82,7 @@ static char *ngx_http_upstream_keepalive(ngx_conf_t *cf, ngx_command_t *cmd,
 static ngx_command_t  ngx_http_upstream_keepalive_commands[] = {
 
     { ngx_string("keepalive"),
-      NGX_HTTP_UPS_CONF|NGX_CONF_TAKE12,
+      NGX_HTTP_UPS_CONF|NGX_CONF_TAKE1,
       ngx_http_upstream_keepalive,
       NGX_HTTP_SRV_CONF_OFFSET,
       0,
@@ -191,7 +192,9 @@ ngx_http_upstream_init_keepalive_peer(ngx_http_request_t *r,
     kp->data = r->upstream->peer.data;
     kp->original_get_peer = r->upstream->peer.get;
     kp->original_free_peer = r->upstream->peer.free;
+#if (NGX_DYNAMIC_RESOLVE)
     kp->rrp = *(ngx_http_upstream_rr_peer_data_t *)r->upstream->peer.data;
+#endif
 
     r->upstream->peer.data = kp;
     r->upstream->peer.get = ngx_http_upstream_get_keepalive_peer;
@@ -247,23 +250,28 @@ ngx_http_upstream_get_keepalive_peer(ngx_peer_connection_t *pc, void *data)
             ngx_queue_remove(q);
             ngx_queue_insert_head(&kp->conf->free, q);
 
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-                           "get keepalive peer: using connection %p", c);
-
-            c->idle = 0;
-            c->log = pc->log;
-            c->read->log = pc->log;
-            c->write->log = pc->log;
-            c->pool->log = pc->log;
-
-            pc->connection = c;
-            pc->cached = 1;
-
-            return NGX_DONE;
+            goto found;
         }
     }
 
     return NGX_OK;
+
+found:
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
+                   "get keepalive peer: using connection %p", c);
+
+    c->idle = 0;
+    c->sent = 0;
+    c->log = pc->log;
+    c->read->log = pc->log;
+    c->write->log = pc->log;
+    c->pool->log = pc->log;
+
+    pc->connection = c;
+    pc->cached = 1;
+
+    return NGX_DONE;
 }
 
 
@@ -301,6 +309,14 @@ ngx_http_upstream_free_keepalive_peer(ngx_peer_connection_t *pc, void *data,
         goto invalid;
     }
 
+    if (!u->request_body_sent) {
+        goto invalid;
+    }
+
+    if (ngx_terminate || ngx_exiting) {
+        goto invalid;
+    }
+
     if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
         goto invalid;
     }
@@ -324,8 +340,9 @@ ngx_http_upstream_free_keepalive_peer(ngx_peer_connection_t *pc, void *data,
         item = ngx_queue_data(q, ngx_http_upstream_keepalive_cache_t, queue);
     }
 
-    item->connection = c;
     ngx_queue_insert_head(&kp->conf->cache, q);
+
+    item->connection = c;
 
     pc->connection = NULL;
 
@@ -389,7 +406,7 @@ ngx_http_upstream_keepalive_close_handler(ngx_event_t *ev)
     n = recv(c->fd, buf, 1, MSG_PEEK);
 
     if (n == -1 && ngx_socket_errno == NGX_EAGAIN) {
-        /* stale event */
+        ev->ready = 0;
 
         if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
             goto close;
@@ -472,9 +489,8 @@ ngx_http_upstream_keepalive_create_conf(ngx_conf_t *cf)
      *
      *     conf->original_init_upstream = NULL;
      *     conf->original_init_peer = NULL;
+     *     conf->max_cached = 0;
      */
-
-    conf->max_cached = 1;
 
     return conf;
 }
@@ -488,19 +504,10 @@ ngx_http_upstream_keepalive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ngx_int_t    n;
     ngx_str_t   *value;
-    ngx_uint_t   i;
 
-    uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
-
-    if (kcf->original_init_upstream) {
+    if (kcf->max_cached) {
         return "is duplicate";
     }
-
-    kcf->original_init_upstream = uscf->peer.init_upstream
-                                  ? uscf->peer.init_upstream
-                                  : ngx_http_upstream_init_round_robin;
-
-    uscf->peer.init_upstream = ngx_http_upstream_init_keepalive;
 
     /* read options */
 
@@ -517,23 +524,13 @@ ngx_http_upstream_keepalive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     kcf->max_cached = n;
 
-    for (i = 2; i < cf->args->nelts; i++) {
+    uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
 
-        if (ngx_strcmp(value[i].data, "single") == 0) {
-            ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                               "the \"single\" parameter is deprecated");
-            continue;
-        }
+    kcf->original_init_upstream = uscf->peer.init_upstream
+                                  ? uscf->peer.init_upstream
+                                  : ngx_http_upstream_init_round_robin;
 
-        goto invalid;
-    }
+    uscf->peer.init_upstream = ngx_http_upstream_init_keepalive;
 
     return NGX_CONF_OK;
-
-invalid:
-
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                       "invalid parameter \"%V\"", &value[i]);
-
-    return NGX_CONF_ERROR;
 }

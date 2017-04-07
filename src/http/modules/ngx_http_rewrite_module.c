@@ -39,13 +39,13 @@ static char *ngx_http_rewrite_set(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 static char * ngx_http_rewrite_value(ngx_conf_t *cf,
     ngx_http_rewrite_loc_conf_t *lcf, ngx_str_t *value);
-
 #if (NGX_IF_EXTEND)
 static char *
 ngx_http_rewrite_if_extend (ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *
 ngx_http_rewrite_if_condition_extend (ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf);
 #endif
+
 
 static ngx_command_t  ngx_http_rewrite_commands[] = {
 
@@ -80,6 +80,26 @@ static ngx_command_t  ngx_http_rewrite_commands[] = {
       0,
       NULL },
 
+#if (NGX_IF_EXTEND)
+    {
+        ngx_string ("ifall"),
+        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_1MORE,
+        ngx_http_rewrite_if_extend,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL
+    },
+
+    {
+        ngx_string ("ifany"),
+        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_1MORE,
+        ngx_http_rewrite_if_extend,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        0,
+        NULL
+    },
+#endif
+
     { ngx_string("set"),
       NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF|NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF
                        |NGX_CONF_TAKE2,
@@ -103,26 +123,6 @@ static ngx_command_t  ngx_http_rewrite_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_rewrite_loc_conf_t, uninitialized_variable_warn),
       NULL },
-
-#if (NGX_IF_EXTEND)
-    {
-        ngx_string ("ifall"),
-        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_1MORE,
-        ngx_http_rewrite_if_extend,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL
-    },
-
-    {
-        ngx_string ("ifany"),
-        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_BLOCK|NGX_CONF_1MORE,
-        ngx_http_rewrite_if_extend,
-        NGX_HTTP_LOC_CONF_OFFSET,
-        0,
-        NULL
-    },
-#endif
 
       ngx_null_command
 };
@@ -586,21 +586,21 @@ ngx_http_rewrite_if(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    for (i = 0; ngx_modules[i]; i++) {
-        if (ngx_modules[i]->type != NGX_HTTP_MODULE) {
+    for (i = 0; cf->cycle->modules[i]; i++) {
+        if (cf->cycle->modules[i]->type != NGX_HTTP_MODULE) {
             continue;
         }
 
-        module = ngx_modules[i]->ctx;
+        module = cf->cycle->modules[i]->ctx;
 
         if (module->create_loc_conf) {
 
             mconf = module->create_loc_conf(cf);
             if (mconf == NULL) {
-                 return NGX_CONF_ERROR;
+                return NGX_CONF_ERROR;
             }
 
-            ctx->loc_conf[ngx_modules[i]->ctx_index] = mconf;
+            ctx->loc_conf[cf->cycle->modules[i]->ctx_index] = mconf;
         }
     }
 
@@ -638,7 +638,7 @@ ngx_http_rewrite_if(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     save = *cf;
     cf->ctx = ctx;
 
-    if (pclcf->name.len == 0) {
+    if (cf->cmd_type == NGX_HTTP_SRV_CONF) {
         if_code->loc_conf = NULL;
         cf->cmd_type = NGX_HTTP_SIF_CONF;
 
@@ -1034,7 +1034,11 @@ ngx_http_rewrite_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     if (v->get_handler == NULL
         && ngx_strncasecmp(value[1].data, (u_char *) "http_", 5) != 0
         && ngx_strncasecmp(value[1].data, (u_char *) "sent_http_", 10) != 0
-        && ngx_strncasecmp(value[1].data, (u_char *) "upstream_http_", 14) != 0)
+        && ngx_strncasecmp(value[1].data, (u_char *) "upstream_http_", 14) != 0
+        && ngx_strncasecmp(value[1].data, (u_char *) "cookie_", 7) != 0
+        && ngx_strncasecmp(value[1].data, (u_char *) "upstream_cookie_", 16)
+           != 0
+        && ngx_strncasecmp(value[1].data, (u_char *) "arg_", 4) != 0)
     {
         v->get_handler = ngx_http_rewrite_var;
         v->data = index;
@@ -1127,6 +1131,7 @@ ngx_http_rewrite_value(ngx_conf_t *cf, ngx_http_rewrite_loc_conf_t *lcf,
 
     return NGX_CONF_OK;
 }
+
 
 #if (NGX_IF_EXTEND)
 

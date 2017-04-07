@@ -368,6 +368,7 @@ size_t ngx_fs_bsize(u_char *name);
 #endif
 
 
+#define ngx_stdout               STDOUT_FILENO
 #define ngx_stderr               STDERR_FILENO
 #define ngx_set_stderr(fd)       dup2(fd, STDERR_FILENO)
 #define ngx_set_stderr_n         "dup2(STDERR_FILENO)"
@@ -375,11 +376,19 @@ size_t ngx_fs_bsize(u_char *name);
 
 #if (NGX_HAVE_FILE_AIO)
 
+ngx_int_t ngx_file_aio_init(ngx_file_t *file, ngx_pool_t *pool);
 ssize_t ngx_file_aio_read(ngx_file_t *file, u_char *buf, size_t size,
     off_t offset, ngx_pool_t *pool);
 
 extern ngx_uint_t  ngx_file_aio;
 
+#endif
+
+#if (NGX_THREADS)
+ssize_t ngx_thread_read(ngx_file_t *file, u_char *buf, size_t size,
+    off_t offset, ngx_pool_t *pool);
+ssize_t ngx_thread_write_chain_to_file(ngx_file_t *file, ngx_chain_t *cl,
+    off_t offset, ngx_pool_t *pool);
 #endif
 
 

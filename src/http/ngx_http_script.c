@@ -19,10 +19,10 @@ static ngx_int_t ngx_http_script_add_var_code(ngx_http_script_compile_t *sc,
 static ngx_int_t ngx_http_script_add_args_code(ngx_http_script_compile_t *sc);
 #if (NGX_PCRE)
 static ngx_int_t ngx_http_script_add_capture_code(ngx_http_script_compile_t *sc,
-     ngx_uint_t n);
+    ngx_uint_t n);
 #endif
 static ngx_int_t
-     ngx_http_script_add_full_name_code(ngx_http_script_compile_t *sc);
+    ngx_http_script_add_full_name_code(ngx_http_script_compile_t *sc);
 static size_t ngx_http_script_full_name_len_code(ngx_http_script_engine_t *e);
 static void ngx_http_script_full_name_code(ngx_http_script_engine_t *e);
 
@@ -1488,7 +1488,7 @@ ngx_http_script_file_code(ngx_http_script_engine_t *e)
     r = e->request;
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "http script file op %p \"%V\"", code->op, &path);
+                   "http script file op %p \"%V\"", (void *) code->op, &path);
 
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
@@ -1755,7 +1755,6 @@ ngx_http_script_nop_code(ngx_http_script_engine_t *e)
 
 
 #if (NGX_IF_EXTEND)
-
 void
 ngx_http_script_greater_than_code(ngx_http_script_engine_t *e)
 {
@@ -1824,7 +1823,7 @@ ngx_http_script_less_than_code(ngx_http_script_engine_t *e)
     res = e->sp - 1;
 
     e->ip += sizeof(uintptr_t);
-    
+
     if (ngx_atoi(res->data,res->len) < ngx_atoi(val->data,val->len))
     {
         *res = ngx_http_variable_true_value;
@@ -1930,7 +1929,7 @@ ngx_http_script_or_code(ngx_http_script_engine_t *e)
     res = e->sp - 1;
 
     e->ip += sizeof(uintptr_t);
-    
+
     if ( (val->len && val->data[0] != '0')||(res->len && res->data[0] != '0'))
     {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
@@ -1960,10 +1959,10 @@ ngx_http_script_and_code(ngx_http_script_engine_t *e)
     e->ip += sizeof(uintptr_t);
 
     if ( (val->len && val->data[0] != '0')&&(res->len && res->data[0] != '0')) {
-        
+
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, e->request->connection->log, 0,
                "http script and: yes");
-        
+
         *res = ngx_http_variable_true_value;
         return;
     }
@@ -1973,6 +1972,4 @@ ngx_http_script_and_code(ngx_http_script_engine_t *e)
 
     *res = ngx_http_variable_null_value;
 }
-
 #endif
-

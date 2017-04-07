@@ -12,7 +12,8 @@
 
 use warnings;
 use strict;
-use v5.14;
+use diagnostics;
+#use v5.14;
 
 use Test::More;
 
@@ -175,12 +176,23 @@ sub http_daemon {
 
     my $resp;
 
-    for ($addr) {
-        when ("127.0.0.1") {$resp = "from server 127.0.0.1";}
-        when ("127.0.0.2") {$resp = "from server 127.0.0.2";}
-        when ("127.0.0.3") {$resp = "from server 127.0.0.3";}
-        when ("127.0.0.4") {$resp = "from server 127.0.0.4";}
+#    for ($addr) {
+#        when ("127.0.0.1") {$resp = "from server 127.0.0.1";}
+#        when ("127.0.0.2") {$resp = "from server 127.0.0.2";}
+#        when ("127.0.0.3") {$resp = "from server 127.0.0.3";}
+#        when ("127.0.0.4") {$resp = "from server 127.0.0.4";}
+#    }
+
+    if ($addr eq "127.0.0.1") {
+	$resp = "frome server 127.0.0.1";
+    } elsif ( $addr eq "127.0.0.2") {
+	$resp = "frome server 127.0.0.2";
+    } elsif ( $addr eq "127.0.0.3") {
+	$resp = "frome server 127.0.0.3";
+    } elsif ( $addr eq "127.0.0.4") {
+	$resp = "frome server 127.0.0.4";
     }
+
 
     while (my $client = $server->accept()) {
         $client->autoflush(1);
@@ -249,7 +261,8 @@ sub reply_handler {
 }
 
 sub dns_server_daemon {
-    my $ns = new Net::DNS::Nameserver(
+    my $ns;
+    $ns = new Net::DNS::Nameserver(
         LocalPort    => 53530,
         ReplyHandler => \&reply_handler,
         Verbose      => 0

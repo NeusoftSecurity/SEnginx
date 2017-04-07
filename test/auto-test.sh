@@ -115,6 +115,12 @@ echo "############  http core end  #############"
 echo ""
 
 # ip hash
+echo "############  dynamic resolve start  ###########"
+TEST_NGINX_BINARY=$NGINX_DIR prove ./dynamic_resolve.t
+echo "############  dynamic resolve end  #############"
+echo ""
+
+# ip hash
 echo "############  ip hash start  ###########"
 TEST_NGINX_BINARY=$NGINX_DIR prove ./ip_hash.t
 echo "############  ip hash end  #############"

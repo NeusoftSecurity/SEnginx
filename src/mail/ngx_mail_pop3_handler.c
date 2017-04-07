@@ -11,6 +11,7 @@
 #include <ngx_mail.h>
 #include <ngx_mail_pop3_module.h>
 
+
 static ngx_int_t ngx_mail_pop3_user(ngx_mail_session_t *s, ngx_connection_t *c);
 static ngx_int_t ngx_mail_pop3_pass(ngx_mail_session_t *s, ngx_connection_t *c);
 static ngx_int_t ngx_mail_pop3_capa(ngx_mail_session_t *s, ngx_connection_t *c,
@@ -245,9 +246,7 @@ ngx_mail_pop3_auth_state(ngx_event_t *rev)
     switch (rc) {
 
     case NGX_DONE:
-		
         ngx_mail_auth(s, c);
-
         return;
 
     case NGX_ERROR:

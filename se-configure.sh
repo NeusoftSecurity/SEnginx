@@ -37,16 +37,17 @@ if [ ! -z $HAVE_MOD_SECURITY ]; then
 fi
 
 if [ ! -z $HAVE_NGX_LUA ]; then
-    NGX_ARGS="$NGX_ARGS --add-module=${TRD_DIR}/ngx_devel_kit --add-module=${TRD_DIR}/lua-nginx-module"
+    NGX_ARGS="$NGX_ARGS --add-module=${TRD_DIR}/ngx_devel_kit --add-module=${TRD_DIR}/lua-nginx-module-0.10.7"
 fi
 
 ./configure $NGX_ARGS \
+    --add-module=${TRD_DIR}/ngx_http_upstream_check_module \
     --add-module=${NEU_DIR}/ngx_http_neteye_security \
+    --add-module=${NEU_DIR}/ngx_http_dynamic_resolve \
     --add-module=${TRD_DIR}/naxsi/naxsi_src \
     --add-module=${TRD_DIR}/nginx-upstream-fair \
     --add-module=${TRD_DIR}/headers-more-nginx-module \
     --add-module=${TRD_DIR}/ngx_http_substitutions_filter_module \
-    --add-module=${TRD_DIR}/nginx_tcp_proxy_module \
     --add-module=${NEU_DIR}/ngx_http_upstream_fastest \
     --add-module=${NEU_DIR}/ngx_http_upstream_persistence \
     --add-module=${NEU_DIR}/ngx_http_session \
@@ -60,9 +61,9 @@ fi
     --add-module=${NEU_DIR}/ngx_http_ip_behavior \
     --add-module=${NEU_DIR}/ngx_http_whitelist \
     --add-module=${NEU_DIR}/ngx_http_statistics \
-    --add-module=${TRD_DIR}/ngx_cache_purge-1.3 \
+    --add-module=${TRD_DIR}/ngx_cache_purge-2.3 \
     --add-module=${TRD_DIR}/srcache-nginx-module \
-    --add-module=${TRD_DIR}/memc-nginx-module
+    --add-module=${TRD_DIR}/memc-nginx-module-0.17
 
 get_line_num()
 {

@@ -33,6 +33,23 @@
 #define NGX_SSL_NAME     "OpenSSL"
 
 
+#if (defined LIBRESSL_VERSION_NUMBER && OPENSSL_VERSION_NUMBER == 0x20000000L)
+#undef OPENSSL_VERSION_NUMBER
+#define OPENSSL_VERSION_NUMBER  0x1000107fL
+#endif
+
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10100001L)
+
+#define ngx_ssl_version()       OpenSSL_version(OPENSSL_VERSION)
+
+#else
+
+#define ngx_ssl_version()       SSLeay_version(SSLEAY_VERSION)
+
+#endif
+
+
 #define ngx_ssl_session_t       SSL_SESSION
 #define ngx_ssl_conn_t          SSL
 
@@ -46,6 +63,7 @@ typedef struct {
 
 typedef struct {
     ngx_ssl_conn_t             *connection;
+    SSL_CTX                    *session_ctx;
 
     ngx_int_t                   last;
     ngx_buf_t                  *buf;
@@ -162,7 +180,8 @@ ngx_int_t ngx_ssl_set_session(ngx_connection_t *c, ngx_ssl_session_t *session);
      || n == X509_V_ERR_CERT_UNTRUSTED                                        \
      || n == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE)
 
-#define ngx_ssl_server_certificate ngx_ssl_client_certificate
+ngx_int_t ngx_ssl_check_host(ngx_connection_t *c, ngx_str_t *name);
+
 
 ngx_int_t ngx_ssl_get_protocol(ngx_connection_t *c, ngx_pool_t *pool,
     ngx_str_t *s);
@@ -193,7 +212,7 @@ ngx_int_t ngx_ssl_get_client_verify(ngx_connection_t *c, ngx_pool_t *pool,
 ngx_int_t ngx_ssl_handshake(ngx_connection_t *c);
 ssize_t ngx_ssl_recv(ngx_connection_t *c, u_char *buf, size_t size);
 ssize_t ngx_ssl_write(ngx_connection_t *c, u_char *data, size_t size);
-ssize_t ngx_ssl_recv_chain(ngx_connection_t *c, ngx_chain_t *cl);
+ssize_t ngx_ssl_recv_chain(ngx_connection_t *c, ngx_chain_t *cl, off_t limit);
 ngx_chain_t *ngx_ssl_send_chain(ngx_connection_t *c, ngx_chain_t *in,
     off_t limit);
 void ngx_ssl_free_buffer(ngx_connection_t *c);
@@ -202,9 +221,6 @@ void ngx_cdecl ngx_ssl_error(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     char *fmt, ...);
 void ngx_ssl_cleanup_ctx(void *data);
 
-#if (NGX_COMMON_UPSTREAM)
-extern int  ngx_ssl_lb_sp_SSL_index;
-#endif
 
 extern int  ngx_ssl_connection_index;
 extern int  ngx_ssl_server_conf_index;

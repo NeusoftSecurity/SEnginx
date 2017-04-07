@@ -13,6 +13,10 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
+#if (NGX_THREADS)
+#include <ngx_thread_pool.h>
+#endif
+
 #if (NGX_HTTP_STATISTICS)
 #include <ngx_http_statistics.h>
 #endif
@@ -31,7 +35,7 @@
 
 #define NGX_HTTP_AIO_OFF                0
 #define NGX_HTTP_AIO_ON                 1
-#define NGX_HTTP_AIO_SENDFILE           2
+#define NGX_HTTP_AIO_THREADS            2
 
 
 #define NGX_HTTP_SATISFY_ALL            0
@@ -79,11 +83,14 @@ typedef struct {
 #if (NGX_HTTP_SSL)
     unsigned                   ssl:1;
 #endif
-#if (NGX_HTTP_SPDY)
-    unsigned                   spdy:1;
+#if (NGX_HTTP_V2)
+    unsigned                   http2:1;
 #endif
 #if (NGX_HAVE_INET6 && defined IPV6_V6ONLY)
     unsigned                   ipv6only:1;
+#endif
+#if (NGX_HAVE_REUSEPORT)
+    unsigned                   reuseport:1;
 #endif
     unsigned                   so_keepalive:2;
     unsigned                   proxy_protocol:1;
@@ -120,11 +127,9 @@ typedef enum {
     NGX_HTTP_SERVER_REWRITE_PHASE,
 
     NGX_HTTP_FIND_CONFIG_PHASE,
-
 #if (NGX_HTTP_NETEYE_SECURITY)
     NGX_HTTP_NETEYE_SECURITY_PHASE,
 #endif
-
     NGX_HTTP_REWRITE_PHASE,
     NGX_HTTP_POST_REWRITE_PHASE,
 
@@ -132,7 +137,7 @@ typedef enum {
 
     NGX_HTTP_ACCESS_PHASE,
     NGX_HTTP_POST_ACCESS_PHASE,
-   
+
     NGX_HTTP_TRY_FILES_PHASE,
     NGX_HTTP_CONTENT_PHASE,
 
@@ -155,7 +160,9 @@ typedef struct {
     ngx_http_phase_handler_t  *handlers;
     ngx_uint_t                 server_rewrite_index;
     ngx_uint_t                 location_rewrite_index;
+#if (NGX_HTTP_NETEYE_SECURITY)
     ngx_uint_t                 neteye_security_index;
+#endif
 } ngx_http_phase_engine_t;
 
 
@@ -240,10 +247,10 @@ typedef struct {
 
 
 typedef struct {
-     ngx_hash_combined_t       names;
+    ngx_hash_combined_t        names;
 
-     ngx_uint_t                nregex;
-     ngx_http_server_name_t   *regex;
+    ngx_uint_t                 nregex;
+    ngx_http_server_name_t    *regex;
 } ngx_http_virtual_names_t;
 
 
@@ -256,8 +263,8 @@ struct ngx_http_addr_conf_s {
 #if (NGX_HTTP_SSL)
     unsigned                   ssl:1;
 #endif
-#if (NGX_HTTP_SPDY)
-    unsigned                   spdy:1;
+#if (NGX_HTTP_V2)
+    unsigned                   http2:1;
 #endif
     unsigned                   proxy_protocol:1;
 };
@@ -411,9 +418,8 @@ struct ngx_http_core_loc_conf_s {
                                            /* client_body_in_singe_buffer */
     ngx_flag_t    internal;                /* internal */
     ngx_flag_t    sendfile;                /* sendfile */
-#if (NGX_HAVE_FILE_AIO)
     ngx_flag_t    aio;                     /* aio */
-#endif
+    ngx_flag_t    aio_write;               /* aio_write */
     ngx_flag_t    tcp_nopush;              /* tcp_nopush */
     ngx_flag_t    tcp_nodelay;             /* tcp_nodelay */
     ngx_flag_t    reset_timedout_connection; /* reset_timedout_connection */
@@ -437,6 +443,11 @@ struct ngx_http_core_loc_conf_s {
 #if (NGX_PCRE)
     ngx_array_t  *gzip_disable;            /* gzip_disable */
 #endif
+#endif
+
+#if (NGX_THREADS)
+    ngx_thread_pool_t         *thread_pool;
+    ngx_http_complex_value_t  *thread_pool_value;
 #endif
 
 #if (NGX_HAVE_OPENAT)
@@ -541,10 +552,14 @@ ngx_http_cleanup_t *ngx_http_cleanup_add(ngx_http_request_t *r, size_t size);
 typedef ngx_int_t (*ngx_http_output_header_filter_pt)(ngx_http_request_t *r);
 typedef ngx_int_t (*ngx_http_output_body_filter_pt)
     (ngx_http_request_t *r, ngx_chain_t *chain);
+typedef ngx_int_t (*ngx_http_request_body_filter_pt)
+    (ngx_http_request_t *r, ngx_chain_t *chain);
 
 
 ngx_int_t ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *chain);
 ngx_int_t ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *chain);
+ngx_int_t ngx_http_request_body_save_filter(ngx_http_request_t *r,
+    ngx_chain_t *chain);
 
 
 ngx_int_t ngx_http_set_disable_symlinks(ngx_http_request_t *r,
@@ -569,7 +584,7 @@ extern ngx_str_t  ngx_http_core_get_method;
         r->headers_out.content_length->hash = 0;                              \
         r->headers_out.content_length = NULL;                                 \
     }
-                                                                              \
+
 #define ngx_http_clear_accept_ranges(r)                                       \
                                                                               \
     r->allow_ranges = 0;                                                      \

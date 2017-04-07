@@ -92,10 +92,12 @@ static char *ngx_http_disable_symlinks(ngx_conf_t *cf, ngx_command_t *cmd,
 static char *ngx_http_core_lowat_check(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_core_pool_size(ngx_conf_t *cf, void *post, void *data);
 
+#if (NGX_HTTP_STATISTICS)
 static ngx_int_t
 ngx_http_core_init_process(ngx_cycle_t *cycle);
 static void
 ngx_http_core_exit_process(ngx_cycle_t *cycle);
+#endif
 
 static ngx_conf_post_t  ngx_http_core_lowat_post =
     { ngx_http_core_lowat_check };
